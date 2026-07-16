@@ -1,0 +1,253 @@
+mixed-port: 7890
+socks-port: 7891
+redir-port: 7892
+allow-lan: true
+mode: rule
+log-level: info
+external-controller: 127.0.0.1:9090
+dns:
+  enable: true
+  use-hosts: true
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  default-nameserver:
+    - 1.1.1.1
+    - 8.8.8.8
+  nameserver:
+    - 1.1.1.1
+    - 8.8.8.8
+  fake-ip-filter:
+    - "*.lan"
+    - stun.*.*.*
+    - stun.*.*
+    - time.windows.com
+    - time.nist.gov
+    - time.apple.com
+    - time.asia.apple.com
+    - "*.openwrt.pool.ntp.org"
+    - pool.ntp.org
+    - ntp.ubuntu.com
+    - time1.apple.com
+    - time2.apple.com
+    - time3.apple.com
+    - time4.apple.com
+    - time5.apple.com
+    - time6.apple.com
+    - time7.apple.com
+    - time1.google.com
+    - time2.google.com
+    - time3.google.com
+    - time4.google.com
+    - api.joox.com
+    - joox.com
+    - "*.xiami.com"
+    - "*.msftconnecttest.com"
+    - "*.msftncsi.com"
+    - +.xboxlive.com
+    - "*.*.stun.playstation.net"
+    - xbox.*.*.microsoft.com
+    - "*.ipv6.microsoft.com"
+    - speedtest.cros.wr.pvp.net
+proxies:
+  - name: Germany01-Hysteria2
+    type: hysteria2
+    server: de01.skill-up.store
+    port: 443
+    udp: true
+    password: 25d18763-89c0-4eb1-a974-ab7a9b2bb2e4
+    sni: de01.skill-up.store
+    client-fingerprint: chrome
+    alpn:
+      - h3
+  - name: Germani01-Vless
+    type: vless
+    server: de01.skill-up.store
+    port: 443
+    network: tcp
+    udp: true
+    uuid: 25d18763-89c0-4eb1-a974-ab7a9b2bb2e4
+    packet-encoding: xudp
+    flow: xtls-rprx-vision
+    tls: true
+    servername: videolink.okcdn.ru
+    reality-opts:
+      public-key: USIeD4v_80ggRG_xcTixHfhP5re3z0YWXQJuohpNBFk
+      short-id: ""
+      support-x25519mlkem768: true
+    client-fingerprint: chrome
+  - name: Germany02-Hysteria2
+    type: hysteria2
+    server: de02.skill-up.store
+    port: 443
+    udp: true
+    password: 25d18763-89c0-4eb1-a974-ab7a9b2bb2e4
+    sni: de02.skill-up.store
+    client-fingerprint: chrome
+    alpn:
+      - h3
+  - name: Germany02-Trojan
+    type: trojan
+    server: de02.skill-up.store
+    port: 443
+    network: ws
+    udp: true
+    password: 3U29JUJ7ZkL43yh7WJar2V-jujfwyjRv
+    tls: true
+    sni: de02.skill-up.store
+    ws-opts:
+      path: /ws
+      headers: {}
+    client-fingerprint: chrome
+  - name: Germani02-Vless
+    type: vless
+    server: de02.skill-up.store
+    port: 443
+    network: tcp
+    udp: true
+    uuid: 25d18763-89c0-4eb1-a974-ab7a9b2bb2e4
+    packet-encoding: xudp
+    flow: xtls-rprx-vision
+    tls: true
+    servername: videolink.okcdn.ru
+    reality-opts:
+      public-key: xgKrIKkuicarolThzm4nDv8-H20AgwWQfItV9HqmMik
+      short-id: ""
+      support-x25519mlkem768: true
+    client-fingerprint: chrome
+  - name: Bobr_Kurva01-Hysteria2
+    type: hysteria2
+    server: pl01.skill-up.store
+    port: 443
+    udp: true
+    password: 25d18763-89c0-4eb1-a974-ab7a9b2bb2e4
+    sni: pl01.skill-up.store
+    client-fingerprint: chrome
+    alpn:
+      - h3
+  - name: Bobr_Kurva01-Trojan
+    type: trojan
+    server: pl01.skill-up.store
+    port: 443
+    network: ws
+    udp: true
+    password: 3U29JUJ7ZkL43yh7WJar2V-jujfwyjRv
+    tls: true
+    sni: pl01.skill-up.store
+    ws-opts:
+      path: /ws
+      headers: {}
+    client-fingerprint: chrome
+  - name: Bobr_Kurva01-Vless
+    type: vless
+    server: pl01.skill-up.store
+    port: 443
+    network: tcp
+    udp: true
+    uuid: 25d18763-89c0-4eb1-a974-ab7a9b2bb2e4
+    packet-encoding: xudp
+    flow: xtls-rprx-vision
+    tls: true
+    servername: videolink.okcdn.ru
+    reality-opts:
+      public-key: VqbEdVbJkTic_laMAKD-2HAFD1KGfXGDRIVSnI3bB0A
+      short-id: ""
+      support-x25519mlkem768: true
+    client-fingerprint: chrome
+proxy-groups:
+  - name: 🌍 VPN
+    type: select
+    proxies:
+      - ⚡️ Fastest
+      - Germany01-Hysteria2
+      - Germani01-Vless
+      - Germany02-Hysteria2
+      - Germany02-Trojan
+      - Germani02-Vless
+      - Bobr_Kurva01-Hysteria2
+      - Bobr_Kurva01-Trojan
+      - Bobr_Kurva01-Vless
+  - name: ⚡️ Fastest
+    type: url-test
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+    tolerance: 50
+    proxies:
+      - Germany01-Hysteria2
+      - Germani01-Vless
+      - Germany02-Hysteria2
+      - Germany02-Trojan
+      - Germani02-Vless
+      - Bobr_Kurva01-Hysteria2
+      - Bobr_Kurva01-Trojan
+      - Bobr_Kurva01-Vless
+rules:
+  - DOMAIN-SUFFIX,appcenter.ms,REJECT
+  - DOMAIN-SUFFIX,firebase.io,REJECT
+  - DOMAIN-SUFFIX,crashlytics.com,REJECT
+  - DOMAIN-SUFFIX,doubleclick.net,REJECT
+  - DOMAIN-SUFFIX,google-analytics.com,REJECT
+  - DOMAIN-SUFFIX,googletagmanager.com,REJECT
+  - PROCESS-NAME,hamachi-2-ui.exe,DIRECT
+  - PROCESS-NAME,hamachi-2.exe,DIRECT
+  - PROCESS-NAME,hamachi.exe,DIRECT
+  - PROCESS-NAME,cs2.exe,DIRECT
+  - PROCESS-NAME,csgo.exe,DIRECT
+  - PROCESS-NAME,dota2.exe,DIRECT
+  - PROCESS-NAME,pubg.exe,DIRECT
+  - PROCESS-NAME,Lesta.exe,DIRECT
+  - PROCESS-NAME,YuanShen.exe,DIRECT
+  - PROCESS-NAME,StarRail.exe,DIRECT
+  - PROCESS-NAME,deadlock.exe,DIRECT
+  - PROCESS-NAME,ModernWarfare.exe,DIRECT
+  - PROCESS-NAME,LeagueClient.exe,DIRECT
+  - PROCESS-NAME,Wow.exe,DIRECT
+  - PROCESS-NAME,TslGame.exe,DIRECT
+  - PROCESS-NAME,TslGame_BE.exe,DIRECT
+  - PROCESS-NAME,GenshinImpact.exe,DIRECT
+  - PROCESS-NAME,javaw.exe,DIRECT
+  - PROCESS-NAME,RocketLeague.exe,DIRECT
+  - PROCESS-NAME,EscapeFromTarkov.exe,DIRECT
+  - PROCESS-NAME,BsgLauncher.exe,DIRECT
+  - PROCESS-NAME,bf2042.exe,DIRECT
+  - PROCESS-NAME,eso64.exe,DIRECT
+  - PROCESS-NAME,Destiny2.exe,DIRECT
+  - PROCESS-NAME,FallGuys_client_game.exe,DIRECT
+  - PROCESS-NAME,starwarsbattlefrontii.exe,DIRECT
+  - PROCESS-NAME,ffxiv.exe,DIRECT
+  - PROCESS-NAME,Cyberpunk2077.exe,DIRECT
+  - PROCESS-NAME,RDR2.exe,DIRECT
+  - PROCESS-NAME,Phasmophobia.exe,DIRECT
+  - PROCESS-NAME,DeadByDaylight.exe,DIRECT
+  - PROCESS-NAME,SeaOfThieves.exe,DIRECT
+  - PROCESS-NAME,LostArk.exe,DIRECT
+  - PROCESS-NAME,aces.exe,DIRECT
+  - PROCESS-NAME,ShooterGame.exe,DIRECT
+  - PROCESS-NAME,eldenring.exe,DIRECT
+  - PROCESS-NAME,Warzone.exe,DIRECT
+  - PROCESS-NAME,WorldOfTanks.exe,DIRECT
+  - PROCESS-NAME,WorldOfWarships.exe,DIRECT
+  - PROCESS-NAME,DiabloIV.exe,DIRECT
+  - PROCESS-NAME,RustClient.exe,DIRECT
+  - PROCESS-NAME,FIFA23.exe,DIRECT
+  - PROCESS-NAME,GTA5.exe,DIRECT
+  - PROCESS-NAME,hunt.exe,DIRECT
+  - PROCESS-NAME,frpc.exe,DIRECT
+  - PROCESS-NAME,NTEGlobalLauncher.exe,DIRECT
+  - PROCESS-NAME,NTEGlobalGame.exe,DIRECT
+  - PROCESS-NAME,NTEGlobalUpdate.exe,DIRECT
+  - PROCESS-NAME,NTEGlobalWebBooster.exe,DIRECT
+  - PROCESS-NAME,tixati.exe,DIRECT
+  - PROCESS-NAME,uTorrent.exe,DIRECT
+  - PROCESS-NAME,qBittorrent.exe,DIRECT
+  - DOMAIN-SUFFIX,mangalib.me,DIRECT
+  - DOMAIN-SUFFIX,mangalib.org,DIRECT
+  - DOMAIN-SUFFIX,mail.ru,DIRECT
+  - DOMAIN-SUFFIX,sberbank.ru,DIRECT
+  - DOMAIN-SUFFIX,gosuslugi.ru,DIRECT
+  - DOMAIN-SUFFIX,ru,DIRECT
+  - DOMAIN-SUFFIX,рф,DIRECT
+  - DOMAIN-SUFFIX,by,DIRECT
+  - GEOIP,ru,DIRECT
+  - GEOIP,by,DIRECT
+  - GEOIP,private,DIRECT
+  - MATCH,🌍 VPN
