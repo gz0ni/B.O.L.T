@@ -153,6 +153,22 @@ class MihomoService {
     _process = null;
   }
 
+  /// PUT /configs — горячая перезагрузка конфига с диска без рестарта
+  /// самого процесса mihomo. Используется после правки config.yaml
+  /// сервисом подписок — новые ноды подхватываются мгновенно.
+  Future<void> reloadConfig() async {
+    final response = await http.put(
+      _uri('/configs').replace(queryParameters: {'force': 'true'}),
+      headers: {..._headers, 'Content-Type': 'application/json'},
+      body: jsonEncode({'path': configPath, 'payload': ''}),
+    );
+    if (response.statusCode != 204 && response.statusCode != 200) {
+      throw StateError(
+        'Не удалось перезагрузить конфиг: ${response.statusCode} ${response.body}',
+      );
+    }
+  }
+
   bool get isRunning => _process != null;
 }
 

@@ -5,7 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 
 import 'core/mihomo_service.dart';
+import 'core/subscriptions_service.dart';
 import 'screens/home_screen.dart';
+import 'screens/subscriptions_screen.dart';
 import 'theme/app_theme.dart';
 
 /// Хранится на уровне файла, а не внутри виджета — должен пережить
@@ -53,12 +55,18 @@ Future<void> main() async {
   await mihomo.start();
   _registerShutdownHooks(mihomo);
 
+  final subsService = SubscriptionsService(
+    mihomo: mihomo,
+    configPath: p.join(coreDir, 'config.yaml'),
+    storagePath: p.join(coreDir, 'subscriptions.json'),
+  );
+
   runApp(MaterialApp(
     theme: AppTheme.dark(),
     darkTheme: AppTheme.dark(),
     themeMode: ThemeMode.dark,
     home: Scaffold(
-      body: HomeScreen(mihomo: mihomo),
+      body: SubscriptionsScreen(service: subsService), // временно на месте HomeScreen — проверим экран
     ),
   ));
 }
