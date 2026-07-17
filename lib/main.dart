@@ -3,7 +3,7 @@ import 'package:path/path.dart' as p;
 import 'core/mihomo_service.dart';
 import 'theme/app_theme.dart';
 import 'package:flutter/material.dart';
-import 'screens/locations_screen.dart';
+import 'screens/home_screen.dart';
 
 void _registerShutdownHooks(MihomoService mihomo) {
   ProcessSignal.sigint.watch().listen((_) async {
@@ -30,7 +30,7 @@ Future<void> main() async {
     darkTheme: AppTheme.dark(),
     themeMode: ThemeMode.dark,
     home: Scaffold(
-      body: LocationsScreen(mihomo: mihomo),
+      body: HomeScreen(mihomo: mihomo),
     ),
   ));
 }

@@ -16,7 +16,7 @@ class MihomoService {
     required this.configPath,
     required this.workingDirectory,
     this.controllerHost = '127.0.0.1',
-    this.controllerPort = 9090,
+    this.controllerPort = 19090,
     this.secret = 'test-secret-123',
   });
 
@@ -36,11 +36,33 @@ class MihomoService {
         'Authorization': 'Bearer $secret',
       };
 
+  /// Убивает ранее осиротевшие процессы mihomo, запущенные именно из
+  /// нашей рабочей папки (сравнение по полному пути exe) — не трогает
+  /// другие процессы с тем же именем, если они запущены откуда-то ещё
+  /// (например, отдельный личный VPN-клиент пользователя на mihomo).
+  Future<void> _killOrphans() async {
+    if (!Platform.isWindows) return; // пока актуально только для Windows-сборки
+    try {
+      final normalizedPath = executablePath.replaceAll('/', '\\');
+      await Process.run('powershell', [
+        '-NoProfile',
+        '-Command',
+        "Get-CimInstance Win32_Process -Filter \"Name='mihomo.exe'\" | "
+            "Where-Object { \$_.ExecutablePath -eq '$normalizedPath' } | "
+            "ForEach-Object { Stop-Process -Id \$_.ProcessId -Force }",
+      ]);
+    } catch (_) {
+      // Не критично, если зачистка не удалась — просто попробуем стартовать как есть
+    }
+  }
+
   /// Запускает mihomo как отдельный процесс.
   Future<void> start() async {
     if (_process != null) {
       throw StateError('mihomo уже запущен');
     }
+
+    await _killOrphans();
 
     _process = await Process.start(
       executablePath,
