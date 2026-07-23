@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:http/http.dart' as http;
+import 'package:yaml/yaml.dart';
 
 import 'proxy_models.dart';
 
@@ -28,6 +29,13 @@ class MihomoService {
   final String secret;
 
   Process? _process;
+  bool _elevated = false;
+  final Map<String, String> _lastSelection = {}; // group -> nodeName, переживает рестарты в рамках сессии
+
+  /// true, если mihomo сейчас запущен через UAC-elevation (для TUN).
+  /// В этом режиме у нас нет прямого Process-хендла — процесс живёт
+  /// вне дерева процессов нашего приложения.
+  bool get isElevated => _elevated;
 
   Uri _uri(String path) =>
       Uri.parse('http://$controllerHost:$controllerPort$path');
@@ -53,6 +61,88 @@ class MihomoService {
       ]);
     } catch (_) {
       // Не критично, если зачистка не удалась — просто попробуем стартовать как есть
+    }
+  }
+
+  static const _helperPort = 47891;
+
+  Future<bool> _pingHelper() async {
+    try {
+      final response = await http
+          .get(Uri.parse('http://127.0.0.1:$_helperPort/ping'))
+          .timeout(const Duration(seconds: 2));
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Останавливает обычный процесс и просит постоянный Windows-сервис
+  /// (bolt_helper, зарегистрированный через sc.exe create) запустить
+  /// mihomo от имени SYSTEM. В отличие от Start-Process -Verb RunAs,
+  /// UAC здесь не всплывает вообще — сервис уже работает с правами,
+  /// установленными один раз при установке приложения.
+  Future<void> startElevated() async {
+    if (_elevated) return;
+    if (!Platform.isWindows) {
+      throw UnsupportedError('Elevated-запуск реализован пока только для Windows');
+    }
+
+    final helperAlive = await _pingHelper();
+    if (!helperAlive) {
+      throw StateError(
+        'Служба BoltVpnHelperService не отвечает на 127.0.0.1:$_helperPort. '
+        'Проверьте, что она установлена и запущена '
+        '(sc.exe query BoltVpnHelperService).',
+      );
+    }
+
+    await stop();
+    await _killOrphans();
+
+    final response = await http
+        .post(
+          Uri.parse('http://127.0.0.1:$_helperPort/start'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'path': executablePath,
+            'args': ['-d', workingDirectory, '-f', configPath],
+          }),
+        )
+        .timeout(const Duration(seconds: 5));
+
+    if (response.statusCode != 200 || response.body.isNotEmpty) {
+      throw StateError('Хелпер отказался запускать mihomo: ${response.body}');
+    }
+
+    _elevated = true;
+    await _waitUntilReady(timeout: const Duration(seconds: 10));
+    await _reapplySelections();
+  }
+
+  /// Проверяет config.yaml на диске — если там сохранено tun.enable:true
+  /// (например, с прошлого запуска), нужно сразу стартовать elevated,
+  /// а не обычным способом с гарантированной ошибкой Access is denied.
+  Future<bool> _configHasTunEnabled() async {
+    try {
+      final content = await File(configPath).readAsString();
+      final doc = loadYaml(content);
+      if (doc is! Map) return false;
+      final tun = doc['tun'];
+      if (tun is! Map) return false;
+      return tun['enable'] == true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Запускает mihomo, сам выбирая обычный или elevated-режим —
+  /// смотрит на то, что реально сохранено в config.yaml.
+  Future<void> startAuto() async {
+    if (await _configHasTunEnabled()) {
+      await startElevated();
+    } else {
+      await start();
     }
   }
 
@@ -88,6 +178,7 @@ class MihomoService {
     // Ждём, пока REST API реально поднимется, прежде чем
     // считать старт успешным — простой поллинг с таймаутом.
     await _waitUntilReady();
+    await _reapplySelections();
   }
 
   Future<void> _waitUntilReady({
@@ -144,29 +235,79 @@ class MihomoService {
         'Не удалось переключить прокси: ${response.statusCode} ${response.body}',
       );
     }
+    _lastSelection[group] = nodeName;
+  }
+
+  /// Переприменяет все ранее сделанные вручную выборы локаций —
+  /// вызывается после любого рестарта/hot-reload mihomo, потому что
+  /// полный перезапуск процесса сбрасывает Selector-группы к дефолту
+  /// из файла (обычно это первый элемент в списке proxies).
+  Future<void> _reapplySelections() async {
+    for (final entry in _lastSelection.entries) {
+      try {
+        await http.put(
+          _uri('/proxies/${Uri.encodeComponent(entry.key)}'),
+          headers: {..._headers, 'Content-Type': 'application/json'},
+          body: jsonEncode({'name': entry.value}),
+        );
+      } catch (_) {
+        // Не критично — просто останется дефолтный выбор в этот раз
+      }
+    }
   }
 
   /// Останавливает процесс mihomo (важно вызывать при выходе из приложения —
   /// иначе останется висеть в фоне без UI, тот самый watchdog-риск).
   Future<void> stop() async {
+    if (_elevated) {
+      // Сервис сам убивает СВОЙ дочерний процесс — тут нет проблемы
+      // "неэлевейтед не может убить elevated", потому что запрос идёт
+      // просто по HTTP, а убийство делает сам сервис изнутри.
+      try {
+        await http
+            .post(Uri.parse('http://127.0.0.1:$_helperPort/stop'))
+            .timeout(const Duration(seconds: 3));
+      } catch (_) {}
+      _elevated = false;
+      return;
+    }
     _process?.kill();
     _process = null;
   }
 
-  /// PUT /configs — горячая перезагрузка конфига с диска без рестарта
-  /// самого процесса mihomo. Используется после правки config.yaml
-  /// сервисом подписок — новые ноды подхватываются мгновенно.
-  Future<void> reloadConfig() async {
+  /// PUT /configs с произвольным путём — полностью заменяет запущенный
+  /// конфиг на другой файл (свои proxies, свои group, свои rules).
+  /// Используется для переключения между профилями/подписками.
+  Future<void> loadConfigFromFile(String path) async {
     final response = await http.put(
       _uri('/configs').replace(queryParameters: {'force': 'true'}),
       headers: {..._headers, 'Content-Type': 'application/json'},
-      body: jsonEncode({'path': configPath, 'payload': ''}),
+      body: jsonEncode({'path': path, 'payload': ''}),
     );
     if (response.statusCode != 204 && response.statusCode != 200) {
       throw StateError(
-        'Не удалось перезагрузить конфиг: ${response.statusCode} ${response.body}',
+        'Не удалось загрузить конфиг: ${response.statusCode} ${response.body}',
       );
     }
+    await _reapplySelections();
+  }
+
+  /// PUT /configs — горячая перезагрузка ТЕКУЩЕГО конфига с диска без
+  /// рестарта самого процесса mihomo (например, после ручной правки).
+  Future<void> reloadConfig() => loadConfigFromFile(configPath);
+
+  /// GET /group/{name}/delay — штатный health-check mihomo, реально
+  /// прогоняет все ноды группы через testUrl и обновляет их задержки.
+  Future<void> testGroupDelay(String groupName) async {
+    await http.get(
+      _uri('/group/${Uri.encodeComponent(groupName)}/delay').replace(
+        queryParameters: {
+          'url': 'http://www.gstatic.com/generate_204',
+          'timeout': '5000',
+        },
+      ),
+      headers: _headers,
+    );
   }
 
   bool get isRunning => _process != null;

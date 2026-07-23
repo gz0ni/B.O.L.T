@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 
 import 'mihomo_service.dart';
 import 'proxy_models.dart';
@@ -22,7 +25,26 @@ class ConnectionController extends ChangeNotifier {
   ConnectionStatus status = ConnectionStatus.idle;
   ProxyNode? selectedNode;
   String? errorMessage;
+  String? publicIp;
   DateTime? _connectedAt;
+
+  /// Реальный сетевой запрос — не заглушка. НО: пока нет TUN-режима,
+  /// это просто обычный внешний IP компьютера, а не "IP от VPN" —
+  /// после подключения через кнопку он не поменяется, потому что
+  /// системный трафик физически ещё не идёт через выбранный сервер.
+  Future<void> _refreshPublicIp() async {
+    try {
+      final response = await http
+          .get(Uri.parse('https://api.ipify.org'))
+          .timeout(const Duration(seconds: 4));
+      if (response.statusCode == 200) {
+        publicIp = response.body.trim();
+        notifyListeners();
+      }
+    } catch (_) {
+      // Не критично — просто не покажем IP в этот раз
+    }
+  }
 
   Duration get elapsed =>
       _connectedAt == null ? Duration.zero : DateTime.now().difference(_connectedAt!);
@@ -38,6 +60,7 @@ class ConnectionController extends ChangeNotifier {
     } catch (_) {
       // Молча игнорируем — это фоновое обновление, не критичная операция
     }
+    unawaited(_refreshPublicIp());
   }
 
   Future<void> toggle() async {

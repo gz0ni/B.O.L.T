@@ -1,7 +1,7 @@
 mixed-port: 17890
 socks-port: 17891
 redir-port: 17892
-allow-lan: true
+allow-lan: false
 mode: rule
 log-level: info
 external-controller: 127.0.0.1:19090
@@ -153,94 +153,6 @@ proxies:
       short-id: ""
       support-x25519mlkem768: true
     client-fingerprint: chrome
-  - name: test | Germany01-Hysteria2
-    type: hysteria2
-    server: de01.skill-up.store
-    port: 443
-    password: 130701a5-b228-436c-b601-9b015cea686e
-    udp: true
-    sni: de01.skill-up.store
-    client-fingerprint: chrome
-  - name: test | Germani01-Vless
-    type: vless
-    server: de01.skill-up.store
-    port: 443
-    uuid: 130701a5-b228-436c-b601-9b015cea686e
-    network: tcp
-    udp: true
-    tls: true
-    flow: xtls-rprx-vision
-    servername: videolink.okcdn.ru
-    client-fingerprint: chrome
-    reality-opts:
-      public-key: USIeD4v_80ggRG_xcTixHfhP5re3z0YWXQJuohpNBFk
-      short-id: ""
-  - name: test | Germany02-Hysteria2
-    type: hysteria2
-    server: de02.skill-up.store
-    port: 443
-    password: 130701a5-b228-436c-b601-9b015cea686e
-    udp: true
-    sni: de02.skill-up.store
-    client-fingerprint: chrome
-  - name: test | Germany02-Trojan
-    type: trojan
-    server: de02.skill-up.store
-    port: 443
-    password: uK1Vp-sm9EX4-wNYjYpwwX5w_w_fupSJ
-    udp: true
-    tls: true
-    sni: de02.skill-up.store
-    network: ws
-    ws-opts:
-      path: /ws
-  - name: test | Germani02-Vless
-    type: vless
-    server: de02.skill-up.store
-    port: 443
-    uuid: 130701a5-b228-436c-b601-9b015cea686e
-    network: tcp
-    udp: true
-    tls: true
-    flow: xtls-rprx-vision
-    servername: videolink.okcdn.ru
-    client-fingerprint: chrome
-    reality-opts:
-      public-key: xgKrIKkuicarolThzm4nDv8-H20AgwWQfItV9HqmMik
-      short-id: ""
-  - name: test | Bobr_Kurva01-Hysteria2
-    type: hysteria2
-    server: pl01.skill-up.store
-    port: 443
-    password: 130701a5-b228-436c-b601-9b015cea686e
-    udp: true
-    sni: pl01.skill-up.store
-    client-fingerprint: chrome
-  - name: test | Bobr_Kurva01-Trojan
-    type: trojan
-    server: pl01.skill-up.store
-    port: 443
-    password: uK1Vp-sm9EX4-wNYjYpwwX5w_w_fupSJ
-    udp: true
-    tls: true
-    sni: pl01.skill-up.store
-    network: ws
-    ws-opts:
-      path: /ws
-  - name: test | Bobr_Kurva01-Vless
-    type: vless
-    server: pl01.skill-up.store
-    port: 443
-    uuid: 130701a5-b228-436c-b601-9b015cea686e
-    network: tcp
-    udp: true
-    tls: true
-    flow: xtls-rprx-vision
-    servername: videolink.okcdn.ru
-    client-fingerprint: chrome
-    reality-opts:
-      public-key: VqbEdVbJkTic_laMAKD-2HAFD1KGfXGDRIVSnI3bB0A
-      short-id: ""
 proxy-groups:
   - name: 🌍 VPN
     type: select
@@ -254,14 +166,6 @@ proxy-groups:
       - Bobr_Kurva01-Hysteria2
       - Bobr_Kurva01-Trojan
       - Bobr_Kurva01-Vless
-      - test | Germany01-Hysteria2
-      - test | Germani01-Vless
-      - test | Germany02-Hysteria2
-      - test | Germany02-Trojan
-      - test | Germani02-Vless
-      - test | Bobr_Kurva01-Hysteria2
-      - test | Bobr_Kurva01-Trojan
-      - test | Bobr_Kurva01-Vless
   - name: ⚡️ Fastest
     type: url-test
     url: http://www.gstatic.com/generate_204
@@ -276,14 +180,6 @@ proxy-groups:
       - Bobr_Kurva01-Hysteria2
       - Bobr_Kurva01-Trojan
       - Bobr_Kurva01-Vless
-      - test | Germany01-Hysteria2
-      - test | Germani01-Vless
-      - test | Germany02-Hysteria2
-      - test | Germany02-Trojan
-      - test | Germani02-Vless
-      - test | Bobr_Kurva01-Hysteria2
-      - test | Bobr_Kurva01-Trojan
-      - test | Bobr_Kurva01-Vless
 rules:
   - DOMAIN-SUFFIX,appcenter.ms,REJECT
   - DOMAIN-SUFFIX,firebase.io,REJECT
@@ -355,3 +251,12 @@ rules:
   - GEOIP,by,DIRECT
   - GEOIP,private,DIRECT
   - MATCH,🌍 VPN
+ipv6: false
+tcp-concurrent: true
+tun:
+  enable: true
+  stack: gvisor
+  strict-route: true
+  mtu: 1500
+sniffer:
+  enable: false

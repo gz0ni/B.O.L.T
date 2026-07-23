@@ -1,0 +1,1 @@
+{"routingMode":"rule","tunEnabled":true,"tunStack":"gvisor","strictRoute":true,"allowLan":false,"ipv6":false,"sniffer":false,"dnsMode":"fake-ip","autoConnectOnStart":false,"killSwitch":false,"tcpConcurrent":true,"mtu":1500,"autostartWithSystem":true,"notifications":true,"themeMode":"dark"}

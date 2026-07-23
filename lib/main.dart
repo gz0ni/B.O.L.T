@@ -4,39 +4,26 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 
+import 'core/logs_controller.dart';
 import 'core/mihomo_service.dart';
+import 'core/settings_service.dart';
 import 'core/subscriptions_service.dart';
-import 'screens/home_screen.dart';
-import 'screens/subscriptions_screen.dart';
+import 'screens/app_shell.dart';
 import 'theme/app_theme.dart';
 
-/// Хранится на уровне файла, а не внутри виджета — должен пережить
-/// весь процесс, а не пересоздаваться при перестройке дерева виджетов.
 AppLifecycleListener? _appExitListener;
 
 void _registerShutdownHooks(MihomoService mihomo) {
-  // Ctrl+C в терминале — поддерживается dart:io только через SIGINT,
-  // SIGTERM на Windows не работает (ограничение платформы, не наше).
   ProcessSignal.sigint.watch().listen((_) async {
     await mihomo.stop();
     exit(0);
   });
 
-  // Закрытие окна крестиком / системный запрос на выход.
-  // У AppLifecycleListener.onExitRequested есть известные баги именно
-  // на Windows (зависания в связке с некоторыми плагинами) — поэтому
-  // оборачиваем stop() таймаутом: даже если что-то пойдёт не так,
-  // окно всё равно закроется, а не подвиснет в "Не отвечает".
-  // Второй уровень защиты — _killOrphans() в MihomoService.start(),
-  // который подчистит процесс на следующем запуске, если этот
-  // механизм всё же не сработает.
   _appExitListener = AppLifecycleListener(
     onExitRequested: () async {
       try {
         await mihomo.stop().timeout(const Duration(seconds: 2));
-      } catch (_) {
-        // Не даём зависшей остановке заблокировать закрытие окна
-      }
+      } catch (_) {}
       return ui.AppExitResponse.exit;
     },
   );
@@ -52,21 +39,51 @@ Future<void> main() async {
     workingDirectory: coreDir,
   );
 
-  await mihomo.start();
+  await mihomo.startAuto();
   _registerShutdownHooks(mihomo);
 
   final subsService = SubscriptionsService(
     mihomo: mihomo,
-    configPath: p.join(coreDir, 'config.yaml'),
+    baseConfigPath: p.join(coreDir, 'config.yaml'),
+    profilesDir: p.join(coreDir, 'profiles'),
     storagePath: p.join(coreDir, 'subscriptions.json'),
   );
 
-  runApp(MaterialApp(
-    theme: AppTheme.dark(),
-    darkTheme: AppTheme.dark(),
-    themeMode: ThemeMode.dark,
-    home: Scaffold(
-      body: SubscriptionsScreen(service: subsService), // временно на месте HomeScreen — проверим экран
+  final settingsService = SettingsService(
+    mihomo: mihomo,
+    configPath: p.join(coreDir, 'config.yaml'),
+    storagePath: p.join(coreDir, 'settings.json'),
+    appExecutablePath: Platform.resolvedExecutable,
+  );
+  await settingsService.load();
+
+  final logsController = LogsController(
+    host: '127.0.0.1',
+    port: 19090,
+    secret: 'test-secret-123',
+  );
+
+  runApp(
+    ListenableBuilder(
+      listenable: settingsService,
+      builder: (context, _) {
+        final mode = switch (settingsService.settings.themeMode) {
+          AppThemeMode.dark => ThemeMode.dark,
+          AppThemeMode.light => ThemeMode.light,
+          AppThemeMode.auto => ThemeMode.system,
+        };
+        return MaterialApp(
+          theme: AppTheme.light(),
+          darkTheme: AppTheme.dark(),
+          themeMode: mode,
+          home: AppShell(
+            mihomo: mihomo,
+            subscriptionsService: subsService,
+            settingsService: settingsService,
+            logsController: logsController,
+          ),
+        );
+      },
     ),
-  ));
+  );
 }
