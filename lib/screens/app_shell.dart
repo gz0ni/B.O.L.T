@@ -1,124 +1,71 @@
+import 'package:fl_clash/enum/enum.dart';
+import 'package:fl_clash/models/models.dart';
+import 'package:fl_clash/providers/providers.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../core/connection_controller.dart';
-import '../core/logs_controller.dart';
-import '../core/mihomo_service.dart';
-import '../core/proxy_models.dart';
-import '../core/settings_service.dart';
-import '../core/subscriptions_service.dart';
-import '../theme/app_theme.dart';
-import '../theme/app_tokens.dart';
 import 'logs_screen.dart';
 import 'power_button.dart';
 import 'settings_screen.dart';
 import 'subscriptions_screen.dart';
+import '../theme/app_theme.dart';
+import '../theme/app_tokens.dart';
 
-const _defaultGroup = '🌍 VPN';
+/// Имя группы, которую показываем как список локаций в сайдбаре.
+/// Если такой группы нет в текущем профиле (например, у стороннего
+/// импортированного конфига группы называются иначе) — берём первую
+/// попавшуюся группу-селектор.
+const _preferredGroupName = '🌍 VPN';
 
-/// Единственный источник истины для высоты шапки сайдбара (логотип +
-/// заголовок "ЛОКАЦИИ"). Используется в двух местах: чтобы отрисовать
-/// саму шапку, и чтобы шторка снизу знала, где именно заканчивается
-/// "безопасная зона" и начинается поле поиска — без этой синхронизации
-/// оба места неизбежно расходятся и получается нахлёст (см. обсуждение).
-const double _kSidebarHeaderHeight = 148;
-
-class AppShell extends StatefulWidget {
-  const AppShell({
-    super.key,
-    required this.mihomo,
-    required this.subscriptionsService,
-    required this.settingsService,
-    required this.logsController,
-  });
-
-  final MihomoService mihomo;
-  final SubscriptionsService subscriptionsService;
-  final SettingsService settingsService;
-  final LogsController logsController;
+class AppShell extends ConsumerStatefulWidget {
+  const AppShell({super.key});
 
   @override
-  State<AppShell> createState() => _AppShellState();
+  ConsumerState<AppShell> createState() => _AppShellState();
 }
 
-class _AppShellState extends State<AppShell> {
-  late final ConnectionController _connection;
-  int _refreshTick = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _connection = ConnectionController(mihomo: widget.mihomo, groupName: _defaultGroup)
-      ..addListener(() => setState(() {}));
-    _connection.refreshSelectedNode();
-  }
-
-  @override
-  void dispose() {
-    _connection.dispose();
-    super.dispose();
-  }
-
+class _AppShellState extends ConsumerState<AppShell> {
   Future<void> _openSheet(Widget child) {
     final surfaces = context.surfaces;
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: surfaces.card,
-      barrierColor: Colors.black54,
       elevation: 0,
       clipBehavior: Clip.antiAlias,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
       ),
+      barrierColor: Colors.black54,
       constraints: const BoxConstraints(maxWidth: double.infinity),
-      builder: (context) {
-        final availableHeight = MediaQuery.of(context).size.height - _kSidebarHeaderHeight;
-        return SizedBox(
-          height: availableHeight,
-          child: Column(
-            children: [
-              const SizedBox(height: 12),
-              Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: surfaces.border,
-                  borderRadius: BorderRadius.circular(2),
-                ),
+      builder: (context) => FractionallySizedBox(
+        heightFactor: 0.8,
+        widthFactor: 1,
+        child: Column(
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: surfaces.border,
+                borderRadius: BorderRadius.circular(2),
               ),
-              Expanded(child: child),
-            ],
-          ),
-        );
-      },
+            ),
+            Expanded(child: child),
+          ],
+        ),
+      ),
     );
   }
 
-  void _openSubscriptions() => _openSheet(
-        SubscriptionsScreen(
-          service: widget.subscriptionsService,
-          onClose: () => Navigator.of(context).pop(),
-          onActivated: () {
-            setState(() => _refreshTick++);
-            _connection.refreshSelectedNode();
-          },
-        ),
-      );
+  void _openSubscriptions() =>
+      _openSheet(SubscriptionsScreen(onClose: () => Navigator.of(context).pop()));
 
-  void _openLogs() => _openSheet(
-        LogsScreen(
-          controller: widget.logsController,
-          onClose: () => Navigator.of(context).pop(),
-        ),
-      );
+  void _openLogs() => _openSheet(LogsScreen(onClose: () => Navigator.of(context).pop()));
 
-  void _openSettings() => _openSheet(
-        SettingsScreen(
-          service: widget.settingsService,
-          onClose: () => Navigator.of(context).pop(),
-        ),
-      );
+  void _openSettings() =>
+      _openSheet(SettingsScreen(onClose: () => Navigator.of(context).pop()));
 
   @override
   Widget build(BuildContext context) {
@@ -127,17 +74,10 @@ class _AppShellState extends State<AppShell> {
     return Scaffold(
       body: Row(
         children: [
-          _LocationsSidebar(
-            key: ValueKey(_refreshTick),
-            mihomo: widget.mihomo,
-            onChanged: _connection.refreshSelectedNode,
-          ),
+          const _LocationsSidebar(),
           Container(width: 1, color: surfaces.border),
           Expanded(
             child: _MainArea(
-              key: ValueKey(_refreshTick),
-              connection: _connection,
-              subscriptionsService: widget.subscriptionsService,
               onOpenLogs: _openLogs,
               onOpenSettings: _openSettings,
               onOpenSubscriptions: _openSubscriptions,
@@ -149,93 +89,40 @@ class _AppShellState extends State<AppShell> {
   }
 }
 
-/// Сайдбар — ровно то, чем он является в макете: список локаций с
-/// поиском и избранным, а не общая навигация по разделам приложения.
-class _LocationsSidebar extends StatefulWidget {
-  const _LocationsSidebar({super.key, required this.mihomo, required this.onChanged});
-
-  final MihomoService mihomo;
-  final VoidCallback onChanged;
+/// Сайдбар — список локаций текущего профиля с поиском и избранным.
+class _LocationsSidebar extends ConsumerStatefulWidget {
+  const _LocationsSidebar();
 
   @override
-  State<_LocationsSidebar> createState() => _LocationsSidebarState();
+  ConsumerState<_LocationsSidebar> createState() => _LocationsSidebarState();
 }
 
-class _LocationsSidebarState extends State<_LocationsSidebar> {
-  ProxySnapshot? _snapshot;
-  String? _effectiveGroup; // может отличаться от _defaultGroup для сторонних импортированных конфигов
-  final _favorites = <String>{};
+class _LocationsSidebarState extends ConsumerState<_LocationsSidebar> {
+  final _favorites = <String>{}; // локальный UI-стейт, не персистится
   final _searchController = TextEditingController();
   String _query = '';
-  bool _testingAll = false;
 
   @override
   void initState() {
     super.initState();
-    _load();
     _searchController.addListener(() {
       setState(() => _query = _searchController.text.trim().toLowerCase());
     });
   }
 
-  Future<void> _load() async {
-    try {
-      final snapshot = await widget.mihomo.getSnapshot();
-      if (!mounted) return;
-      String? group;
-      if (snapshot.groups.containsKey(_defaultGroup)) {
-        group = _defaultGroup;
-      } else {
-        // Профиль сторонний (или полный конфиг подписки со своими
-        // группами) — берём первую группу-селектор, какая найдётся.
-        final selector = snapshot.groups.values.where((g) => g.isSelectable);
-        group = selector.isNotEmpty ? selector.first.name : null;
-      }
-      setState(() {
-        _snapshot = snapshot;
-        _effectiveGroup = group;
-      });
-    } catch (_) {
-      // Тихо — сайдбар просто останется с прошлым списком/пустым
-    }
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
-  Future<void> _select(ProxyNode node) async {
-    final group = _effectiveGroup;
-    if (group == null) return;
-    try {
-      await widget.mihomo.selectProxy(group: group, nodeName: node.name);
-      await _load();
-      widget.onChanged();
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Не удалось переключиться: $e')),
-      );
+  Group? _resolveGroup(List<Group> groups) {
+    final preferred = groups.getGroup(_preferredGroupName);
+    if (preferred != null) return preferred;
+    for (final g in groups) {
+      if (g.type == GroupType.Selector) return g;
     }
-  }
-
-  Future<void> _testAll() async {
-    final group = _effectiveGroup;
-    if (group == null) return;
-    setState(() => _testingAll = true);
-    try {
-      await widget.mihomo.testGroupDelay(group);
-      await _load();
-    } catch (_) {
-    } finally {
-      if (mounted) setState(() => _testingAll = false);
-    }
-  }
-
-  void _toggleFavorite(String name) {
-    setState(() {
-      if (_favorites.contains(name)) {
-        _favorites.remove(name);
-      } else {
-        _favorites.add(name);
-      }
-    });
+    return groups.isNotEmpty ? groups.first : null;
   }
 
   @override
@@ -243,12 +130,16 @@ class _LocationsSidebarState extends State<_LocationsSidebar> {
     final surfaces = context.surfaces;
     final semantic = context.semanticColors;
 
-    final group = _effectiveGroup == null ? null : _snapshot?.groups[_effectiveGroup];
-    var nodes = _effectiveGroup == null ? <ProxyNode>[] : (_snapshot?.nodesInGroup(_effectiveGroup!) ?? []);
+    final groups = ref.watch(currentGroupsStateProvider).value;
+    final group = _resolveGroup(groups);
+
+    var nodes = group?.all ?? const <Proxy>[];
+    // Служебные/вложенные группы-обёртки внутри all — оставляем только
+    // реальные ноды (без вложенных Selector/URLTest записей).
+    nodes = nodes.where((p) => p.type != 'Selector' && p.type != 'URLTest').toList();
     if (_query.isNotEmpty) {
       nodes = nodes.where((n) => n.name.toLowerCase().contains(_query)).toList();
     }
-    // Избранное — наверх списка, порядок внутри групп сохраняем как есть.
     nodes.sort((a, b) {
       final favA = _favorites.contains(a.name) ? 0 : 1;
       final favB = _favorites.contains(b.name) ? 0 : 1;
@@ -280,30 +171,14 @@ class _LocationsSidebarState extends State<_LocationsSidebar> {
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpace.s4),
-            child: Row(
-              children: [
-                Text(
-                  'ЛОКАЦИИ',
-                  style: TextStyle(
-                    fontSize: 11,
-                    letterSpacing: 0.8,
-                    color: surfaces.text3,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const Spacer(),
-                IconButton(
-                  tooltip: 'Проверить задержку всех серверов',
-                  icon: _testingAll
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.speed, size: 18),
-                  onPressed: _testingAll ? null : _testAll,
-                ),
-              ],
+            child: Text(
+              'ЛОКАЦИИ',
+              style: TextStyle(
+                fontSize: 11,
+                letterSpacing: 0.8,
+                color: surfaces.text3,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
           Padding(
@@ -327,21 +202,31 @@ class _LocationsSidebarState extends State<_LocationsSidebar> {
           ),
           const SizedBox(height: AppSpace.s2),
           Expanded(
-            child: _snapshot == null
-                ? const Center(child: CircularProgressIndicator())
+            child: group == null
+                ? Center(
+                    child: Text('Нет доступных локаций',
+                        style: TextStyle(color: surfaces.text3)),
+                  )
                 : ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: AppSpace.s3),
                     itemCount: nodes.length,
                     itemBuilder: (context, index) {
                       final node = nodes[index];
-                      final isSelected = node.name == group?.now;
+                      final isSelected = node.name == group.realNow;
                       final isFav = _favorites.contains(node.name);
                       return _LocationTile(
                         node: node,
+                        groupName: group.name,
+                        testUrl: group.testUrl,
                         isSelected: isSelected,
                         isFavorite: isFav,
-                        onTap: () => _select(node),
-                        onFavoriteTap: () => _toggleFavorite(node.name),
+                        onFavoriteTap: () => setState(() {
+                          if (isFav) {
+                            _favorites.remove(node.name);
+                          } else {
+                            _favorites.add(node.name);
+                          }
+                        }),
                       );
                     },
                   ),
@@ -352,31 +237,35 @@ class _LocationsSidebarState extends State<_LocationsSidebar> {
   }
 }
 
-class _LocationTile extends StatelessWidget {
+class _LocationTile extends ConsumerWidget {
   const _LocationTile({
     required this.node,
+    required this.groupName,
+    required this.testUrl,
     required this.isSelected,
     required this.isFavorite,
-    required this.onTap,
     required this.onFavoriteTap,
   });
 
-  final ProxyNode node;
+  final Proxy node;
+  final String groupName;
+  final String? testUrl;
   final bool isSelected;
   final bool isFavorite;
-  final VoidCallback onTap;
   final VoidCallback onFavoriteTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final surfaces = context.surfaces;
     final semantic = context.semanticColors;
 
+    final delayMs = ref.watch(delayProvider(proxyName: node.name, testUrl: testUrl));
+
     Color pingColor() {
-      if (!node.alive || node.delayMs == null) return semantic.danger;
-      final d = node.delayMs!;
-      if (d < 150) return semantic.on;
-      if (d < 350) return semantic.connecting;
+      if (delayMs == null) return surfaces.text3;
+      if (delayMs == 0) return semantic.danger;
+      if (delayMs < 150) return semantic.on;
+      if (delayMs < 350) return semantic.connecting;
       return semantic.danger;
     }
 
@@ -385,13 +274,13 @@ class _LocationTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(AppRadius.sm),
       child: InkWell(
         borderRadius: BorderRadius.circular(AppRadius.sm),
-        onTap: onTap,
+        onTap: () => ref
+            .read(profilesActionProvider.notifier)
+            .updateCurrentSelectedMap(groupName, node.name),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpace.s3, vertical: AppSpace.s2),
           child: Row(
             children: [
-              // Протокол вместо флага страны — реальной геопривязки к
-              // серверу у нас пока нет (см. пояснение в чате).
               Container(
                 width: 34,
                 height: 34,
@@ -401,12 +290,8 @@ class _LocationTile extends StatelessWidget {
                   borderRadius: BorderRadius.circular(AppRadius.xs),
                 ),
                 child: Text(
-                  node.type.substring(0, 2).toUpperCase(),
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: surfaces.text2,
-                  ),
+                  node.type.length >= 2 ? node.type.substring(0, 2).toUpperCase() : node.type,
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: surfaces.text2),
                 ),
               ),
               const SizedBox(width: AppSpace.s3),
@@ -424,15 +309,12 @@ class _LocationTile extends StatelessWidget {
                         fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                       ),
                     ),
-                    Text(
-                      node.type,
-                      style: TextStyle(color: surfaces.text3, fontSize: AppFontSize.xs),
-                    ),
+                    Text(node.type, style: TextStyle(color: surfaces.text3, fontSize: AppFontSize.xs)),
                   ],
                 ),
               ),
               Text(
-                node.alive && node.delayMs != null ? '${node.delayMs} мс' : 'н/д',
+                delayMs == null ? '...' : (delayMs == 0 ? 'н/д' : '$delayMs мс'),
                 style: TextStyle(color: pingColor(), fontSize: AppFontSize.xs),
               ),
               IconButton(
@@ -461,64 +343,30 @@ class _LocationTile extends StatelessWidget {
   }
 }
 
-/// Правая часть окна — power-button по центру, иконки Логи/Настройки
-/// в верхнем правом углу, карточка подписки внизу (клик открывает шторку).
-class _MainArea extends StatelessWidget {
+/// Правая часть — power-button, статус, карточка подписки (с реальными
+/// цифрами трафика из SubscriptionInfo), статистика скорости и IP.
+class _MainArea extends ConsumerWidget {
   const _MainArea({
-    super.key,
-    required this.connection,
-    required this.subscriptionsService,
     required this.onOpenLogs,
     required this.onOpenSettings,
     required this.onOpenSubscriptions,
   });
 
-  final ConnectionController connection;
-  final SubscriptionsService subscriptionsService;
   final VoidCallback onOpenLogs;
   final VoidCallback onOpenSettings;
   final VoidCallback onOpenSubscriptions;
 
-  String _statusLabel() {
-    switch (connection.status) {
-      case ConnectionStatus.on:
-        return 'Подключено';
-      case ConnectionStatus.connecting:
-        return 'Подключение...';
-      case ConnectionStatus.error:
-        return 'Ошибка';
-      case ConnectionStatus.idle:
-        return 'Отключено';
-    }
-  }
-
-  String _statusSub() {
-    final node = connection.selectedNode;
-    switch (connection.status) {
-      case ConnectionStatus.on:
-        return node != null ? '${node.name} · ${node.delayMs ?? '—'} ms' : '';
-      case ConnectionStatus.connecting:
-        return 'Проверка сервера...';
-      case ConnectionStatus.error:
-        return connection.errorMessage ?? 'Не удалось подключиться';
-      case ConnectionStatus.idle:
-        return 'Нажмите, чтобы подключиться';
-    }
-  }
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final surfaces = context.surfaces;
     final semantic = context.semanticColors;
-    final isOn = connection.status == ConnectionStatus.on;
-    final isError = connection.status == ConnectionStatus.error;
 
-    Color statusColor() {
-      if (isOn) return semantic.on;
-      if (connection.status == ConnectionStatus.connecting) return semantic.connecting;
-      if (isError) return semantic.danger;
-      return surfaces.text1;
-    }
+    final isStart = ref.watch(isStartProvider);
+    final currentProfile = ref.watch(currentProfileProvider);
+    final traffic = ref.watch(trafficsProvider).lastOrNull;
+    final runTime = ref.watch(runTimeProvider);
+
+    final status = isStart ? ConnectionStatus.on : ConnectionStatus.idle;
 
     return Container(
       color: surfaces.bg,
@@ -536,34 +384,45 @@ class _MainArea extends StatelessWidget {
             ),
           ),
           const Spacer(),
-          PowerButton(status: connection.status, onTap: connection.toggle),
+          PowerButton(
+            status: status,
+            onTap: () => ref.read(commonActionProvider.notifier).updateStart(),
+          ),
           const SizedBox(height: AppSpace.s6),
           Text(
-            _statusLabel(),
+            isStart ? 'Подключено' : 'Отключено',
             style: TextStyle(
               fontSize: AppFontSize.xl,
               fontWeight: FontWeight.w600,
-              color: statusColor(),
+              color: isStart ? semantic.on : surfaces.text1,
             ),
           ),
           const SizedBox(height: AppSpace.s2),
           Text(
-            _statusSub(),
+            isStart ? (currentProfile?.currentGroupName ?? '') : 'Нажмите, чтобы подключиться',
             style: TextStyle(color: surfaces.text3, fontSize: AppFontSize.sm, fontFamily: 'monospace'),
           ),
           const Spacer(),
           Padding(
             padding: const EdgeInsets.fromLTRB(AppSpace.s4, 0, AppSpace.s4, AppSpace.s3),
-            child: _UsageCard(
-              subscriptionsService: subscriptionsService,
-              onTap: onOpenSubscriptions,
-            ),
+            child: _UsageCard(profile: currentProfile, onTap: onOpenSubscriptions),
           ),
-          if (isOn) ...[
+          if (isStart) ...[
             Container(height: 1, color: surfaces.border),
             Padding(
               padding: const EdgeInsets.all(AppSpace.s4),
-              child: _StatsRow(connection: connection),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _StatCard(
+                      label: 'Скорость',
+                      value: (traffic ?? const Traffic()).speedText,
+                    ),
+                  ),
+                  const SizedBox(width: AppSpace.s2),
+                  Expanded(child: _StatCard(label: 'Время', value: _formatRunTime(runTime))),
+                ],
+              ),
             ),
           ] else
             const SizedBox(height: AppSpace.s2),
@@ -571,40 +430,93 @@ class _MainArea extends StatelessWidget {
       ),
     );
   }
-}
 
-class _StatsRow extends StatelessWidget {
-  const _StatsRow({required this.connection});
-  final ConnectionController connection;
-
-  String _formatDuration(Duration d) {
+  static String _formatRunTime(int? runTimeMs) {
+    if (runTimeMs == null) return '--:--:--';
+    final d = Duration(milliseconds: runTimeMs);
     String two(int n) => n.toString().padLeft(2, '0');
     return '${two(d.inHours)}:${two(d.inMinutes % 60)}:${two(d.inSeconds % 60)}';
   }
+}
+
+class _IconGhostButton extends StatelessWidget {
+  const _IconGhostButton({required this.icon, required this.tooltip, required this.onTap});
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final surfaces = context.surfaces;
-    final isOn = connection.status == ConnectionStatus.on;
+    return Material(
+      color: surfaces.card,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.xs),
+        side: BorderSide(color: surfaces.border),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppRadius.xs),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpace.s2),
+          child: Icon(icon, size: 18, color: surfaces.text2),
+        ),
+      ),
+    );
+  }
+}
 
-    return Row(
-      children: [
-        Expanded(child: _StatCard(label: 'Приём', value: '0 KB/s')),
-        const SizedBox(width: AppSpace.s2),
-        Expanded(child: _StatCard(label: 'Отдача', value: '0 KB/s')),
-        const SizedBox(width: AppSpace.s2),
-        Expanded(
-          child: _StatCard(
-            label: 'Время',
-            value: isOn ? _formatDuration(connection.elapsed) : '--:--:--',
+class _UsageCard extends StatelessWidget {
+  const _UsageCard({required this.profile, required this.onTap});
+  final Profile? profile;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final surfaces = context.surfaces;
+    final semantic = context.semanticColors;
+    final info = profile?.subscriptionInfo;
+
+    return Material(
+      color: surfaces.card,
+      borderRadius: BorderRadius.circular(AppRadius.sm),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpace.s3),
+          child: Row(
+            children: [
+              Icon(Icons.sim_card_outlined, size: 20, color: surfaces.text2),
+              const SizedBox(width: AppSpace.s3),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      profile?.label.isNotEmpty == true ? profile!.label : 'Нет активной подписки',
+                      style: TextStyle(color: surfaces.text1, fontSize: AppFontSize.sm),
+                    ),
+                    if (info != null && info.total > 0) ...[
+                      const SizedBox(height: 4),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(2),
+                        child: LinearProgressIndicator(
+                          value: ((info.upload + info.download) / info.total).clamp(0, 1),
+                          minHeight: 3,
+                          backgroundColor: surfaces.card2,
+                          valueColor: AlwaysStoppedAnimation(semantic.on),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right, size: 18, color: surfaces.text3),
+            ],
           ),
         ),
-        const SizedBox(width: AppSpace.s2),
-        Expanded(
-          flex: 2,
-          child: _IpCard(ip: connection.publicIp),
-        ),
-      ],
+      ),
     );
   }
 }
@@ -636,154 +548,8 @@ class _StatCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 2),
-          Text(
-            label.toUpperCase(),
-            style: TextStyle(fontSize: 10, color: surfaces.text3, letterSpacing: 0.6),
-          ),
+          Text(label.toUpperCase(), style: TextStyle(fontSize: 10, color: surfaces.text3, letterSpacing: 0.6)),
         ],
-      ),
-    );
-  }
-}
-
-class _IpCard extends StatelessWidget {
-  const _IpCard({required this.ip});
-  final String? ip;
-
-  @override
-  Widget build(BuildContext context) {
-    final surfaces = context.surfaces;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpace.s3, vertical: AppSpace.s3),
-      decoration: BoxDecoration(
-        color: surfaces.card,
-        border: Border.all(color: surfaces.border),
-        borderRadius: BorderRadius.circular(AppRadius.sm),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text('IP', style: TextStyle(fontSize: 10, color: surfaces.text3, letterSpacing: 0.6)),
-          const SizedBox(width: AppSpace.s2),
-          Flexible(
-            child: Text(
-              ip ?? '—',
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontFamily: 'monospace',
-                fontSize: AppFontSize.sm,
-                color: surfaces.text1,
-              ),
-            ),
-          ),
-          if (ip != null) ...[
-            const SizedBox(width: AppSpace.s1),
-            InkWell(
-              onTap: () async {
-                await Clipboard.setData(ClipboardData(text: ip!));
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context)
-                      .showSnackBar(const SnackBar(content: Text('IP скопирован')));
-                }
-              },
-              child: Icon(Icons.copy, size: 14, color: surfaces.text3),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _IconGhostButton extends StatelessWidget {
-  const _IconGhostButton({required this.icon, required this.tooltip, required this.onTap});
-  final IconData icon;
-  final String tooltip;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final surfaces = context.surfaces;
-    return Material(
-      color: surfaces.card,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppRadius.xs),
-        side: BorderSide(color: surfaces.border),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppRadius.xs),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpace.s2),
-          child: Icon(icon, size: 18, color: surfaces.text2),
-        ),
-      ),
-    );
-  }
-}
-
-/// Карточка подписки внизу главного экрана. Название и клик — реальные.
-/// Цифры расхода трафика — ЗАГЛУШКА: у mihomo нет понятия квоты, это
-/// метаданные конкретной панели-провайдера, которые мы ещё не запрашиваем.
-class _UsageCard extends StatefulWidget {
-  const _UsageCard({required this.subscriptionsService, required this.onTap});
-
-  final SubscriptionsService subscriptionsService;
-  final VoidCallback onTap;
-
-  @override
-  State<_UsageCard> createState() => _UsageCardState();
-}
-
-class _UsageCardState extends State<_UsageCard> {
-  String? _activeName;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    final activeId = await widget.subscriptionsService.loadActiveId();
-    if (activeId == null) {
-      if (mounted) setState(() => _activeName = 'Основной конфиг');
-      return;
-    }
-    final subs = await widget.subscriptionsService.loadSubscriptions();
-    final match = subs.where((s) => s.id == activeId);
-    if (mounted) {
-      setState(() => _activeName = match.isNotEmpty ? match.first.name : 'Основной конфиг');
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final surfaces = context.surfaces;
-    final semantic = context.semanticColors;
-
-    return Material(
-      color: surfaces.card,
-      borderRadius: BorderRadius.circular(AppRadius.sm),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppRadius.sm),
-        onTap: widget.onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpace.s3),
-          child: Row(
-            children: [
-              Icon(Icons.sim_card_outlined, size: 20, color: surfaces.text2),
-              const SizedBox(width: AppSpace.s3),
-              Expanded(
-                child: Text(
-                  _activeName ?? '...',
-                  style: TextStyle(color: surfaces.text1, fontSize: AppFontSize.sm),
-                ),
-              ),
-              Icon(Icons.chevron_right, size: 18, color: surfaces.text3),
-            ],
-          ),
-        ),
       ),
     );
   }

@@ -1,8 +1,13 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
-import '../core/connection_controller.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_tokens.dart';
+
+/// Раньше жил в удалённом connection_controller.dart (наша старая
+/// архитектура) — переехал сюда, единственное место, где используется.
+enum ConnectionStatus { idle, connecting, on, error }
 
 /// Кольцевая "radar"-анимация вокруг кнопки — активна только в
 /// состоянии `on`, как в мокапе (.ring + @keyframes radar).
