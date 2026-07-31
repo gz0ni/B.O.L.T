@@ -181,6 +181,10 @@ class _LocationsSidebarState extends ConsumerState<_LocationsSidebar> {
       return favA.compareTo(favB);
     });
 
+    final selectedName = ref.watch(
+      currentProfileProvider.select((s) => s?.selectedMap[group?.name]),
+    );
+
     return Container(
       width: 280,
       color: surfaces.bgSoft,
@@ -229,12 +233,14 @@ class _LocationsSidebarState extends ConsumerState<_LocationsSidebar> {
                       )
                     : _IconGhostButton(
                         icon: Icons.bolt,
+                        compact: true,
                         tooltip: 'Проверить задержку всех серверов',
                         onTap: () => _testAllDelays(nodes, group?.testUrl),
                       ),
               ],
             ),
           ),
+          const SizedBox(height: AppSpace.s2),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpace.s4),
             child: TextField(
@@ -266,7 +272,7 @@ class _LocationsSidebarState extends ConsumerState<_LocationsSidebar> {
                     itemCount: nodes.length,
                     itemBuilder: (context, index) {
                       final node = nodes[index];
-                      final isSelected = node.name == group.realNow;
+                      final isSelected = node.name == selectedName;
                       final isFav = _favorites.contains(node.name);
                       return _LocationTile(
                         node: node,
@@ -317,7 +323,7 @@ class _LocationTile extends ConsumerWidget {
 
     Color pingColor() {
       if (delayMs == null) return surfaces.text3;
-      if (delayMs == 0) return semantic.danger;
+      if (delayMs <= 0) return semantic.danger;
       if (delayMs < 150) return semantic.on;
       if (delayMs < 350) return semantic.connecting;
       return semantic.danger;
@@ -376,7 +382,7 @@ class _LocationTile extends ConsumerWidget {
                 ),
               ),
               Text(
-                delayMs == null ? '...' : (delayMs == 0 ? 'н/д' : '$delayMs мс'),
+                delayMs == null ? '...' : (delayMs <= 0 ? 'timeout' : '$delayMs мс'),
                 style: TextStyle(color: pingColor(), fontSize: AppFontSize.xs),
               ),
               IconButton(
@@ -432,6 +438,9 @@ class _MainArea extends ConsumerWidget {
     final currentGroup = _resolvePreferredGroup(
       ref.watch(currentGroupsStateProvider).value,
     );
+    final currentSelected = currentGroup == null
+        ? null
+        : currentProfile?.selectedMap[currentGroup.name];
 
     final status = isStart ? ConnectionStatus.on : ConnectionStatus.idle;
 
@@ -469,9 +478,7 @@ class _MainArea extends ConsumerWidget {
           const SizedBox(height: AppSpace.s2),
           Text(
             isStart
-                ? (currentGroup?.realNow.isNotEmpty == true
-                      ? currentGroup!.realNow
-                      : '—')
+                ? (currentSelected?.isNotEmpty == true ? currentSelected! : '—')
                 : 'Нажмите, чтобы подключиться',
             style: TextStyle(
               color: surfaces.text3,
@@ -517,10 +524,16 @@ class _MainArea extends ConsumerWidget {
 }
 
 class _IconGhostButton extends StatelessWidget {
-  const _IconGhostButton({required this.icon, required this.tooltip, required this.onTap});
+  const _IconGhostButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+    this.compact = false,
+  });
   final IconData icon;
   final String tooltip;
   final VoidCallback onTap;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -535,8 +548,8 @@ class _IconGhostButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppRadius.xs),
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(AppSpace.s2),
-          child: Icon(icon, size: 18, color: surfaces.text2),
+          padding: EdgeInsets.all(compact ? AppSpace.s1 : AppSpace.s2),
+          child: Icon(icon, size: compact ? 16 : 18, color: surfaces.text2),
         ),
       ),
     );

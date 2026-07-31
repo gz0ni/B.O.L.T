@@ -1,8 +1,6 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'config_editor_screen.dart';
-import 'package:fl_clash/common/common.dart';
 import 'package:fl_clash/enum/enum.dart';
 import 'package:fl_clash/models/models.dart';
 import 'package:fl_clash/providers/providers.dart';
@@ -11,7 +9,6 @@ import 'package:fl_clash/theme/app_tokens.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class SubscriptionsScreen extends ConsumerStatefulWidget {
   const SubscriptionsScreen({super.key, this.onClose});
@@ -98,19 +95,6 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
 
   Future<void> _remove(Profile profile) async {
     await ref.read(profilesActionProvider.notifier).deleteProfile(profile.id);
-  }
-
-  Future<void> _openYaml(Profile profile) async {
-    final path = await appPath.getProfilePath(profile.id.toString());
-    final file = File(path);
-    if (!await file.exists()) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Файл профиля ещё не создан')),
-      );
-      return;
-    }
-    await launchUrl(Uri.file(path));
   }
 
   Future<void> _addFromClipboard() async {
@@ -340,9 +324,7 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
                           onRefresh: profile.type == ProfileType.url
                               ? () => _refresh(profile)
                               : null,
-                          onOpenYaml: () => _openYaml(profile),
-                          onEdit: () => _openEditor(profile),
-                          onDelete: () => _remove(profile),
+                          onEdit: () => _openEditor(profile),                          onDelete: () => _remove(profile),
                         ),
                         const SizedBox(height: AppSpace.s2),
                       ],
@@ -360,7 +342,6 @@ class _SubscriptionTile extends ConsumerWidget {
     required this.profile,
     required this.isActive,
     required this.onTap,
-    required this.onOpenYaml,
     this.onRefresh,
     this.onEdit,
     this.onDelete,
@@ -369,7 +350,6 @@ class _SubscriptionTile extends ConsumerWidget {
   final Profile profile;
   final bool isActive;
   final VoidCallback onTap;
-  final VoidCallback onOpenYaml;
   final VoidCallback? onRefresh;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
@@ -452,12 +432,6 @@ class _SubscriptionTile extends ConsumerWidget {
                   icon: const Icon(Icons.refresh, size: 18),
                   tooltip: 'Обновить',
                   onPressed: onRefresh,
-                  visualDensity: VisualDensity.compact,
-                ),
-                IconButton(
-                  icon: const Icon(Icons.code, size: 18),
-                  tooltip: 'Открыть YAML',
-                  onPressed: onOpenYaml,
                   visualDensity: VisualDensity.compact,
                 ),
                 if (onEdit != null)
