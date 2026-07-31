@@ -114,6 +114,9 @@ class ApplicationState extends ConsumerState<Application> {
   }
 
   Widget _buildPlatformApp({required Widget child}) {
+    if (system.isWindows) {
+      return child;
+    }
     if (system.isDesktop) {
       return WindowHeaderContainer(child: child);
     }
