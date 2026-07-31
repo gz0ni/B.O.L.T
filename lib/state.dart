@@ -1,11 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:animations/animations.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:fl_clash/common/theme.dart';
-import 'package:fl_clash/widgets/dialog.dart';
-import 'package:fl_clash/widgets/list.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -182,8 +179,8 @@ class GlobalState {
       child: Builder(
         builder: (context) {
           final appLocalizations = context.appLocalizations;
-          return CommonDialog(
-            title: title ?? appLocalizations.tip,
+          return AlertDialog(
+            title: Text(title ?? appLocalizations.tip),
             actions: [
               if (cancelable)
                 TextButton(
@@ -199,9 +196,8 @@ class GlobalState {
                 child: Text(confirmText ?? appLocalizations.confirm),
               ),
             ],
-            child: Container(
+            content: SizedBox(
               width: 300,
-              constraints: const BoxConstraints(maxHeight: 200),
               child: SingleChildScrollView(
                 child: SelectableText.rich(
                   TextSpan(
@@ -225,9 +221,8 @@ class GlobalState {
       child: Builder(
         builder: (context) {
           final appLocalizations = currentAppLocalizations;
-          return CommonDialog(
-            padding: EdgeInsets.zero,
-            title: appLocalizations.tip,
+          return AlertDialog(
+            title: Text(appLocalizations.tip),
             actions: [
               TextButton(
                 onPressed: () {
@@ -236,14 +231,13 @@ class GlobalState {
                 child: Text(appLocalizations.confirm),
               ),
             ],
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              constraints: const BoxConstraints(maxHeight: 200),
+            content: SizedBox(
+              width: 300,
               child: ListView.separated(
+                shrinkWrap: true,
                 itemBuilder: (_, index) {
                   final message = messages[index];
-                  return ListItem(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                  return ListTile(
                     title: Text(message.label),
                     subtitle: Text(message.message),
                   );
@@ -264,15 +258,29 @@ class GlobalState {
     bool? dismissible,
     bool filter = true,
   }) async {
-    return showModal<T>(
+    final navigatorContext =
+        context ?? globalState.navigatorKey.currentContext!;
+    return showGeneralDialog<T>(
       useRootNavigator: false,
-      context: context ?? globalState.navigatorKey.currentContext!,
-      configuration: FadeScaleTransitionConfiguration(
-        barrierColor: Colors.black38,
-        barrierDismissible: dismissible ?? true,
-      ),
-      builder: (_) => child,
-      filter: filter ? commonFilter : null,
+      context: navigatorContext,
+      barrierDismissible: dismissible ?? true,
+      barrierLabel: MaterialLocalizations.of(
+        navigatorContext,
+      ).modalBarrierDismissLabel,
+      barrierColor: Colors.black38,
+      transitionDuration: const Duration(milliseconds: 200),
+      pageBuilder: (_, _, _) => child,
+      transitionBuilder: (_, animation, _, child) {
+        return FadeTransition(
+          opacity: animation,
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.92, end: 1).animate(
+              CurvedAnimation(parent: animation, curve: Curves.easeOut),
+            ),
+            child: child,
+          ),
+        );
+      },
     );
   }
 
@@ -347,8 +355,8 @@ class GlobalState {
   Future<bool> showDisclaimer() async {
     return await showCommonDialog<bool>(
           dismissible: false,
-          child: CommonDialog(
-            title: currentAppLocalizations.disclaimer,
+          child: AlertDialog(
+            title: Text(currentAppLocalizations.disclaimer),
             actions: [
               TextButton(
                 onPressed: () {
@@ -363,7 +371,7 @@ class GlobalState {
                 child: Text(currentAppLocalizations.agree),
               ),
             ],
-            child: Text(currentAppLocalizations.disclaimerDesc),
+            content: Text(currentAppLocalizations.disclaimerDesc),
           ),
         ) ??
         false;

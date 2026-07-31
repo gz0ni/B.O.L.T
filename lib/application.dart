@@ -14,7 +14,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'pages/pages.dart';
+import 'screens/app_shell.dart';
+import 'theme/app_theme.dart';
 
 class Application extends ConsumerStatefulWidget {
   const Application({super.key});
@@ -35,13 +36,6 @@ class ApplicationState extends ConsumerState<Application> {
       TargetPlatform.macOS: commonSharedXPageTransitions,
     },
   );
-
-  ColorScheme _getAppColorScheme({
-    required Brightness brightness,
-    int? primaryColor,
-  }) {
-    return ref.read(genColorSchemeProvider(brightness));
-  }
 
   @override
   void initState() {
@@ -161,26 +155,16 @@ class ApplicationState extends ConsumerState<Application> {
           locale: utils.getLocaleForString(locale),
           supportedLocales: AppLocalizations.delegate.supportedLocales,
           themeMode: themeProps.themeMode,
-          theme: ThemeData(
-            useMaterial3: true,
+          theme: AppTheme.light().copyWith(
             pageTransitionsTheme: _pageTransitionsTheme,
-            colorScheme: _getAppColorScheme(
-              brightness: Brightness.light,
-              primaryColor: themeProps.primaryColor,
-            ),
           ),
-          darkTheme: ThemeData(
-            useMaterial3: true,
+          darkTheme: AppTheme.dark().copyWith(
             pageTransitionsTheme: _pageTransitionsTheme,
-            colorScheme: _getAppColorScheme(
-              brightness: Brightness.dark,
-              primaryColor: themeProps.primaryColor,
-            ).toPureBlack(themeProps.pureBlack),
           ),
           home: child!,
         );
       },
-      child: const HomePage(),
+      child: const AppShell(),
     );
   }
 

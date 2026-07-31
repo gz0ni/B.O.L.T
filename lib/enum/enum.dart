@@ -4,8 +4,6 @@ import 'dart:io';
 
 import 'package:fl_clash/common/context.dart';
 import 'package:fl_clash/common/system.dart';
-import 'package:fl_clash/views/dashboard/widgets/widgets.dart';
-import 'package:fl_clash/widgets/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -295,38 +293,16 @@ enum FunctionTag {
 }
 
 enum DashboardWidget {
-  networkSpeed(GridItem(crossAxisCellCount: 8, child: NetworkSpeed())),
-  outboundModeV2(GridItem(crossAxisCellCount: 8, child: OutboundModeV2())),
-  outboundMode(GridItem(crossAxisCellCount: 4, child: OutboundMode())),
-  trafficUsage(GridItem(crossAxisCellCount: 4, child: TrafficUsage())),
-  networkDetection(GridItem(crossAxisCellCount: 4, child: NetworkDetection())),
-  tunButton(
-    GridItem(crossAxisCellCount: 4, child: TUNButton()),
-    platforms: desktopPlatforms,
-  ),
-  vpnButton(
-    GridItem(crossAxisCellCount: 4, child: VpnButton()),
-    platforms: [SupportPlatform.Android],
-  ),
-  systemProxyButton(
-    GridItem(crossAxisCellCount: 4, child: SystemProxyButton()),
-    platforms: desktopPlatforms,
-  ),
-  intranetIp(GridItem(crossAxisCellCount: 4, child: IntranetIP())),
-  memoryInfo(GridItem(crossAxisCellCount: 4, child: MemoryInfo()));
-
-  final GridItem widget;
-  final List<SupportPlatform> platforms;
-
-  const DashboardWidget(this.widget, {this.platforms = SupportPlatform.values});
-
-  static DashboardWidget getDashboardWidget(GridItem gridItem) {
-    const dashboardWidgets = DashboardWidget.values;
-    final index = dashboardWidgets.indexWhere(
-      (item) => item.widget == gridItem,
-    );
-    return dashboardWidgets[index];
-  }
+  networkSpeed,
+  outboundModeV2,
+  outboundMode,
+  trafficUsage,
+  networkDetection,
+  tunButton,
+  vpnButton,
+  systemProxyButton,
+  intranetIp,
+  memoryInfo,
 }
 
 enum GeodataLoader { standard, memconservative }

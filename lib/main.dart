@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:fl_clash/pages/error.dart';
 import 'package:fl_clash/state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -28,7 +27,11 @@ Future<void> main() async {
   } catch (e, s) {
     runApp(
       MaterialApp(
-        home: InitErrorScreen(error: e, stack: s),
+        home: Scaffold(
+          body: Center(
+            child: SelectableText('$e\n\n$s'),
+          ),
+        ),
       ),
     );
   }

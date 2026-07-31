@@ -1,69 +1,66 @@
+import 'package:fl_clash/common/common.dart';
+import 'package:fl_clash/enum/enum.dart';
+import 'package:fl_clash/models/models.dart';
+import 'package:fl_clash/providers/providers.dart';
+import 'package:fl_clash/theme/app_theme.dart';
+import 'package:fl_clash/theme/app_tokens.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../core/logs_controller.dart';
-import '../theme/app_theme.dart';
-import '../theme/app_tokens.dart';
+class LogsScreen extends ConsumerStatefulWidget {
+  const LogsScreen({super.key, this.onClose});
 
-class LogsScreen extends StatefulWidget {
-  const LogsScreen({super.key, required this.controller, this.onClose});
-
-  final LogsController controller;
   final VoidCallback? onClose;
 
   @override
-  State<LogsScreen> createState() => _LogsScreenState();
+  ConsumerState<LogsScreen> createState() => _LogsScreenState();
 }
 
-class _LogsScreenState extends State<LogsScreen> {
+class _LogsScreenState extends ConsumerState<LogsScreen> {
   final _scrollController = ScrollController();
+  LogLevel _minLevel = LogLevel.debug;
   bool _autoscroll = true;
 
   @override
-  void initState() {
-    super.initState();
-    widget.controller.addListener(_onUpdate);
-    if (!widget.controller.connected) {
-      widget.controller.connect();
-    }
-  }
-
-  void _onUpdate() {
-    setState(() {});
-    if (_autoscroll && _scrollController.hasClients) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_scrollController.hasClients) {
-          _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
-        }
-      });
-    }
-  }
-
-  @override
   void dispose() {
-    widget.controller.removeListener(_onUpdate);
-    // Соединение НЕ закрываем здесь намеренно, если LogsController
-    // передаётся сверху и переиспользуется между заходами на экран —
-    // владелец жизненного цикла явно решает через disconnect().
     _scrollController.dispose();
     super.dispose();
   }
 
-  Future<void> _copyAll() async {
-    final c = widget.controller;
-    final text = c.filtered
-        .map((e) {
-          final time =
-              '${e.time.hour.toString().padLeft(2, '0')}:${e.time.minute.toString().padLeft(2, '0')}:${e.time.second.toString().padLeft(2, '0')}';
-          return '$time ${_levelLabel(e.level)} ${e.message}';
-        })
-        .join('\n');
+  List<Log> _filter(List<Log> logs) {
+    if (_minLevel == LogLevel.debug) {
+      return logs;
+    }
+    return logs.where((log) => log.logLevel.index >= _minLevel.index).toList();
+  }
 
+  Future<void> _copyAll(List<Log> logs) async {
+    final text = logs
+        .map(
+          (e) => '${e.dateTime} ${e.logLevel.name.toUpperCase().padRight(7)} ${e.payload}',
+        )
+        .join('\n');
     await Clipboard.setData(ClipboardData(text: text));
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Скопировано строк: ${c.filtered.length}')),
+      SnackBar(content: Text('Скопировано строк: ${logs.length}')),
     );
+  }
+
+  Future<void> _exportLogs() async {
+    final saved = await ref.read(logsProvider.notifier).exportLogs();
+    if (!mounted || !saved) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Логи экспортированы')),
+    );
+  }
+
+  void _clearLogs() {
+    final logsState = ref.read(logsProvider);
+    ref
+        .read(logsProvider.notifier)
+        .value = FixedList(logsState.maxLength);
   }
 
   Color _levelColor(LogLevel level, AppSemanticColors semantic, AppSurfaces surfaces) {
@@ -76,19 +73,8 @@ class _LogsScreenState extends State<LogsScreen> {
         return semantic.info;
       case LogLevel.debug:
         return surfaces.text3;
-    }
-  }
-
-  String _levelLabel(LogLevel level) {
-    switch (level) {
-      case LogLevel.error:
-        return 'ERROR';
-      case LogLevel.warning:
-        return 'WARN';
-      case LogLevel.info:
-        return 'INFO';
-      case LogLevel.debug:
-        return 'DEBUG';
+      case LogLevel.silent:
+        return surfaces.text3;
     }
   }
 
@@ -96,7 +82,16 @@ class _LogsScreenState extends State<LogsScreen> {
   Widget build(BuildContext context) {
     final surfaces = context.surfaces;
     final semantic = context.semanticColors;
-    final c = widget.controller;
+    final logs = ref.watch(logsProvider).list;
+    final filtered = _filter(logs);
+
+    if (_autoscroll) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scrollController.hasClients) {
+          _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+        }
+      });
+    }
 
     return Container(
       color: surfaces.bg,
@@ -115,18 +110,21 @@ class _LogsScreenState extends State<LogsScreen> {
                     color: surfaces.text1,
                   ),
                 ),
-                const SizedBox(width: AppSpace.s2),
-                _ConnectionDot(connected: c.connected, semantic: semantic),
                 const Spacer(),
                 _LevelFilter(
-                  value: c.minLevel,
-                  onChanged: c.setMinLevel,
+                  value: _minLevel,
+                  onChanged: (level) => setState(() => _minLevel = level),
                 ),
                 const SizedBox(width: AppSpace.s2),
                 IconButton(
                   tooltip: 'Скопировать всё',
                   icon: const Icon(Icons.copy_all_outlined),
-                  onPressed: c.filtered.isEmpty ? null : _copyAll,
+                  onPressed: filtered.isEmpty ? null : () => _copyAll(filtered),
+                ),
+                IconButton(
+                  tooltip: 'Экспорт логов',
+                  icon: const Icon(Icons.save_alt),
+                  onPressed: filtered.isEmpty ? null : _exportLogs,
                 ),
                 IconButton(
                   tooltip: _autoscroll ? 'Автоскролл: вкл' : 'Автоскролл: выкл',
@@ -137,14 +135,9 @@ class _LogsScreenState extends State<LogsScreen> {
                   onPressed: () => setState(() => _autoscroll = !_autoscroll),
                 ),
                 IconButton(
-                  tooltip: c.paused ? 'Возобновить' : 'Пауза',
-                  icon: Icon(c.paused ? Icons.play_arrow : Icons.pause),
-                  onPressed: () => setState(c.togglePause),
-                ),
-                IconButton(
                   tooltip: 'Очистить',
                   icon: const Icon(Icons.delete_outline),
-                  onPressed: () => setState(c.clear),
+                  onPressed: _clearLogs,
                 ),
                 if (widget.onClose != null)
                   IconButton(
@@ -154,31 +147,21 @@ class _LogsScreenState extends State<LogsScreen> {
               ],
             ),
           ),
-          if (c.error != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpace.s4),
-              child: Text(
-                'Нет соединения с ядром: ${c.error}',
-                style: TextStyle(color: semantic.danger, fontSize: AppFontSize.sm),
-              ),
-            ),
           Expanded(
-            child: c.filtered.isEmpty
+            child: filtered.isEmpty
                 ? Center(
                     child: Text(
-                      c.connected ? 'Логов пока нет' : 'Подключение...',
+                      'Логов пока нет',
                       style: TextStyle(color: surfaces.text3),
                     ),
                   )
                 : ListView.builder(
                     controller: _scrollController,
                     padding: const EdgeInsets.symmetric(horizontal: AppSpace.s4),
-                    itemCount: c.filtered.length,
+                    itemCount: filtered.length,
                     itemBuilder: (context, index) {
-                      final e = c.filtered[index];
-                      final color = _levelColor(e.level, semantic, surfaces);
-                      final time =
-                          '${e.time.hour.toString().padLeft(2, '0')}:${e.time.minute.toString().padLeft(2, '0')}:${e.time.second.toString().padLeft(2, '0')}';
+                      final log = filtered[index];
+                      final color = _levelColor(log.logLevel, semantic, surfaces);
                       return Padding(
                         padding: const EdgeInsets.symmetric(vertical: 2),
                         child: RichText(
@@ -186,15 +169,18 @@ class _LogsScreenState extends State<LogsScreen> {
                             style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
                             children: [
                               TextSpan(
-                                text: '$time  ',
+                                text: '${log.dateTime}  ',
                                 style: TextStyle(color: surfaces.text3),
                               ),
                               TextSpan(
-                                text: '${_levelLabel(e.level).padRight(5)}  ',
-                                style: TextStyle(color: color, fontWeight: FontWeight.w600),
+                                text: '${log.logLevel.name.toUpperCase().padRight(7)}  ',
+                                style: TextStyle(
+                                  color: color,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                               TextSpan(
-                                text: e.message,
+                                text: log.payload,
                                 style: TextStyle(color: surfaces.text1),
                               ),
                             ],
@@ -205,24 +191,6 @@ class _LogsScreenState extends State<LogsScreen> {
                   ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _ConnectionDot extends StatelessWidget {
-  const _ConnectionDot({required this.connected, required this.semantic});
-  final bool connected;
-  final AppSemanticColors semantic;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 8,
-      height: 8,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: connected ? semantic.on : semantic.danger,
       ),
     );
   }
@@ -245,7 +213,9 @@ class _LevelFilter extends StatelessWidget {
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
-        children: LogLevel.values.map((level) {
+        children: LogLevel.values
+            .where((level) => level != LogLevel.silent)
+            .map((level) {
           final selected = level == value;
           return GestureDetector(
             onTap: () => onChanged(level),

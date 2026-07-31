@@ -7,7 +7,7 @@ import 'package:fl_clash/common/common.dart';
 import 'package:fl_clash/enum/enum.dart';
 import 'package:fl_clash/plugins/app.dart';
 import 'package:fl_clash/state.dart';
-import 'package:fl_clash/widgets/input.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart';
 
@@ -99,12 +99,32 @@ class System {
       return AuthorizeCode.success;
     } else if (Platform.isLinux) {
       final shell = Platform.environment['SHELL'] ?? 'bash';
+      final controller = TextEditingController();
       final password = await globalState.showCommonDialog<String>(
-        child: InputDialog(
-          obscureText: true,
-          title: currentAppLocalizations.pleaseInputAdminPassword,
-          value: '',
-          inputFormatters: TextInputLimits.limit(TextInputLimits.password),
+        child: AlertDialog(
+          title: Text(currentAppLocalizations.pleaseInputAdminPassword),
+          content: TextField(
+            controller: controller,
+            obscureText: true,
+            autofocus: true,
+            onSubmitted: (_) => Navigator.of(
+              globalState.navigatorKey.currentContext!,
+            ).pop(controller.text),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(
+                globalState.navigatorKey.currentContext!,
+              ).pop(),
+              child: Text(currentAppLocalizations.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(
+                globalState.navigatorKey.currentContext!,
+              ).pop(controller.text),
+              child: Text(currentAppLocalizations.confirm),
+            ),
+          ],
         ),
       );
       if (password == null || password.isEmpty) {

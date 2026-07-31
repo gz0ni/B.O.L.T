@@ -5,8 +5,6 @@ import 'dart:math';
 import 'package:fl_clash/common/common.dart';
 import 'package:fl_clash/models/models.dart';
 import 'package:fl_clash/providers/providers.dart';
-import 'package:fl_clash/widgets/fade_box.dart';
-import 'package:fl_clash/widgets/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -108,8 +106,8 @@ class StatusManagerState extends State<StatusManager> {
                   child: ValueListenableBuilder(
                     valueListenable: _messagesNotifier,
                     builder: (_, messages, _) {
-                      return FadeThroughBox(
-                        alignment: Alignment.centerRight,
+                      return AnimatedSwitcher(
+                        duration: animateDuration,
                         child: messages.isEmpty
                             ? const SizedBox()
                             : LayoutBuilder(
@@ -161,21 +159,19 @@ class StatusManagerState extends State<StatusManager> {
                                             const SizedBox(width: 16),
                                             if (messages.last.actionState !=
                                                 null)
-                                              CommonMinFilledButtonTheme(
-                                                child: FilledButton.tonal(
-                                                  onPressed: () async {
-                                                    _cancelMessage(
-                                                      messages.last.id,
-                                                    );
-                                                    messages.last.actionState!
-                                                        .action();
-                                                  },
-                                                  child: Text(
-                                                    messages
-                                                        .last
-                                                        .actionState!
-                                                        .actionText,
-                                                  ),
+                                              FilledButton.tonal(
+                                                onPressed: () async {
+                                                  _cancelMessage(
+                                                    messages.last.id,
+                                                  );
+                                                  messages.last.actionState!
+                                                      .action();
+                                                },
+                                                child: Text(
+                                                  messages
+                                                      .last
+                                                      .actionState!
+                                                      .actionText,
                                                 ),
                                               ),
                                           ],

@@ -67,9 +67,9 @@ class SettingsRow extends StatelessWidget {
 }
 
 class SettingsSwitch extends StatelessWidget {
-  const SettingsSwitch({super.key, required this.value, required this.onChanged});
+  const SettingsSwitch({super.key, required this.value, this.onChanged});
   final bool value;
-  final ValueChanged<bool> onChanged;
+  final ValueChanged<bool>? onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -148,14 +148,14 @@ class SettingsStepper extends StatelessWidget {
   const SettingsStepper({
     super.key,
     required this.value,
-    required this.onChanged,
+    this.onChanged,
     this.step = 20,
     this.min = 1000,
     this.max = 9000,
   });
 
   final int value;
-  final ValueChanged<int> onChanged;
+  final ValueChanged<int>? onChanged;
   final int step;
   final int min;
   final int max;
@@ -173,7 +173,9 @@ class SettingsStepper extends StatelessWidget {
         children: [
           IconButton(
             icon: const Icon(Icons.remove, size: 16),
-            onPressed: value - step >= min ? () => onChanged(value - step) : null,
+            onPressed: onChanged == null || value - step < min
+                ? null
+                : () => onChanged!(value - step),
           ),
           SizedBox(
             width: 48,
@@ -185,7 +187,9 @@ class SettingsStepper extends StatelessWidget {
           ),
           IconButton(
             icon: const Icon(Icons.add, size: 16),
-            onPressed: value + step <= max ? () => onChanged(value + step) : null,
+            onPressed: onChanged == null || value + step > max
+                ? null
+                : () => onChanged!(value + step),
           ),
         ],
       ),

@@ -8,6 +8,7 @@ import 'logs_screen.dart';
 import 'power_button.dart';
 import 'settings_screen.dart';
 import 'subscriptions_screen.dart';
+import '../common/common.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_tokens.dart';
 
@@ -363,7 +364,7 @@ class _MainArea extends ConsumerWidget {
 
     final isStart = ref.watch(isStartProvider);
     final currentProfile = ref.watch(currentProfileProvider);
-    final traffic = ref.watch(trafficsProvider).lastOrNull;
+    final traffic = ref.watch(trafficsProvider).list.safeLast(const Traffic());
     final runTime = ref.watch(runTimeProvider);
 
     final status = isStart ? ConnectionStatus.on : ConnectionStatus.idle;
@@ -416,7 +417,7 @@ class _MainArea extends ConsumerWidget {
                   Expanded(
                     child: _StatCard(
                       label: 'Скорость',
-                      value: (traffic ?? const Traffic()).speedText,
+                      value: traffic.speedText,
                     ),
                   ),
                   const SizedBox(width: AppSpace.s2),

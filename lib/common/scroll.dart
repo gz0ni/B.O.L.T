@@ -2,7 +2,6 @@ import 'dart:math';
 import 'dart:ui';
 
 import 'package:fl_clash/common/common.dart';
-import 'package:fl_clash/widgets/scroll.dart';
 import 'package:flutter/material.dart';
 
 class BaseScrollBehavior extends MaterialScrollBehavior {
@@ -22,25 +21,7 @@ class BaseScrollBehavior extends MaterialScrollBehavior {
     Widget child,
     ScrollableDetails details,
   ) {
-    switch (axisDirectionToAxis(details.direction)) {
-      case Axis.horizontal:
-        return child;
-      case Axis.vertical:
-        switch (getPlatform(context)) {
-          case TargetPlatform.linux:
-          case TargetPlatform.macOS:
-          case TargetPlatform.windows:
-            assert(details.controller != null);
-            return CommonScrollBar(
-              controller: details.controller,
-              child: child,
-            );
-          case TargetPlatform.android:
-          case TargetPlatform.fuchsia:
-          case TargetPlatform.iOS:
-            return child;
-        }
-    }
+    return child;
   }
 }
 
@@ -62,7 +43,7 @@ class ShowBarScrollBehavior extends BaseScrollBehavior {
     Widget child,
     ScrollableDetails details,
   ) {
-    return CommonScrollBar(controller: details.controller, child: child);
+    return child;
   }
 }
 
