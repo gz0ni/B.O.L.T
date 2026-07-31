@@ -1,14 +1,16 @@
+import 'package:fl_clash/common/common.dart';
+import 'package:fl_clash/core/core.dart';
 import 'package:fl_clash/enum/enum.dart';
 import 'package:fl_clash/models/models.dart';
 import 'package:fl_clash/providers/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'config_editor_screen.dart';
 import 'logs_screen.dart';
 import 'power_button.dart';
 import 'settings_screen.dart';
 import 'subscriptions_screen.dart';
-import '../common/common.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_tokens.dart';
 
@@ -17,6 +19,15 @@ import '../theme/app_tokens.dart';
 /// импортированного конфига группы называются иначе) — берём первую
 /// попавшуюся группу-селектор.
 const _preferredGroupName = '🌍 VPN';
+
+Group? _resolvePreferredGroup(List<Group> groups) {
+  final preferred = groups.getGroup(_preferredGroupName);
+  if (preferred != null) return preferred;
+  for (final g in groups) {
+    if (g.type == GroupType.Selector) return g;
+  }
+  return groups.isNotEmpty ? groups.first : null;
+}
 
 class AppShell extends ConsumerStatefulWidget {
   const AppShell({super.key});
@@ -68,6 +79,20 @@ class _AppShellState extends ConsumerState<AppShell> {
   void _openSettings() =>
       _openSheet(SettingsScreen(onClose: () => Navigator.of(context).pop()));
 
+  void _openConfigEditor() {
+    final profile = ref.read(currentProfileProvider);
+    if (profile == null) {
+      context.showSnackBar('Сначала активируйте подписку');
+      return;
+    }
+    _openSheet(
+      ConfigEditorScreen(
+        profileId: profile.id,
+        onClose: () => Navigator.of(context).pop(),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final surfaces = context.surfaces;
@@ -82,6 +107,7 @@ class _AppShellState extends ConsumerState<AppShell> {
               onOpenLogs: _openLogs,
               onOpenSettings: _openSettings,
               onOpenSubscriptions: _openSubscriptions,
+              onOpenConfigEditor: _openConfigEditor,
             ),
           ),
         ],
@@ -99,9 +125,10 @@ class _LocationsSidebar extends ConsumerStatefulWidget {
 }
 
 class _LocationsSidebarState extends ConsumerState<_LocationsSidebar> {
-  final _favorites = <String>{}; // локальный UI-стейт, не персистится
+  final _favorites = <String>{}; // локальный UI-стейт, не перситится
   final _searchController = TextEditingController();
   String _query = '';
+  bool _pinging = false;
 
   @override
   void initState() {
@@ -117,13 +144,20 @@ class _LocationsSidebarState extends ConsumerState<_LocationsSidebar> {
     super.dispose();
   }
 
-  Group? _resolveGroup(List<Group> groups) {
-    final preferred = groups.getGroup(_preferredGroupName);
-    if (preferred != null) return preferred;
-    for (final g in groups) {
-      if (g.type == GroupType.Selector) return g;
+  Future<void> _testAllDelays(List<Proxy> nodes, String? groupTestUrl) async {
+    if (_pinging || nodes.isEmpty) return;
+    setState(() => _pinging = true);
+    try {
+      final testUrl = groupTestUrl?.isNotEmpty == true
+          ? groupTestUrl!
+          : ref.read(appSettingProvider).testUrl;
+      for (final node in nodes) {
+        if (!mounted) return;
+        await coreController.getDelay(testUrl, node.name);
+      }
+    } finally {
+      if (mounted) setState(() => _pinging = false);
     }
-    return groups.isNotEmpty ? groups.first : null;
   }
 
   @override
@@ -132,7 +166,7 @@ class _LocationsSidebarState extends ConsumerState<_LocationsSidebar> {
     final semantic = context.semanticColors;
 
     final groups = ref.watch(currentGroupsStateProvider).value;
-    final group = _resolveGroup(groups);
+    final group = _resolvePreferredGroup(groups);
 
     var nodes = group?.all ?? const <Proxy>[];
     // Служебные/вложенные группы-обёртки внутри all — оставляем только
@@ -172,14 +206,33 @@ class _LocationsSidebarState extends ConsumerState<_LocationsSidebar> {
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpace.s4),
-            child: Text(
-              'ЛОКАЦИИ',
-              style: TextStyle(
-                fontSize: 11,
-                letterSpacing: 0.8,
-                color: surfaces.text3,
-                fontWeight: FontWeight.w600,
-              ),
+            child: Row(
+              children: [
+                Text(
+                  'ЛОКАЦИИ',
+                  style: TextStyle(
+                    fontSize: 11,
+                    letterSpacing: 0.8,
+                    color: surfaces.text3,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const Spacer(),
+                _pinging
+                    ? const SizedBox(
+                        width: 26,
+                        height: 26,
+                        child: Padding(
+                          padding: EdgeInsets.all(5),
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      )
+                    : _IconGhostButton(
+                        icon: Icons.bolt,
+                        tooltip: 'Проверить задержку всех серверов',
+                        onTap: () => _testAllDelays(nodes, group?.testUrl),
+                      ),
+              ],
             ),
           ),
           Padding(
@@ -275,9 +328,17 @@ class _LocationTile extends ConsumerWidget {
       borderRadius: BorderRadius.circular(AppRadius.sm),
       child: InkWell(
         borderRadius: BorderRadius.circular(AppRadius.sm),
-        onTap: () => ref
-            .read(profilesActionProvider.notifier)
-            .updateCurrentSelectedMap(groupName, node.name),
+        onTap: () {
+          ref
+              .read(proxiesActionProvider.notifier)
+              .changeProxyDebounce(groupName, node.name);
+          ref
+              .read(profilesActionProvider.notifier)
+              .updateCurrentSelectedMap(groupName, node.name);
+          ref
+              .read(proxiesActionProvider.notifier)
+              .updateCurrentGroupName(groupName);
+        },
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpace.s3, vertical: AppSpace.s2),
           child: Row(
@@ -351,11 +412,13 @@ class _MainArea extends ConsumerWidget {
     required this.onOpenLogs,
     required this.onOpenSettings,
     required this.onOpenSubscriptions,
+    required this.onOpenConfigEditor,
   });
 
   final VoidCallback onOpenLogs;
   final VoidCallback onOpenSettings;
   final VoidCallback onOpenSubscriptions;
+  final VoidCallback onOpenConfigEditor;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -366,6 +429,9 @@ class _MainArea extends ConsumerWidget {
     final currentProfile = ref.watch(currentProfileProvider);
     final traffic = ref.watch(trafficsProvider).list.safeLast(const Traffic());
     final runTime = ref.watch(runTimeProvider);
+    final currentGroup = _resolvePreferredGroup(
+      ref.watch(currentGroupsStateProvider).value,
+    );
 
     final status = isStart ? ConnectionStatus.on : ConnectionStatus.idle;
 
@@ -379,6 +445,8 @@ class _MainArea extends ConsumerWidget {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 _IconGhostButton(icon: Icons.terminal, tooltip: 'Логи ядра', onTap: onOpenLogs),
+                const SizedBox(width: AppSpace.s2),
+                _IconGhostButton(icon: Icons.code, tooltip: 'Редактор конфига', onTap: onOpenConfigEditor),
                 const SizedBox(width: AppSpace.s2),
                 _IconGhostButton(icon: Icons.settings, tooltip: 'Настройки', onTap: onOpenSettings),
               ],
@@ -400,8 +468,16 @@ class _MainArea extends ConsumerWidget {
           ),
           const SizedBox(height: AppSpace.s2),
           Text(
-            isStart ? (currentProfile?.currentGroupName ?? '') : 'Нажмите, чтобы подключиться',
-            style: TextStyle(color: surfaces.text3, fontSize: AppFontSize.sm, fontFamily: 'monospace'),
+            isStart
+                ? (currentGroup?.realNow.isNotEmpty == true
+                      ? currentGroup!.realNow
+                      : '—')
+                : 'Нажмите, чтобы подключиться',
+            style: TextStyle(
+              color: surfaces.text3,
+              fontSize: AppFontSize.sm,
+              fontFamily: 'monospace',
+            ),
           ),
           const Spacer(),
           Padding(

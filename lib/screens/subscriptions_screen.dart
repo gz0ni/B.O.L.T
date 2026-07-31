@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'config_editor_screen.dart';
 import 'package:fl_clash/common/common.dart';
 import 'package:fl_clash/enum/enum.dart';
 import 'package:fl_clash/models/models.dart';
@@ -23,6 +24,61 @@ class SubscriptionsScreen extends ConsumerStatefulWidget {
 }
 
 class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
+  bool _updatingAll = false;
+
+  Future<void> _updateAll() async {
+    if (_updatingAll) return;
+    setState(() => _updatingAll = true);
+    try {
+      await ref.read(profilesActionProvider.notifier).updateProfiles();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Не удалось обновить: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _updatingAll = false);
+    }
+  }
+
+  void _openEditor(Profile profile) {
+    final surfaces = context.surfaces;
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: surfaces.card,
+      elevation: 0,
+      clipBehavior: Clip.antiAlias,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
+      ),
+      barrierColor: Colors.black54,
+      constraints: const BoxConstraints(maxWidth: double.infinity),
+      builder: (context) => FractionallySizedBox(
+        heightFactor: 0.8,
+        widthFactor: 1,
+        child: Column(
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: surfaces.border,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Expanded(
+              child: ConfigEditorScreen(
+                profileId: profile.id,
+                onClose: () => Navigator.of(context).pop(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
   Future<void> _activate(Profile profile) async {
     ref.read(currentProfileIdProvider.notifier).value = profile.id;
   }
@@ -242,6 +298,17 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
                 ),
                 const Spacer(),
                 IconButton(
+                  tooltip: 'Обновить все подписки',
+                  icon: _updatingAll
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.refresh),
+                  onPressed: _updatingAll ? null : _updateAll,
+                ),
+                IconButton(
                   tooltip: 'Добавить',
                   icon: const Icon(Icons.add),
                   onPressed: _showAddMenu,
@@ -274,6 +341,7 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
                               ? () => _refresh(profile)
                               : null,
                           onOpenYaml: () => _openYaml(profile),
+                          onEdit: () => _openEditor(profile),
                           onDelete: () => _remove(profile),
                         ),
                         const SizedBox(height: AppSpace.s2),
@@ -294,6 +362,7 @@ class _SubscriptionTile extends ConsumerWidget {
     required this.onTap,
     required this.onOpenYaml,
     this.onRefresh,
+    this.onEdit,
     this.onDelete,
   });
 
@@ -302,6 +371,7 @@ class _SubscriptionTile extends ConsumerWidget {
   final VoidCallback onTap;
   final VoidCallback onOpenYaml;
   final VoidCallback? onRefresh;
+  final VoidCallback? onEdit;
   final VoidCallback? onDelete;
 
   @override
@@ -390,6 +460,13 @@ class _SubscriptionTile extends ConsumerWidget {
                   onPressed: onOpenYaml,
                   visualDensity: VisualDensity.compact,
                 ),
+                if (onEdit != null)
+                  IconButton(
+                    icon: const Icon(Icons.edit, size: 18),
+                    tooltip: 'Редактировать конфиг',
+                    onPressed: onEdit,
+                    visualDensity: VisualDensity.compact,
+                  ),
                 if (onDelete != null)
                   IconButton(
                     icon: Icon(
