@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:fl_clash/common/common.dart';
 import 'package:fl_clash/common/format.dart';
 import 'package:fl_clash/core/core.dart';
@@ -100,18 +102,26 @@ class _AppShellState extends ConsumerState<AppShell> {
     final surfaces = context.surfaces;
 
     return Scaffold(
-      body: Row(
+      body: Column(
         children: [
-          const _LocationsSidebar(),
-          Container(width: 1, color: surfaces.border),
           Expanded(
-            child: _MainArea(
-              onOpenLogs: _openLogs,
-              onOpenSettings: _openSettings,
-              onOpenSubscriptions: _openSubscriptions,
-              onOpenConfigEditor: _openConfigEditor,
+            child: Row(
+              children: [
+                const _LocationsSidebar(),
+                Container(width: 1, color: surfaces.border),
+                Expanded(
+                  child: _MainArea(
+                    onOpenLogs: _openLogs,
+                    onOpenSettings: _openSettings,
+                    onOpenSubscriptions: _openSubscriptions,
+                    onOpenConfigEditor: _openConfigEditor,
+                  ),
+                ),
+              ],
             ),
           ),
+          Container(width: double.infinity, height: 1, color: surfaces.border),
+          const _StatsPanel(),
         ],
       ),
     );
@@ -294,7 +304,12 @@ class _LocationsSidebarState extends ConsumerState<_LocationsSidebar> {
                 : Scrollbar(
                     thumbVisibility: true,
                     child: ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: AppSpace.s3),
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpace.s3,
+                        0,
+                        AppSpace.s3,
+                        AppSpace.s2,
+                      ),
                       itemCount: nodes.length,
                       itemBuilder: (context, index) {
                         final node = nodes[index];
@@ -499,9 +514,6 @@ class _MainArea extends ConsumerWidget {
 
     final isStart = ref.watch(isStartProvider);
     final currentProfile = ref.watch(currentProfileProvider);
-    final traffic = ref.watch(trafficsProvider).list.safeLast(const Traffic());
-    final runTime = ref.watch(runTimeProvider);
-    final ipInfo = ref.watch(networkDetectionProvider).ipInfo;
     final currentGroup = _resolvePreferredGroup(
       ref.watch(currentGroupsStateProvider).value,
     );
@@ -580,67 +592,99 @@ class _MainArea extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(AppSpace.s4, 0, AppSpace.s4, AppSpace.s3),
             child: _UsageCard(profile: currentProfile, onTap: onOpenSubscriptions),
           ),
-          Container(height: 1, color: surfaces.border),
-          Padding(
-            padding: const EdgeInsets.all(AppSpace.s4),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _StatCard(
-                    label: 'Приём',
-                    value: isStart ? '${traffic.down.traffic.show}/s' : '—',
-                    dimmed: !isStart,
-                  ),
-                ),
-                const SizedBox(width: AppSpace.s2),
-                Expanded(
-                  child: _StatCard(
-                    label: 'Отдача',
-                    value: isStart ? '${traffic.up.traffic.show}/s' : '—',
-                    dimmed: !isStart,
-                  ),
-                ),
-                const SizedBox(width: AppSpace.s2),
-                Expanded(
-                  child: _StatCard(
-                    label: 'Время',
-                    value: isStart ? _formatRunTime(runTime) : '—',
-                    dimmed: !isStart,
-                  ),
-                ),
-                const SizedBox(width: AppSpace.s2),
-                Expanded(
-                  child: _StatCard(
-                    label: ipInfo?.countryCode ?? 'IP',
-                    value: isStart ? (ipInfo?.ip ?? '—') : '—',
-                    dimmed: !isStart || ipInfo == null,
-                    onCopy: isStart && ipInfo != null
-                        ? () => _copyIp(context, ipInfo.ip)
-                        : null,
-                  ),
-                ),
-              ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Нижняя панель статистики на всю ширину окна.
+class _StatsPanel extends ConsumerStatefulWidget {
+  const _StatsPanel();
+
+  @override
+  ConsumerState<_StatsPanel> createState() => _StatsPanelState();
+}
+
+class _StatsPanelState extends ConsumerState<_StatsPanel> {
+  Timer? _copyTimer;
+  bool _copied = false;
+
+  @override
+  void dispose() {
+    _copyTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _copyIp(String ip) async {
+    await Clipboard.setData(ClipboardData(text: ip));
+    if (!mounted) return;
+    _copyTimer?.cancel();
+    setState(() => _copied = true);
+    _copyTimer = Timer(const Duration(milliseconds: 1500), () {
+      if (mounted) setState(() => _copied = false);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final surfaces = context.surfaces;
+    final isStart = ref.watch(isStartProvider);
+    final traffic = ref.watch(trafficsProvider).list.safeLast(const Traffic());
+    final runTime = ref.watch(runTimeProvider);
+    final ipInfo = ref.watch(networkDetectionProvider).ipInfo;
+
+    return Container(
+      color: surfaces.bgSoft,
+      padding: const EdgeInsets.all(AppSpace.s3),
+      child: Row(
+        children: [
+          Expanded(
+            child: _StatCard(
+              label: 'Приём',
+              value: isStart ? '${traffic.down.traffic.show}/s' : '—',
+              dimmed: !isStart,
+            ),
+          ),
+          const SizedBox(width: AppSpace.s2),
+          Expanded(
+            child: _StatCard(
+              label: 'Отдача',
+              value: isStart ? '${traffic.up.traffic.show}/s' : '—',
+              dimmed: !isStart,
+            ),
+          ),
+          const SizedBox(width: AppSpace.s2),
+          Expanded(
+            child: _StatCard(
+              label: 'Время',
+              value: isStart ? _formatRunTime(runTime) : '—',
+              dimmed: !isStart,
+            ),
+          ),
+          const SizedBox(width: AppSpace.s2),
+          Expanded(
+            child: _StatCard(
+              label: ipInfo?.countryCode ?? 'IP',
+              value: isStart ? (ipInfo?.ip ?? '—') : '—',
+              dimmed: !isStart || ipInfo == null,
+              showCopied: _copied,
+              onCopy: isStart && ipInfo != null
+                  ? () => _copyIp(ipInfo.ip)
+                  : null,
             ),
           ),
         ],
       ),
     );
   }
+}
 
-  Future<void> _copyIp(BuildContext context, String ip) async {
-    await Clipboard.setData(ClipboardData(text: ip));
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('IP скопирован: $ip')),
-    );
-  }
-
-  static String _formatRunTime(int? runTimeMs) {
-    if (runTimeMs == null) return '--:--:--';
-    final d = Duration(milliseconds: runTimeMs);
-    String two(int n) => n.toString().padLeft(2, '0');
-    return '${two(d.inHours)}:${two(d.inMinutes % 60)}:${two(d.inSeconds % 60)}';
-  }
+String _formatRunTime(int? runTimeMs) {
+  if (runTimeMs == null) return '--:--:--';
+  final d = Duration(milliseconds: runTimeMs);
+  String two(int n) => n.toString().padLeft(2, '0');
+  return '${two(d.inHours)}:${two(d.inMinutes % 60)}:${two(d.inSeconds % 60)}';
 }
 
 class _IconGhostButton extends StatelessWidget {
@@ -781,17 +825,20 @@ class _StatCard extends StatelessWidget {
     required this.label,
     required this.value,
     this.dimmed = false,
+    this.showCopied = false,
     this.onCopy,
   });
 
   final String label;
   final String value;
   final bool dimmed;
+  final bool showCopied;
   final VoidCallback? onCopy;
 
   @override
   Widget build(BuildContext context) {
     final surfaces = context.surfaces;
+    final semantic = context.semanticColors;
     final content = Padding(
       padding: const EdgeInsets.symmetric(vertical: AppSpace.s3),
       child: Column(
@@ -799,10 +846,26 @@ class _StatCard extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (onCopy != null) ...[
-                Icon(Icons.copy, size: 11, color: surfaces.text3),
-                const SizedBox(width: 4),
-              ],
+              if (onCopy != null)
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  transitionBuilder: (child, animation) =>
+                      ScaleTransition(scale: animation, child: child),
+                  child: showCopied
+                      ? Icon(
+                          Icons.check,
+                          key: const ValueKey('copied'),
+                          size: 12,
+                          color: semantic.on,
+                        )
+                      : Icon(
+                          Icons.copy,
+                          key: const ValueKey('copy'),
+                          size: 11,
+                          color: surfaces.text3,
+                        ),
+                ),
+              if (onCopy != null) const SizedBox(width: 4),
               Text(
                 value,
                 style: TextStyle(
