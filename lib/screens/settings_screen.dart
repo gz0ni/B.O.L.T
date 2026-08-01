@@ -173,16 +173,44 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   SettingsRow _tunRow(PatchClashConfig patchConfig) {
+    final semantic = context.semanticColors;
+    final surfaces = context.surfaces;
+    final tunEnable = ref.watch(realTunEnableProvider);
+    final coreConnected = ref.watch(coreStatusProvider) == CoreStatus.connected;
+    final running = tunEnable && coreConnected;
     return SettingsRow(
       title: 'TUN-режим',
       description:
           'Перехват всего системного трафика через виртуальный адаптер. '
           'При включении ядро запросит права администратора.',
-      trailing: SettingsSwitch(
-        value: patchConfig.tun.enable,
-        onChanged: (v) => _updatePatchConfig(
-          (state) => state.copyWith.tun(enable: v),
-        ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: running ? semantic.on : surfaces.text3,
+            ),
+          ),
+          const SizedBox(width: AppSpace.s1),
+          Text(
+            running ? 'Работает' : 'Остановлен',
+            style: TextStyle(
+              fontSize: AppFontSize.xs,
+              fontWeight: FontWeight.w600,
+              color: running ? semantic.on : surfaces.text3,
+            ),
+          ),
+          const SizedBox(width: AppSpace.s2),
+          SettingsSwitch(
+            value: patchConfig.tun.enable,
+            onChanged: (v) => _updatePatchConfig(
+              (state) => state.copyWith.tun(enable: v),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -222,54 +250,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  SettingsRow _tunStatusRow() {
-    final semantic = context.semanticColors;
-    final surfaces = context.surfaces;
-    final tunEnable = ref.watch(realTunEnableProvider);
-    final coreConnected = ref.watch(coreStatusProvider) == CoreStatus.connected;
-    final running = tunEnable && coreConnected;
-    return SettingsRow(
-      title: 'Статус TUN',
-      description: running
-          ? 'Адаптер TUN активен — виден в «Дополнительные параметры сети» Windows'
-          : 'Адаптер TUN не активен',
-      trailing: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpace.s2,
-          vertical: 4,
-        ),
-        decoration: BoxDecoration(
-          color: running
-              ? semantic.on.withValues(alpha: 0.15)
-              : surfaces.card2,
-          borderRadius: BorderRadius.circular(AppRadius.xs),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 6,
-              height: 6,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: running ? semantic.on : surfaces.text3,
-              ),
-            ),
-            const SizedBox(width: AppSpace.s1),
-            Text(
-              running ? 'Работает' : 'Остановлен',
-              style: TextStyle(
-                fontSize: AppFontSize.xs,
-                fontWeight: FontWeight.w600,
-                color: running ? semantic.on : surfaces.text3,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   List<Widget> _quickRows(
     PatchClashConfig patchConfig,
     NetworkProps network,
@@ -278,7 +258,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     return [
       _modeRow(patchConfig),
       _tunRow(patchConfig),
-      _tunStatusRow(),
       _systemProxyRow(network),
       _themeRow(themeProps),
     ];
