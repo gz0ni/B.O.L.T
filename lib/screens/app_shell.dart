@@ -290,30 +290,33 @@ class _LocationsSidebarState extends ConsumerState<_LocationsSidebar> {
                     child: Text('Нет доступных локаций',
                         style: TextStyle(color: surfaces.text3)),
                   )
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: AppSpace.s3),
-                    itemCount: nodes.length,
-                    itemBuilder: (context, index) {
-                      final node = nodes[index];
-                      final isSelected = node.name == selectedName;
-                      final isFav = _favorites.contains(node.name);
-                      return _LocationTile(
-                        node: node,
-                        groupName: group.name,
-                        testUrl: group.testUrl,
-                        isSelected: isSelected,
-                        isFavorite: isFav,
-                        isPinging: _pingingNodes.contains(node.name),
-                        onPingTap: () => _pingNode(node, group.testUrl),
-                        onFavoriteTap: () => setState(() {
-                          if (isFav) {
-                            _favorites.remove(node.name);
-                          } else {
-                            _favorites.add(node.name);
-                          }
-                        }),
-                      );
-                    },
+                : Scrollbar(
+                    thumbVisibility: true,
+                    child: ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpace.s3),
+                      itemCount: nodes.length,
+                      itemBuilder: (context, index) {
+                        final node = nodes[index];
+                        final isSelected = node.name == selectedName;
+                        final isFav = _favorites.contains(node.name);
+                        return _LocationTile(
+                          node: node,
+                          groupName: group.name,
+                          testUrl: group.testUrl,
+                          isSelected: isSelected,
+                          isFavorite: isFav,
+                          isPinging: _pingingNodes.contains(node.name),
+                          onPingTap: () => _pingNode(node, group.testUrl),
+                          onFavoriteTap: () => setState(() {
+                            if (isFav) {
+                              _favorites.remove(node.name);
+                            } else {
+                              _favorites.add(node.name);
+                            }
+                          }),
+                        );
+                      },
+                    ),
                   ),
           ),
         ],

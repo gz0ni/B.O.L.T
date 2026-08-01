@@ -648,6 +648,7 @@ class _SubscriptionTile extends ConsumerWidget {
                   _SquareIconButton(
                     tooltip: 'Удалить',
                     size: 28,
+                    danger: true,
                     onPressed: onDelete,
                     child: Icon(
                       Icons.delete_outline,
@@ -683,12 +684,14 @@ class _SquareIconButton extends StatefulWidget {
     required this.tooltip,
     required this.child,
     this.size = 32,
+    this.danger = false,
   });
 
   final VoidCallback? onPressed;
   final String tooltip;
   final Widget child;
   final double size;
+  final bool danger;
 
   @override
   State<_SquareIconButton> createState() => _SquareIconButtonState();
@@ -699,8 +702,9 @@ class _SquareIconButtonState extends State<_SquareIconButton> {
 
   @override
   Widget build(BuildContext context) {
-    final surfaces = context.surfaces;
+    final semantic = context.semanticColors;
     final enabled = widget.onPressed != null;
+    final fill = widget.danger ? semantic.danger : semantic.on;
     return Tooltip(
       message: widget.tooltip,
       child: MouseRegion(
@@ -708,26 +712,21 @@ class _SquareIconButtonState extends State<_SquareIconButton> {
         onEnter: enabled ? (_) => setState(() => _hovered = true) : null,
         onExit: (_) => setState(() => _hovered = false),
         child: Material(
-          color: _hovered && enabled ? surfaces.card2 : Colors.transparent,
+          color: _hovered && enabled
+              ? fill.withValues(alpha: 0.12)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(AppRadius.xs),
           child: InkWell(
             borderRadius: BorderRadius.circular(AppRadius.xs),
             onTap: widget.onPressed,
-            child: Container(
+            child: SizedBox(
               width: widget.size,
               height: widget.size,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(AppRadius.xs),
-                border: Border.all(
-                  color: enabled
-                      ? surfaces.border
-                      : surfaces.border.withValues(alpha: 0.4),
+              child: Center(
+                child: Opacity(
+                  opacity: enabled ? 1 : 0.4,
+                  child: widget.child,
                 ),
-              ),
-              child: Opacity(
-                opacity: enabled ? 1 : 0.4,
-                child: widget.child,
               ),
             ),
           ),

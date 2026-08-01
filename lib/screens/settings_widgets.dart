@@ -29,11 +29,13 @@ class SettingsRow extends StatelessWidget {
     super.key,
     required this.title,
     this.description,
+    this.help,
     required this.trailing,
   });
 
   final String title;
   final String? description;
+  final String? help;
   final Widget trailing;
 
   @override
@@ -47,7 +49,30 @@ class SettingsRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: TextStyle(color: surfaces.text1, fontSize: AppFontSize.md)),
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        title,
+                        style: TextStyle(
+                          color: surfaces.text1,
+                          fontSize: AppFontSize.md,
+                        ),
+                      ),
+                    ),
+                    if (help != null) ...[
+                      const SizedBox(width: AppSpace.s1),
+                      Tooltip(
+                        message: help!,
+                        child: Icon(
+                          Icons.help_outline,
+                          size: 14,
+                          color: surfaces.text3,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
                 if (description != null) ...[
                   const SizedBox(height: 2),
                   Text(
