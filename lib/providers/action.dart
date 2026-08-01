@@ -25,9 +25,9 @@ class CommonAction extends _$CommonAction {
   void build() {}
 
   void updateStart() {
-    ref
-        .read(setupActionProvider.notifier)
-        .updateStatus(!ref.read(isStartProvider));
+    final setupAction = ref.read(setupActionProvider.notifier);
+    if (setupAction.isTransitioning) return;
+    setupAction.updateStatus(!ref.read(isStartProvider));
   }
 
   void updateSpeedStatistics() {
@@ -116,8 +116,12 @@ class CommonAction extends _$CommonAction {
 class SetupAction extends _$SetupAction {
   Timer? _updateTimer;
   DateTime? startTime;
+  bool _isTransitioning = false;
+  bool _autoPinging = false;
 
   bool get isStart => startTime != null && startTime!.isBeforeNow;
+
+  bool get isTransitioning => _isTransitioning;
 
   @override
   void build() {}
@@ -157,6 +161,7 @@ class SetupAction extends _$SetupAction {
   }
 
   Future handleStop() async {
+    debouncer.cancel(FunctionTag.applyProfile);
     startTime = null;
     _updateTimer?.cancel();
     _updateTimer = null;
@@ -182,37 +187,53 @@ class SetupAction extends _$SetupAction {
     }
   }
 
-  Future<void> updateStatus(bool isStart, {bool isInit = false}) async {
-    if (isStart) {
-      if (!isInit) {
-        final res = await ref
-            .read(coreActionProvider.notifier)
-            .tryStartCore(true);
-        if (res) return;
-        if (!ref.read(initProvider)) return;
-        await _handleStart();
-        applyProfileDebounce(force: true, silence: true);
-      } else {
-        globalState.needInitStatus = false;
-        ref.read(runTimeProvider.notifier).value = 0;
-        try {
-          await applyProfile(
-            force: true,
-            preloadInvoke: () async {
-              await _handleStart();
-            },
-          );
-        } catch (_) {
-          ref.read(runTimeProvider.notifier).value = null;
+  Future<void> updateStatus(
+    bool isStart, {
+    bool isInit = false,
+    bool internal = false,
+  }) async {
+    if (!internal) {
+      if (_isTransitioning) return;
+      _isTransitioning = true;
+      ref.read(isTransitioningProvider.notifier).value = true;
+    }
+    try {
+      if (isStart) {
+        if (!isInit) {
+          final res = await ref
+              .read(coreActionProvider.notifier)
+              .tryStartCore(true);
+          if (res) return;
+          if (!ref.read(initProvider)) return;
+          await _handleStart();
+          applyProfileDebounce(force: true, silence: true);
+        } else {
+          globalState.needInitStatus = false;
+          ref.read(runTimeProvider.notifier).value = 0;
+          try {
+            await applyProfile(
+              force: true,
+              preloadInvoke: () async {
+                await _handleStart();
+              },
+            );
+          } catch (_) {
+            ref.read(runTimeProvider.notifier).value = null;
+          }
         }
+      } else {
+        await handleStop();
+        coreController.resetTraffic();
+        ref.read(trafficsProvider.notifier).clear();
+        ref.read(totalTrafficProvider.notifier).value = const Traffic();
+        ref.read(runTimeProvider.notifier).value = null;
+        ref.read(checkIpNumProvider.notifier).add();
       }
-    } else {
-      await handleStop();
-      coreController.resetTraffic();
-      ref.read(trafficsProvider.notifier).clear();
-      ref.read(totalTrafficProvider.notifier).value = const Traffic();
-      ref.read(runTimeProvider.notifier).value = null;
-      ref.read(checkIpNumProvider.notifier).add();
+    } finally {
+      if (!internal) {
+        _isTransitioning = false;
+        ref.read(isTransitioningProvider.notifier).value = false;
+      }
     }
   }
 
@@ -277,8 +298,38 @@ class SetupAction extends _$SetupAction {
       onUpdated: () async {
         await ref.read(proxiesActionProvider.notifier).updateGroups();
         await ref.read(providersProvider.notifier).syncProviders();
+        await _autoPingCurrentGroup();
       },
     );
+  }
+
+  Future<void> _autoPingCurrentGroup() async {
+    if (_autoPinging || !ref.read(isStartProvider)) return;
+    final groups = ref.read(currentGroupsStateProvider).value;
+    if (groups.isEmpty) return;
+    Group? group = groups.getGroup(preferredGroupName);
+    group ??= groups.firstWhere(
+      (g) => g.type == GroupType.Selector,
+      orElse: () => groups.first,
+    );
+    final nodes = group.all;
+    if (nodes.isEmpty) return;
+    _autoPinging = true;
+    try {
+      final testUrl = group.testUrl?.isNotEmpty == true
+          ? group.testUrl!
+          : ref.read(appSettingProvider).testUrl;
+      final proxiesAction = ref.read(proxiesActionProvider.notifier);
+      await Future.wait(nodes.map((node) async {
+        try {
+          final delay = await coreController.getDelay(testUrl, node.name);
+          proxiesAction.setDelay(delay);
+        } catch (_) {}
+      }));
+    } finally {
+      _autoPinging = false;
+      ref.read(proxiesActionProvider.notifier).updateGroupsDebounce();
+    }
   }
 
   Future<VM2<String, String>> getProfile({
@@ -543,7 +594,7 @@ class CoreAction extends _$CoreAction {
     if (start || ref.read(isStartProvider)) {
       await ref
           .read(setupActionProvider.notifier)
-          .updateStatus(true, isInit: true);
+          .updateStatus(true, isInit: true, internal: true);
     } else {
       await ref.read(setupActionProvider.notifier).applyProfile(force: true);
     }
@@ -730,14 +781,23 @@ class ProxiesAction extends _$ProxiesAction {
     debouncer.call(FunctionTag.updateGroups, updateGroups, duration: duration);
   }
 
+  Future<void>? _inFlightChangeProxy;
+  ({String group, String proxy})? _pendingChangeProxy;
+
   void changeProxyDebounce(String groupName, String proxyName) {
-    debouncer.call(FunctionTag.changeProxy, (
-      String groupName,
-      String proxyName,
-    ) async {
-      await changeProxy(groupName: groupName, proxyName: proxyName);
-      updateGroupsDebounce();
-    }, args: [groupName, proxyName]);
+    final inFlight = _inFlightChangeProxy;
+    if (inFlight != null) {
+      _pendingChangeProxy = (group: groupName, proxy: proxyName);
+      return;
+    }
+    final task = changeProxy(groupName: groupName, proxyName: proxyName);
+    _inFlightChangeProxy = task;
+    task.whenComplete(() {
+      _inFlightChangeProxy = null;
+      final pending = _pendingChangeProxy;
+      _pendingChangeProxy = null;
+      if (pending != null) changeProxyDebounce(pending.group, pending.proxy);
+    });
   }
 
   Future<void> updateGroups() async {
@@ -794,15 +854,24 @@ class ProxiesAction extends _$ProxiesAction {
     required String groupName,
     required String proxyName,
   }) async {
-    await coreController.changeProxy(
-      ChangeProxyParams(groupName: groupName, proxyName: proxyName),
-    );
-    if (ref.read(appSettingProvider).closeConnections) {
-      await coreController.closeConnections();
-    } else {
-      await coreController.resetConnections();
+    try {
+      final message = await coreController.changeProxy(
+        ChangeProxyParams(groupName: groupName, proxyName: proxyName),
+      );
+      if (message.isNotEmpty) {
+        globalState.showNotifier(message);
+        updateGroupsDebounce();
+        return;
+      }
+      if (ref.read(appSettingProvider).closeConnections) {
+        await coreController.closeConnections();
+      } else {
+        await coreController.resetConnections();
+      }
+      ref.read(checkIpNumProvider.notifier).add();
+    } catch (e) {
+      commonPrint.log('changeProxy error: $e', logLevel: LogLevel.warning);
     }
-    ref.read(checkIpNumProvider.notifier).add();
   }
 
   Future<String> updateProvider(
@@ -884,6 +953,16 @@ class ProfilesAction extends _$ProfilesAction {
     ref.read(currentProfileIdProvider.notifier).value = profile.id;
   }
 
+  void activateProfile(Profile profile) {
+    ref.read(currentProfileIdProvider.notifier).value = profile.id;
+  }
+
+  Future<void> renameProfile(Profile profile, String label) async {
+    final trimmed = label.trim();
+    if (trimmed.isEmpty || trimmed == profile.label) return;
+    ref.read(profilesProvider.notifier).put(profile.copyWith(label: trimmed));
+  }
+
   Future<void> updateProfiles() async {
     for (final profile in ref.read(profilesProvider)) {
       if (profile.type == ProfileType.file) continue;
@@ -927,6 +1006,7 @@ class ProfilesAction extends _$ProfilesAction {
     );
     if (profile != null) {
       putProfile(profile);
+      activateProfile(profile);
     }
   }
 
@@ -944,6 +1024,7 @@ class ProfilesAction extends _$ProfilesAction {
     );
     if (profile != null) {
       putProfile(profile);
+      activateProfile(profile);
     }
   }
 
@@ -963,6 +1044,7 @@ class ProfilesAction extends _$ProfilesAction {
     );
     if (profile != null) {
       putProfile(profile);
+      activateProfile(profile);
     }
   }
 

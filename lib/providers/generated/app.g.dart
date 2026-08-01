@@ -1309,6 +1309,58 @@ abstract class _$CoreStatus extends $Notifier<CoreStatus> {
   }
 }
 
+@ProviderFor(_IsTransitioning)
+final isTransitioningProvider = _IsTransitioningProvider._();
+
+final class _IsTransitioningProvider
+    extends $NotifierProvider<_IsTransitioning, bool> {
+  _IsTransitioningProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'isTransitioningProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$_isTransitioningHash();
+
+  @$internal
+  @override
+  _IsTransitioning create() => _IsTransitioning();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(bool value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<bool>(value),
+    );
+  }
+}
+
+String _$_isTransitioningHash() => r'e7f112a573ce292d6ab861d279727dfff6c36481';
+
+abstract class _$IsTransitioning extends $Notifier<bool> {
+  bool build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<bool, bool>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<bool, bool>,
+              bool,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}
+
 @ProviderFor(Query)
 final queryProvider = QueryFamily._();
 

@@ -284,6 +284,14 @@ class _CoreStatus extends _$CoreStatus with AutoDisposeNotifierMixin {
   }
 }
 
+@Riverpod(name: 'isTransitioningProvider', keepAlive: true)
+class _IsTransitioning extends _$IsTransitioning with AutoDisposeNotifierMixin {
+  @override
+  bool build() {
+    return false;
+  }
+}
+
 @riverpod
 class Query extends _$Query with AutoDisposeNotifierMixin {
   @override

@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'config_editor_screen.dart';
+import 'package:fl_clash/common/format.dart';
 import 'package:fl_clash/enum/enum.dart';
 import 'package:fl_clash/models/models.dart';
 import 'package:fl_clash/providers/providers.dart';
@@ -95,6 +96,105 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
 
   Future<void> _remove(Profile profile) async {
     await ref.read(profilesActionProvider.notifier).deleteProfile(profile.id);
+  }
+
+  void _showProfileMenu(Profile profile) {
+    final surfaces = context.surfaces;
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: surfaces.card,
+          title: Text(
+            profile.realLabel,
+            style: TextStyle(color: surfaces.text1),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: Icon(Icons.edit_outlined, color: surfaces.text2),
+                title: Text(
+                  'Переименовать',
+                  style: TextStyle(color: surfaces.text1),
+                ),
+                onTap: () {
+                  Navigator.of(dialogContext).pop();
+                  _showRenameDialog(profile);
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.delete_outline, color: context.semanticColors.danger),
+                title: Text(
+                  'Удалить',
+                  style: TextStyle(color: context.semanticColors.danger),
+                ),
+                onTap: () {
+                  Navigator.of(dialogContext).pop();
+                  _remove(profile);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showRenameDialog(Profile profile) {
+    final surfaces = context.surfaces;
+    final controller = TextEditingController(text: profile.realLabel);
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: surfaces.card,
+          title: Text(
+            'Переименовать подписку',
+            style: TextStyle(color: surfaces.text1),
+          ),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            style: TextStyle(color: surfaces.text1),
+            decoration: InputDecoration(
+              hintText: 'Название',
+              hintStyle: TextStyle(color: surfaces.text3),
+              filled: true,
+              fillColor: surfaces.card2,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+                borderSide: BorderSide.none,
+              ),
+            ),
+            onSubmitted: (value) {
+              if (value.trim().isEmpty) return;
+              Navigator.of(dialogContext).pop();
+              ref
+                  .read(profilesActionProvider.notifier)
+                  .renameProfile(profile, value.trim());
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Отмена'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final label = controller.text.trim();
+                if (label.isEmpty) return;
+                Navigator.of(dialogContext).pop();
+                ref
+                    .read(profilesActionProvider.notifier)
+                    .renameProfile(profile, label);
+              },
+              child: const Text('Переименовать'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> _addFromClipboard() async {
@@ -354,27 +454,31 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
                   ),
                 ),
                 const Spacer(),
-                IconButton(
+                _SquareIconButton(
                   tooltip: 'Обновить все подписки',
-                  icon: _updatingAll
+                  onPressed: _updatingAll ? null : _updateAll,
+                  child: _updatingAll
                       ? const SizedBox(
                           width: 18,
                           height: 18,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Icon(Icons.refresh),
-                  onPressed: _updatingAll ? null : _updateAll,
+                      : const Icon(Icons.refresh, size: 18),
                 ),
-                IconButton(
+                const SizedBox(width: AppSpace.s2),
+                _SquareIconButton(
                   tooltip: 'Добавить',
-                  icon: const Icon(Icons.add),
                   onPressed: _showAddMenu,
+                  child: const Icon(Icons.add, size: 18),
                 ),
-                if (widget.onClose != null)
-                  IconButton(
-                    icon: const Icon(Icons.close),
+                if (widget.onClose != null) ...[
+                  const SizedBox(width: AppSpace.s2),
+                  _SquareIconButton(
+                    tooltip: 'Закрыть',
                     onPressed: widget.onClose,
+                    child: const Icon(Icons.close, size: 18),
                   ),
+                ],
               ],
             ),
           ),
@@ -386,22 +490,29 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
                       style: TextStyle(color: surfaces.text3),
                     ),
                   )
-                : ListView(
-                    padding: const EdgeInsets.symmetric(horizontal: AppSpace.s4),
-                    children: [
-                      for (final profile in profiles) ...[
-                        _SubscriptionTile(
-                          profile: profile,
-                          isActive: currentProfileId == profile.id,
-                          onTap: () => _activate(profile),
-                          onRefresh: profile.type == ProfileType.url
-                              ? () => _refresh(profile)
-                              : null,
-                          onEdit: () => _openEditor(profile),                          onDelete: () => _remove(profile),
-                        ),
-                        const SizedBox(height: AppSpace.s2),
+                : Scrollbar(
+                    thumbVisibility: true,
+                    child: ListView(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpace.s4,
+                      ),
+                      children: [
+                        for (final profile in profiles) ...[
+                          _SubscriptionTile(
+                            profile: profile,
+                            isActive: currentProfileId == profile.id,
+                            onTap: () => _activate(profile),
+                            onLongPress: () => _showProfileMenu(profile),
+                            onRefresh: profile.type == ProfileType.url
+                                ? () => _refresh(profile)
+                                : null,
+                            onEdit: () => _openEditor(profile),
+                            onDelete: () => _remove(profile),
+                          ),
+                          const SizedBox(height: AppSpace.s2),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
           ),
         ],
@@ -415,6 +526,7 @@ class _SubscriptionTile extends ConsumerWidget {
     required this.profile,
     required this.isActive,
     required this.onTap,
+    this.onLongPress,
     this.onRefresh,
     this.onEdit,
     this.onDelete,
@@ -423,6 +535,7 @@ class _SubscriptionTile extends ConsumerWidget {
   final Profile profile;
   final bool isActive;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
   final VoidCallback? onRefresh;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
@@ -435,6 +548,7 @@ class _SubscriptionTile extends ConsumerWidget {
     final subtitle = profile.type == ProfileType.url
         ? profile.url
         : 'Локальный источник';
+    final usage = usageSummary(profile.subscriptionInfo);
 
     return Material(
       color: isActive ? surfaces.card2 : surfaces.card,
@@ -442,6 +556,7 @@ class _SubscriptionTile extends ConsumerWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(AppRadius.sm),
         onTap: updating ? null : onTap,
+        onLongPress: updating ? null : onLongPress,
         child: Container(
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpace.s4,
@@ -491,6 +606,19 @@ class _SubscriptionTile extends ConsumerWidget {
                         fontSize: AppFontSize.xs,
                       ),
                     ),
+                    if (usage != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        usage,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: semantic.on,
+                          fontSize: AppFontSize.xs,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -501,29 +629,31 @@ class _SubscriptionTile extends ConsumerWidget {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               else ...[
-                IconButton(
-                  icon: const Icon(Icons.refresh, size: 18),
+                _SquareIconButton(
                   tooltip: 'Обновить',
+                  size: 28,
                   onPressed: onRefresh,
-                  visualDensity: VisualDensity.compact,
+                  child: const Icon(Icons.refresh, size: 15),
                 ),
+                const SizedBox(width: AppSpace.s1),
                 if (onEdit != null)
-                  IconButton(
-                    icon: const Icon(Icons.edit, size: 18),
+                  _SquareIconButton(
                     tooltip: 'Редактировать конфиг',
+                    size: 28,
                     onPressed: onEdit,
-                    visualDensity: VisualDensity.compact,
+                    child: const Icon(Icons.edit, size: 15),
                   ),
+                const SizedBox(width: AppSpace.s1),
                 if (onDelete != null)
-                  IconButton(
-                    icon: Icon(
+                  _SquareIconButton(
+                    tooltip: 'Удалить',
+                    size: 28,
+                    onPressed: onDelete,
+                    child: Icon(
                       Icons.delete_outline,
-                      size: 18,
+                      size: 15,
                       color: semantic.danger,
                     ),
-                    tooltip: 'Удалить',
-                    onPressed: onDelete,
-                    visualDensity: VisualDensity.compact,
                   ),
               ],
               const SizedBox(width: AppSpace.s2),
@@ -540,6 +670,66 @@ class _SubscriptionTile extends ConsumerWidget {
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SquareIconButton extends StatefulWidget {
+  const _SquareIconButton({
+    required this.onPressed,
+    required this.tooltip,
+    required this.child,
+    this.size = 32,
+  });
+
+  final VoidCallback? onPressed;
+  final String tooltip;
+  final Widget child;
+  final double size;
+
+  @override
+  State<_SquareIconButton> createState() => _SquareIconButtonState();
+}
+
+class _SquareIconButtonState extends State<_SquareIconButton> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final surfaces = context.surfaces;
+    final enabled = widget.onPressed != null;
+    return Tooltip(
+      message: widget.tooltip,
+      child: MouseRegion(
+        cursor: enabled ? SystemMouseCursors.click : MouseCursor.defer,
+        onEnter: enabled ? (_) => setState(() => _hovered = true) : null,
+        onExit: (_) => setState(() => _hovered = false),
+        child: Material(
+          color: _hovered && enabled ? surfaces.card2 : Colors.transparent,
+          borderRadius: BorderRadius.circular(AppRadius.xs),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(AppRadius.xs),
+            onTap: widget.onPressed,
+            child: Container(
+              width: widget.size,
+              height: widget.size,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(AppRadius.xs),
+                border: Border.all(
+                  color: enabled
+                      ? surfaces.border
+                      : surfaces.border.withValues(alpha: 0.4),
+                ),
+              ),
+              child: Opacity(
+                opacity: enabled ? 1 : 0.4,
+                child: widget.child,
+              ),
+            ),
           ),
         ),
       ),

@@ -1,4 +1,5 @@
 import 'package:fl_clash/common/common.dart';
+import 'package:fl_clash/common/format.dart';
 import 'package:fl_clash/core/core.dart';
 import 'package:fl_clash/enum/enum.dart';
 import 'package:fl_clash/models/models.dart';
@@ -18,7 +19,7 @@ import '../theme/app_tokens.dart';
 /// Если такой группы нет в текущем профиле (например, у стороннего
 /// импортированного конфига группы называются иначе) — берём первую
 /// попавшуюся группу-селектор.
-const _preferredGroupName = 'VPN';
+const _preferredGroupName = preferredGroupName;
 
 Group? _resolvePreferredGroup(List<Group> groups) {
   final preferred = groups.getGroup(_preferredGroupName);
@@ -503,7 +504,11 @@ class _MainArea extends ConsumerWidget {
         ? null
         : currentProfile?.selectedMap[currentGroup.name];
 
-    final status = isStart ? ConnectionStatus.on : ConnectionStatus.idle;
+    final status = !isStart
+        ? (ref.watch(isTransitioningProvider)
+            ? ConnectionStatus.connecting
+            : ConnectionStatus.idle)
+        : ConnectionStatus.on;
 
     return Container(
       color: surfaces.bg,
@@ -645,6 +650,8 @@ class _UsageCard extends StatelessWidget {
     final surfaces = context.surfaces;
     final semantic = context.semanticColors;
     final info = profile?.subscriptionInfo;
+    final daysLeft = subscriptionDaysLeft(info);
+    final used = info == null ? 0 : info.upload + info.download;
 
     return Material(
       color: surfaces.card,
@@ -662,25 +669,68 @@ class _UsageCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      profile?.label.isNotEmpty == true ? profile!.label : 'Нет активной подписки',
-                      style: TextStyle(color: surfaces.text1, fontSize: AppFontSize.sm),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            profile?.label.isNotEmpty == true
+                                ? profile!.label
+                                : 'Нет активной подписки',
+                            style: TextStyle(
+                              color: surfaces.text1,
+                              fontSize: AppFontSize.sm,
+                            ),
+                          ),
+                        ),
+                        if (daysLeft != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpace.s2,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: daysLeft >= 0
+                                  ? semantic.on.withValues(alpha: 0.15)
+                                  : semantic.danger.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Text(
+                              daysLeft >= 0 ? 'Осталось $daysLeft дн.' : 'Истекла',
+                              style: TextStyle(
+                                color: daysLeft >= 0
+                                    ? semantic.on
+                                    : semantic.danger,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                     if (info != null && info.total > 0) ...[
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 6),
                       ClipRRect(
                         borderRadius: BorderRadius.circular(2),
                         child: LinearProgressIndicator(
-                          value: ((info.upload + info.download) / info.total).clamp(0, 1),
+                          value: (used / info.total).clamp(0, 1),
                           minHeight: 3,
                           backgroundColor: surfaces.card2,
                           valueColor: AlwaysStoppedAnimation(semantic.on),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${formatSize(used)} из ${formatSize(info.total)}',
+                        style: TextStyle(
+                          color: surfaces.text3,
+                          fontSize: 10,
                         ),
                       ),
                     ],
                   ],
                 ),
               ),
+              const SizedBox(width: AppSpace.s2),
               Icon(Icons.chevron_right, size: 18, color: surfaces.text3),
             ],
           ),
