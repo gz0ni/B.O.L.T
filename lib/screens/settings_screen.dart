@@ -18,7 +18,13 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  static const _categories = ['Ядро · mihomo', 'DNS', 'Сеть', 'Приложение'];
+  static const _categories = [
+    'Основное',
+    'Ядро · mihomo',
+    'DNS',
+    'Сеть',
+    'Приложение',
+  ];
 
   int _category = 0;
 
@@ -132,10 +138,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   vertical: AppSpace.s2,
                 ),
                 children: [
-                  if (_category == 0) ..._coreRows(patchConfig, appSetting),
-                  if (_category == 1) ..._dnsRows(patchConfig),
-                  if (_category == 2) ..._networkRows(network),
-                  if (_category == 3)
+                  if (_category == 0) ..._quickRows(patchConfig, network),
+                  if (_category == 1) ..._coreRows(patchConfig, appSetting),
+                  if (_category == 2) ..._dnsRows(patchConfig),
+                  if (_category == 3) ..._networkRows(network),
+                  if (_category == 4)
                     ..._appRows(appSetting, themeProps),
                   const SizedBox(height: AppSpace.s6),
                 ],
@@ -147,36 +154,68 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
+  SettingsRow _modeRow(PatchClashConfig patchConfig) {
+    return SettingsRow(
+      title: 'Режим маршрутизации',
+      help: 'Правила — трафик по правилам конфига; Глобальный — весь '
+          'трафик через прокси; Прямой — без прокси.',
+      trailing: SettingsSegmented<Mode>(
+        options: Mode.values,
+        value: patchConfig.mode,
+        labels: const {
+          Mode.rule: 'Правила',
+          Mode.global: 'Глобальный',
+          Mode.direct: 'Прямой',
+        },
+        onChanged: _changeMode,
+      ),
+    );
+  }
+
+  SettingsRow _tunRow(PatchClashConfig patchConfig) {
+    return SettingsRow(
+      title: 'TUN-режим',
+      description:
+          'Перехват всего системного трафика через виртуальный адаптер. '
+          'При включении ядро запросит права администратора.',
+      trailing: SettingsSwitch(
+        value: patchConfig.tun.enable,
+        onChanged: (v) => _updatePatchConfig(
+          (state) => state.copyWith.tun(enable: v),
+        ),
+      ),
+    );
+  }
+
+  SettingsRow _systemProxyRow(NetworkProps network) {
+    return SettingsRow(
+      title: 'Системный прокси',
+      description: 'Проксировать системный трафик через mixed-порт ядра',
+      trailing: SettingsSwitch(
+        value: network.systemProxy,
+        onChanged: (v) => ref
+            .read(networkSettingProvider.notifier)
+            .update((state) => state.copyWith(systemProxy: v)),
+      ),
+    );
+  }
+
+  List<Widget> _quickRows(
+    PatchClashConfig patchConfig,
+    NetworkProps network,
+  ) {
+    return [
+      _modeRow(patchConfig),
+      _tunRow(patchConfig),
+      _systemProxyRow(network),
+    ];
+  }
+
   List<Widget> _coreRows(PatchClashConfig patchConfig, AppSettingProps appSetting) {
     final surfaces = context.surfaces;
     return [
-      SettingsRow(
-        title: 'Режим маршрутизации',
-        help: 'Правила — трафик по правилам конфига; Глобальный — весь '
-            'трафик через прокси; Прямой — без прокси.',
-        trailing: SettingsSegmented<Mode>(
-          options: Mode.values,
-          value: patchConfig.mode,
-          labels: const {
-            Mode.rule: 'Правила',
-            Mode.global: 'Глобальный',
-            Mode.direct: 'Прямой',
-          },
-          onChanged: _changeMode,
-        ),
-      ),
-      SettingsRow(
-        title: 'TUN-режим',
-        description:
-            'Перехват всего системного трафика через виртуальный адаптер. '
-            'При включении ядро запросит права администратора.',
-        trailing: SettingsSwitch(
-          value: patchConfig.tun.enable,
-          onChanged: (v) => _updatePatchConfig(
-            (state) => state.copyWith.tun(enable: v),
-          ),
-        ),
-      ),
+      _modeRow(patchConfig),
+      _tunRow(patchConfig),
       SettingsRow(
         title: 'Стек TUN',
         help: 'gVisor — лучшая совместимость; System — выше производительность; '
@@ -601,16 +640,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   List<Widget> _networkRows(NetworkProps network) {
     return [
-      SettingsRow(
-        title: 'Системный прокси',
-        description: 'Проксировать системный трафик через mixed-порт ядра',
-        trailing: SettingsSwitch(
-          value: network.systemProxy,
-          onChanged: (v) => ref
-              .read(networkSettingProvider.notifier)
-              .update((state) => state.copyWith(systemProxy: v)),
-        ),
-      ),
+      _systemProxyRow(network),
       SettingsRow(
         title: 'Append System DNS',
         description: 'Добавлять system:// в nameserver',
