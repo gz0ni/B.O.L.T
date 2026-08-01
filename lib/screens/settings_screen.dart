@@ -138,7 +138,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   vertical: AppSpace.s2,
                 ),
                 children: [
-                  if (_category == 0) ..._quickRows(patchConfig, network),
+                  if (_category == 0)
+                    ..._quickRows(patchConfig, network, themeProps),
                   if (_category == 1) ..._coreRows(patchConfig, appSetting),
                   if (_category == 2) ..._dnsRows(patchConfig),
                   if (_category == 3) ..._networkRows(network),
@@ -200,14 +201,38 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
+  SettingsRow _themeRow(ThemeProps themeProps) {
+    return SettingsRow(
+      title: 'Тема',
+      trailing: SettingsSegmented<ThemeMode>(
+        options: const [
+          ThemeMode.dark,
+          ThemeMode.light,
+          ThemeMode.system,
+        ],
+        value: themeProps.themeMode,
+        labels: const {
+          ThemeMode.dark: 'Тёмная',
+          ThemeMode.light: 'Светлая',
+          ThemeMode.system: 'Авто',
+        },
+        onChanged: (v) => ref
+            .read(themeSettingProvider.notifier)
+            .update((state) => state.copyWith(themeMode: v)),
+      ),
+    );
+  }
+
   List<Widget> _quickRows(
     PatchClashConfig patchConfig,
     NetworkProps network,
+    ThemeProps themeProps,
   ) {
     return [
       _modeRow(patchConfig),
       _tunRow(patchConfig),
       _systemProxyRow(network),
+      _themeRow(themeProps),
     ];
   }
 
@@ -734,25 +759,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
         ),
       ),
-      SettingsRow(
-        title: 'Тема',
-        trailing: SettingsSegmented<ThemeMode>(
-          options: const [
-            ThemeMode.dark,
-            ThemeMode.light,
-            ThemeMode.system,
-          ],
-          value: themeProps.themeMode,
-          labels: const {
-            ThemeMode.dark: 'Тёмная',
-            ThemeMode.light: 'Светлая',
-            ThemeMode.system: 'Авто',
-          },
-          onChanged: (v) => ref
-              .read(themeSettingProvider.notifier)
-              .update((state) => state.copyWith(themeMode: v)),
-        ),
-      ),
+      _themeRow(themeProps),
     ];
   }
 }
