@@ -4,6 +4,8 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:fl_clash/common/common.dart';
+import 'package:fl_clash/common/format.dart';
+import 'package:fl_clash/common/notifications.dart';
 import 'package:fl_clash/core/core.dart';
 import 'package:fl_clash/database/database.dart';
 import 'package:fl_clash/enum/enum.dart';
@@ -981,11 +983,19 @@ class ProfilesAction extends _$ProfilesAction {
       ref.read(profilesProvider.notifier).put(profile);
       final newProfile = await profile.update();
       ref.read(profilesProvider.notifier).put(newProfile);
+      notifySubscriptionUpdated(newProfile.realLabel);
+      final daysLeft = subscriptionDaysLeft(newProfile.subscriptionInfo);
+      if (daysLeft != null && daysLeft >= 0 && daysLeft <= 7) {
+        notifySubscriptionExpiring(newProfile.realLabel, daysLeft);
+      }
       if (profile.id == ref.read(currentProfileIdProvider)) {
         ref
             .read(setupActionProvider.notifier)
             .applyProfileDebounce(silence: true);
       }
+    } catch (e) {
+      notifySubscriptionError(profile.realLabel, e.toString());
+      rethrow;
     } finally {
       ref.read(isUpdatingProvider(profile.updatingKey).notifier).value = false;
     }
