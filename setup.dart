@@ -173,24 +173,29 @@ Future<int> _package(
     return activateResult.exitCode;
   }
 
+  final distributorArgs = [
+    'package',
+    '--skip-clean',
+    '--platform',
+    platform,
+    '--targets',
+    targets,
+    if (androidArch != null)
+      '--build-target-platform=${_androidFlutterTarget[androidArch]!}',
+    if (flutterBuildArgs.isNotEmpty)
+      '--flutter-build-args=${flutterBuildArgs.join(',')}',
+    ...descriptionArgs,
+  ];
+
+  final useGlobalRun = !await _hasCommand('flutter_distributor');
   final process = await Process.start(
-    'flutter_distributor',
-    [
-      'package',
-      '--skip-clean',
-      '--platform',
-      platform,
-      '--targets',
-      targets,
-      if (androidArch != null)
-        '--build-target-platform=${_androidFlutterTarget[androidArch]!}',
-      if (flutterBuildArgs.isNotEmpty)
-        '--flutter-build-args=${flutterBuildArgs.join(',')}',
-      ...descriptionArgs,
-    ],
+    useGlobalRun ? 'dart' : 'flutter_distributor',
+    useGlobalRun
+        ? ['pub', 'global', 'run', 'flutter_distributor', ...distributorArgs]
+        : distributorArgs,
     includeParentEnvironment: true,
     environment: {'ANDROID_ARCH': ?androidArch},
-    runInShell: Platform.isWindows,
+    runInShell: Platform.isWindows || useGlobalRun,
   );
 
   process.stdout.listen((data) {

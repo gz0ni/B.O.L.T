@@ -13,6 +13,24 @@ void main() {
       expect(utf8.decode(decoded), yaml);
     });
 
+    test('decodes base64 without padding', () {
+      final encoded = utf8.encode(
+        base64.encode(utf8.encode(yaml)).replaceAll('=', ''),
+      );
+      final decoded = decodeBase64Config(Uint8List.fromList(encoded));
+      expect(utf8.decode(decoded), yaml);
+    });
+
+    test('decodes base64 with line breaks', () {
+      final flat = base64.encode(utf8.encode(yaml));
+      final wrapped = flat
+          .replaceAllMapped(RegExp(r'.{76}'), (m) => '${m.group(0)}\n');
+      final decoded = decodeBase64Config(
+        Uint8List.fromList(utf8.encode(wrapped)),
+      );
+      expect(utf8.decode(decoded), yaml);
+    });
+
     test('returns plain yaml unchanged', () {
       final bytes = Uint8List.fromList(utf8.encode(yaml));
       expect(decodeBase64Config(bytes), bytes);

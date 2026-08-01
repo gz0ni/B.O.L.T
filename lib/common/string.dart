@@ -11,7 +11,12 @@ Uint8List decodeBase64Config(Uint8List bytes) {
   final text = utf8.decode(bytes, allowMalformed: true).trim();
   if (text.length < 20) return bytes;
   try {
-    final decoded = base64.decode(text);
+    final normalized = text.replaceAll(RegExp(r'\s'), '');
+    final padding = (4 - normalized.length % 4) % 4;
+    final padded = padding == 0
+        ? normalized
+        : normalized.padRight(normalized.length + padding, '=');
+    final decoded = base64.decode(padded);
     final decodedText = utf8.decode(decoded, allowMalformed: true);
     if (decodedText.contains('proxies:') ||
         decodedText.contains('proxy-providers:') ||

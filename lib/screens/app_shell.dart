@@ -412,40 +412,38 @@ class _LocationTile extends ConsumerWidget {
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: isPinging ? null : onPingTap,
-                child: AnimatedSwitcher(
-                  duration: AppMotion.base,
-                  switchInCurve: AppMotion.ease,
-                  switchOutCurve: Curves.easeOut,
-                  transitionBuilder: (child, animation) => FadeTransition(
-                    opacity: animation,
-                    child: SlideTransition(
-                      position: Tween<Offset>(
-                        begin: const Offset(0, 0.25),
-                        end: Offset.zero,
-                      ).animate(animation),
-                      child: child,
+                child: SizedBox(
+                  width: 44,
+                  child: Center(
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 150),
+                      switchInCurve: AppMotion.ease,
+                      switchOutCurve: Curves.easeOut,
+                      transitionBuilder: (child, animation) =>
+                          FadeTransition(opacity: animation, child: child),
+                      child: isPinging
+                          ? SizedBox(
+                              key: const ValueKey('pinging'),
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor:
+                                    AlwaysStoppedAnimation(semantic.on),
+                              ),
+                            )
+                          : Text(
+                              delayMs == null
+                                  ? '...'
+                                  : (delayMs <= 0 ? 'timeout' : '$delayMs мс'),
+                              key: ValueKey(delayMs ?? -1),
+                              style: TextStyle(
+                                color: pingColor(),
+                                fontSize: AppFontSize.xs,
+                              ),
+                            ),
                     ),
                   ),
-                  child: isPinging
-                      ? SizedBox(
-                          key: const ValueKey('pinging'),
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation(semantic.on),
-                          ),
-                        )
-                      : Text(
-                          delayMs == null
-                              ? '...'
-                              : (delayMs <= 0 ? 'timeout' : '$delayMs мс'),
-                          key: ValueKey(delayMs ?? -1),
-                          style: TextStyle(
-                            color: pingColor(),
-                            fontSize: AppFontSize.xs,
-                          ),
-                        ),
                 ),
               ),
               IconButton(
@@ -531,19 +529,11 @@ class _MainArea extends ConsumerWidget {
           ),
           const SizedBox(height: AppSpace.s6),
           AnimatedSwitcher(
-            duration: AppMotion.base,
+            duration: const Duration(milliseconds: 150),
             switchInCurve: AppMotion.ease,
             switchOutCurve: Curves.easeOut,
-            transitionBuilder: (child, animation) => FadeTransition(
-              opacity: animation,
-              child: SlideTransition(
-                position: Tween<Offset>(
-                  begin: const Offset(0, 0.2),
-                  end: Offset.zero,
-                ).animate(animation),
-                child: child,
-              ),
-            ),
+            transitionBuilder: (child, animation) =>
+                FadeTransition(opacity: animation, child: child),
             child: Text(
               isStart ? 'Подключено' : 'Отключено',
               key: ValueKey(isStart),
