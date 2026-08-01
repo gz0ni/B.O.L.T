@@ -631,18 +631,6 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ),
             SettingsRow(
-              title: 'Уведомления',
-              description:
-                  'Обновление подписок и предупреждение об истечении',
-              trailing: SettingsSwitch(
-                value: appSetting.notifications,
-                onChanged: (v) => _updateAppSetting(
-                  ref,
-                  (state) => state.copyWith(notifications: v),
-                ),
-              ),
-            ),
-            SettingsRow(
               title: 'Тема',
               trailing: SettingsSegmented<ThemeMode>(
                 options: const [

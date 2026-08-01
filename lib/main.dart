@@ -8,7 +8,6 @@ import 'package:rust_api/rust_api.dart';
 
 import 'application.dart';
 import 'common/common.dart';
-import 'common/notifications.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,9 +18,6 @@ Future<void> main() async {
     final version = await system.version;
     final container = await globalState.init(version);
     HttpOverrides.global = FlClashHttpOverrides();
-    if (system.isDesktop) {
-      await initNotifications();
-    }
     runApp(
       UncontrolledProviderScope(
         container: container,

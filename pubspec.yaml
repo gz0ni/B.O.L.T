@@ -84,7 +84,6 @@ dependencies:
     path: plugins/rust_api
   setup:
     path: plugins/setup
-  win_toast: ^0.4.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
