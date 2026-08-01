@@ -35,6 +35,7 @@ _UpdateParams _$UpdateParamsFromJson(Map<String, dynamic> json) =>
         json['external-controller'],
       ),
       unifiedDelay: json['unified-delay'] as bool,
+      sniffing: json['sniffing'] as bool? ?? false,
       geoAutoUpdate: json['geo-auto-update'] as bool? ?? false,
       geoUpdateInterval: (json['geo-update-interval'] as num?)?.toInt() ?? 24,
     );
@@ -52,6 +53,7 @@ Map<String, dynamic> _$UpdateParamsToJson(_UpdateParams instance) =>
       'external-controller':
           _$ExternalControllerStatusEnumMap[instance.externalController]!,
       'unified-delay': instance.unifiedDelay,
+      'sniffing': instance.sniffing,
       'geo-auto-update': instance.geoAutoUpdate,
       'geo-update-interval': instance.geoUpdateInterval,
     };

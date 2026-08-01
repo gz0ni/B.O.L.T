@@ -176,6 +176,8 @@ _Tun _$TunFromJson(Map<String, dynamic> json) => _Tun(
           ?.map((e) => e as String)
           .toList() ??
       const [],
+  strictRoute: json['strict-route'] as bool? ?? false,
+  mtu: (json['mtu'] as num?)?.toInt() ?? 0,
 );
 
 Map<String, dynamic> _$TunToJson(_Tun instance) => <String, dynamic>{
@@ -185,6 +187,8 @@ Map<String, dynamic> _$TunToJson(_Tun instance) => <String, dynamic>{
   'stack': _$TunStackEnumMap[instance.stack]!,
   'dns-hijack': instance.dnsHijack,
   'route-address': instance.routeAddress,
+  'strict-route': instance.strictRoute,
+  'mtu': instance.mtu,
 };
 
 const _$TunStackEnumMap = {
@@ -427,6 +431,9 @@ _PatchClashConfig _$PatchClashConfigFromJson(Map<String, dynamic> json) =>
       dns: json['dns'] == null
           ? defaultDns
           : Dns.safeDnsFromJson(json['dns'] as Map<String, Object?>),
+      sniffer: json['sniffer'] == null
+          ? const Sniffer()
+          : Sniffer.safeFromJson(json['sniffer'] as Map<String, Object?>?),
       geoXUrl: json['geox-url'] == null
           ? defaultGeoXUrl
           : _geoXUrlFromJson(json['geox-url'] as Map<String, Object?>?),
@@ -466,6 +473,7 @@ Map<String, dynamic> _$PatchClashConfigToJson(_PatchClashConfig instance) =>
       'tcp-concurrent': instance.tcpConcurrent,
       'tun': instance.tun,
       'dns': instance.dns,
+      'sniffer': instance.sniffer,
       'geox-url': _geoXUrlToJson(instance.geoXUrl),
       'geodata-loader': _$GeodataLoaderEnumMap[instance.geodataLoader]!,
       'global-ua': instance.globalUa,

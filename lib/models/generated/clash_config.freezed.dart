@@ -2058,7 +2058,7 @@ as bool?,
 /// @nodoc
 mixin _$Tun {
 
- bool get enable; String get device;@JsonKey(name: 'auto-route') bool get autoRoute; TunStack get stack;@JsonKey(name: 'dns-hijack') List<String> get dnsHijack;@JsonKey(name: 'route-address') List<String> get routeAddress;
+ bool get enable; String get device;@JsonKey(name: 'auto-route') bool get autoRoute; TunStack get stack;@JsonKey(name: 'dns-hijack') List<String> get dnsHijack;@JsonKey(name: 'route-address') List<String> get routeAddress;@JsonKey(name: 'strict-route') bool get strictRoute; int get mtu;
 /// Create a copy of Tun
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -2071,16 +2071,16 @@ $TunCopyWith<Tun> get copyWith => _$TunCopyWithImpl<Tun>(this as Tun, _$identity
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Tun&&(identical(other.enable, enable) || other.enable == enable)&&(identical(other.device, device) || other.device == device)&&(identical(other.autoRoute, autoRoute) || other.autoRoute == autoRoute)&&(identical(other.stack, stack) || other.stack == stack)&&const DeepCollectionEquality().equals(other.dnsHijack, dnsHijack)&&const DeepCollectionEquality().equals(other.routeAddress, routeAddress));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Tun&&(identical(other.enable, enable) || other.enable == enable)&&(identical(other.device, device) || other.device == device)&&(identical(other.autoRoute, autoRoute) || other.autoRoute == autoRoute)&&(identical(other.stack, stack) || other.stack == stack)&&const DeepCollectionEquality().equals(other.dnsHijack, dnsHijack)&&const DeepCollectionEquality().equals(other.routeAddress, routeAddress)&&(identical(other.strictRoute, strictRoute) || other.strictRoute == strictRoute)&&(identical(other.mtu, mtu) || other.mtu == mtu));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,enable,device,autoRoute,stack,const DeepCollectionEquality().hash(dnsHijack),const DeepCollectionEquality().hash(routeAddress));
+int get hashCode => Object.hash(runtimeType,enable,device,autoRoute,stack,const DeepCollectionEquality().hash(dnsHijack),const DeepCollectionEquality().hash(routeAddress),strictRoute,mtu);
 
 @override
 String toString() {
-  return 'Tun(enable: $enable, device: $device, autoRoute: $autoRoute, stack: $stack, dnsHijack: $dnsHijack, routeAddress: $routeAddress)';
+  return 'Tun(enable: $enable, device: $device, autoRoute: $autoRoute, stack: $stack, dnsHijack: $dnsHijack, routeAddress: $routeAddress, strictRoute: $strictRoute, mtu: $mtu)';
 }
 
 
@@ -2091,7 +2091,7 @@ abstract mixin class $TunCopyWith<$Res>  {
   factory $TunCopyWith(Tun value, $Res Function(Tun) _then) = _$TunCopyWithImpl;
 @useResult
 $Res call({
- bool enable, String device,@JsonKey(name: 'auto-route') bool autoRoute, TunStack stack,@JsonKey(name: 'dns-hijack') List<String> dnsHijack,@JsonKey(name: 'route-address') List<String> routeAddress
+ bool enable, String device,@JsonKey(name: 'auto-route') bool autoRoute, TunStack stack,@JsonKey(name: 'dns-hijack') List<String> dnsHijack,@JsonKey(name: 'route-address') List<String> routeAddress,@JsonKey(name: 'strict-route') bool strictRoute, int mtu
 });
 
 
@@ -2108,7 +2108,7 @@ class _$TunCopyWithImpl<$Res>
 
 /// Create a copy of Tun
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? enable = null,Object? device = null,Object? autoRoute = null,Object? stack = null,Object? dnsHijack = null,Object? routeAddress = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? enable = null,Object? device = null,Object? autoRoute = null,Object? stack = null,Object? dnsHijack = null,Object? routeAddress = null,Object? strictRoute = null,Object? mtu = null,}) {
   return _then(_self.copyWith(
 enable: null == enable ? _self.enable : enable // ignore: cast_nullable_to_non_nullable
 as bool,device: null == device ? _self.device : device // ignore: cast_nullable_to_non_nullable
@@ -2116,7 +2116,9 @@ as String,autoRoute: null == autoRoute ? _self.autoRoute : autoRoute // ignore: 
 as bool,stack: null == stack ? _self.stack : stack // ignore: cast_nullable_to_non_nullable
 as TunStack,dnsHijack: null == dnsHijack ? _self.dnsHijack : dnsHijack // ignore: cast_nullable_to_non_nullable
 as List<String>,routeAddress: null == routeAddress ? _self.routeAddress : routeAddress // ignore: cast_nullable_to_non_nullable
-as List<String>,
+as List<String>,strictRoute: null == strictRoute ? _self.strictRoute : strictRoute // ignore: cast_nullable_to_non_nullable
+as bool,mtu: null == mtu ? _self.mtu : mtu // ignore: cast_nullable_to_non_nullable
+as int,
   ));
 }
 
@@ -2201,10 +2203,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool enable,  String device, @JsonKey(name: 'auto-route')  bool autoRoute,  TunStack stack, @JsonKey(name: 'dns-hijack')  List<String> dnsHijack, @JsonKey(name: 'route-address')  List<String> routeAddress)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool enable,  String device, @JsonKey(name: 'auto-route')  bool autoRoute,  TunStack stack, @JsonKey(name: 'dns-hijack')  List<String> dnsHijack, @JsonKey(name: 'route-address')  List<String> routeAddress, @JsonKey(name: 'strict-route')  bool strictRoute,  int mtu)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Tun() when $default != null:
-return $default(_that.enable,_that.device,_that.autoRoute,_that.stack,_that.dnsHijack,_that.routeAddress);case _:
+return $default(_that.enable,_that.device,_that.autoRoute,_that.stack,_that.dnsHijack,_that.routeAddress,_that.strictRoute,_that.mtu);case _:
   return orElse();
 
 }
@@ -2222,10 +2224,10 @@ return $default(_that.enable,_that.device,_that.autoRoute,_that.stack,_that.dnsH
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool enable,  String device, @JsonKey(name: 'auto-route')  bool autoRoute,  TunStack stack, @JsonKey(name: 'dns-hijack')  List<String> dnsHijack, @JsonKey(name: 'route-address')  List<String> routeAddress)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool enable,  String device, @JsonKey(name: 'auto-route')  bool autoRoute,  TunStack stack, @JsonKey(name: 'dns-hijack')  List<String> dnsHijack, @JsonKey(name: 'route-address')  List<String> routeAddress, @JsonKey(name: 'strict-route')  bool strictRoute,  int mtu)  $default,) {final _that = this;
 switch (_that) {
 case _Tun():
-return $default(_that.enable,_that.device,_that.autoRoute,_that.stack,_that.dnsHijack,_that.routeAddress);case _:
+return $default(_that.enable,_that.device,_that.autoRoute,_that.stack,_that.dnsHijack,_that.routeAddress,_that.strictRoute,_that.mtu);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -2242,10 +2244,10 @@ return $default(_that.enable,_that.device,_that.autoRoute,_that.stack,_that.dnsH
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool enable,  String device, @JsonKey(name: 'auto-route')  bool autoRoute,  TunStack stack, @JsonKey(name: 'dns-hijack')  List<String> dnsHijack, @JsonKey(name: 'route-address')  List<String> routeAddress)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool enable,  String device, @JsonKey(name: 'auto-route')  bool autoRoute,  TunStack stack, @JsonKey(name: 'dns-hijack')  List<String> dnsHijack, @JsonKey(name: 'route-address')  List<String> routeAddress, @JsonKey(name: 'strict-route')  bool strictRoute,  int mtu)?  $default,) {final _that = this;
 switch (_that) {
 case _Tun() when $default != null:
-return $default(_that.enable,_that.device,_that.autoRoute,_that.stack,_that.dnsHijack,_that.routeAddress);case _:
+return $default(_that.enable,_that.device,_that.autoRoute,_that.stack,_that.dnsHijack,_that.routeAddress,_that.strictRoute,_that.mtu);case _:
   return null;
 
 }
@@ -2257,7 +2259,7 @@ return $default(_that.enable,_that.device,_that.autoRoute,_that.stack,_that.dnsH
 @JsonSerializable()
 
 class _Tun implements Tun {
-  const _Tun({this.enable = false, this.device = appName, @JsonKey(name: 'auto-route') this.autoRoute = false, this.stack = TunStack.mixed, @JsonKey(name: 'dns-hijack') final  List<String> dnsHijack = const ['any:53'], @JsonKey(name: 'route-address') final  List<String> routeAddress = const []}): _dnsHijack = dnsHijack,_routeAddress = routeAddress;
+  const _Tun({this.enable = false, this.device = appName, @JsonKey(name: 'auto-route') this.autoRoute = false, this.stack = TunStack.mixed, @JsonKey(name: 'dns-hijack') final  List<String> dnsHijack = const ['any:53'], @JsonKey(name: 'route-address') final  List<String> routeAddress = const [], @JsonKey(name: 'strict-route') this.strictRoute = false, this.mtu = 0}): _dnsHijack = dnsHijack,_routeAddress = routeAddress;
   factory _Tun.fromJson(Map<String, dynamic> json) => _$TunFromJson(json);
 
 @override@JsonKey() final  bool enable;
@@ -2278,6 +2280,8 @@ class _Tun implements Tun {
   return EqualUnmodifiableListView(_routeAddress);
 }
 
+@override@JsonKey(name: 'strict-route') final  bool strictRoute;
+@override@JsonKey() final  int mtu;
 
 /// Create a copy of Tun
 /// with the given fields replaced by the non-null parameter values.
@@ -2292,16 +2296,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Tun&&(identical(other.enable, enable) || other.enable == enable)&&(identical(other.device, device) || other.device == device)&&(identical(other.autoRoute, autoRoute) || other.autoRoute == autoRoute)&&(identical(other.stack, stack) || other.stack == stack)&&const DeepCollectionEquality().equals(other._dnsHijack, _dnsHijack)&&const DeepCollectionEquality().equals(other._routeAddress, _routeAddress));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Tun&&(identical(other.enable, enable) || other.enable == enable)&&(identical(other.device, device) || other.device == device)&&(identical(other.autoRoute, autoRoute) || other.autoRoute == autoRoute)&&(identical(other.stack, stack) || other.stack == stack)&&const DeepCollectionEquality().equals(other._dnsHijack, _dnsHijack)&&const DeepCollectionEquality().equals(other._routeAddress, _routeAddress)&&(identical(other.strictRoute, strictRoute) || other.strictRoute == strictRoute)&&(identical(other.mtu, mtu) || other.mtu == mtu));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,enable,device,autoRoute,stack,const DeepCollectionEquality().hash(_dnsHijack),const DeepCollectionEquality().hash(_routeAddress));
+int get hashCode => Object.hash(runtimeType,enable,device,autoRoute,stack,const DeepCollectionEquality().hash(_dnsHijack),const DeepCollectionEquality().hash(_routeAddress),strictRoute,mtu);
 
 @override
 String toString() {
-  return 'Tun(enable: $enable, device: $device, autoRoute: $autoRoute, stack: $stack, dnsHijack: $dnsHijack, routeAddress: $routeAddress)';
+  return 'Tun(enable: $enable, device: $device, autoRoute: $autoRoute, stack: $stack, dnsHijack: $dnsHijack, routeAddress: $routeAddress, strictRoute: $strictRoute, mtu: $mtu)';
 }
 
 
@@ -2312,7 +2316,7 @@ abstract mixin class _$TunCopyWith<$Res> implements $TunCopyWith<$Res> {
   factory _$TunCopyWith(_Tun value, $Res Function(_Tun) _then) = __$TunCopyWithImpl;
 @override @useResult
 $Res call({
- bool enable, String device,@JsonKey(name: 'auto-route') bool autoRoute, TunStack stack,@JsonKey(name: 'dns-hijack') List<String> dnsHijack,@JsonKey(name: 'route-address') List<String> routeAddress
+ bool enable, String device,@JsonKey(name: 'auto-route') bool autoRoute, TunStack stack,@JsonKey(name: 'dns-hijack') List<String> dnsHijack,@JsonKey(name: 'route-address') List<String> routeAddress,@JsonKey(name: 'strict-route') bool strictRoute, int mtu
 });
 
 
@@ -2329,7 +2333,7 @@ class __$TunCopyWithImpl<$Res>
 
 /// Create a copy of Tun
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? enable = null,Object? device = null,Object? autoRoute = null,Object? stack = null,Object? dnsHijack = null,Object? routeAddress = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? enable = null,Object? device = null,Object? autoRoute = null,Object? stack = null,Object? dnsHijack = null,Object? routeAddress = null,Object? strictRoute = null,Object? mtu = null,}) {
   return _then(_Tun(
 enable: null == enable ? _self.enable : enable // ignore: cast_nullable_to_non_nullable
 as bool,device: null == device ? _self.device : device // ignore: cast_nullable_to_non_nullable
@@ -2337,7 +2341,9 @@ as String,autoRoute: null == autoRoute ? _self.autoRoute : autoRoute // ignore: 
 as bool,stack: null == stack ? _self.stack : stack // ignore: cast_nullable_to_non_nullable
 as TunStack,dnsHijack: null == dnsHijack ? _self._dnsHijack : dnsHijack // ignore: cast_nullable_to_non_nullable
 as List<String>,routeAddress: null == routeAddress ? _self._routeAddress : routeAddress // ignore: cast_nullable_to_non_nullable
-as List<String>,
+as List<String>,strictRoute: null == strictRoute ? _self.strictRoute : strictRoute // ignore: cast_nullable_to_non_nullable
+as bool,mtu: null == mtu ? _self.mtu : mtu // ignore: cast_nullable_to_non_nullable
+as int,
   ));
 }
 
@@ -3613,7 +3619,7 @@ as Map<String, String>,
 /// @nodoc
 mixin _$PatchClashConfig {
 
-@JsonKey(name: 'mixed-port') int get mixedPort;@JsonKey(name: 'socks-port') int get socksPort;@JsonKey(name: 'port') int get port;@JsonKey(name: 'redir-port') int get redirPort;@JsonKey(name: 'tproxy-port') int get tproxyPort; Mode get mode;@JsonKey(name: 'allow-lan') bool get allowLan;@JsonKey(name: 'log-level') LogLevel get logLevel; bool get ipv6;@JsonKey(name: 'find-process-mode', unknownEnumValue: FindProcessMode.always) FindProcessMode get findProcessMode;@JsonKey(name: 'keep-alive-interval') int get keepAliveInterval;@JsonKey(name: 'unified-delay') bool get unifiedDelay;@JsonKey(name: 'tcp-concurrent') bool get tcpConcurrent;@JsonKey(fromJson: Tun.safeFormJson) Tun get tun;@JsonKey(fromJson: Dns.safeDnsFromJson) Dns get dns;@JsonKey(name: 'geox-url', fromJson: _geoXUrlFromJson, toJson: _geoXUrlToJson) Map<GeoResource, String> get geoXUrl;@JsonKey(name: 'geodata-loader') GeodataLoader get geodataLoader;@JsonKey(name: 'global-ua') String? get globalUa;@JsonKey(name: 'external-controller') ExternalControllerStatus get externalController; Map<String, String> get hosts;@JsonKey(name: 'geo-auto-update') bool get geoAutoUpdate;@JsonKey(name: 'geo-update-interval') int get geoUpdateInterval;
+@JsonKey(name: 'mixed-port') int get mixedPort;@JsonKey(name: 'socks-port') int get socksPort;@JsonKey(name: 'port') int get port;@JsonKey(name: 'redir-port') int get redirPort;@JsonKey(name: 'tproxy-port') int get tproxyPort; Mode get mode;@JsonKey(name: 'allow-lan') bool get allowLan;@JsonKey(name: 'log-level') LogLevel get logLevel; bool get ipv6;@JsonKey(name: 'find-process-mode', unknownEnumValue: FindProcessMode.always) FindProcessMode get findProcessMode;@JsonKey(name: 'keep-alive-interval') int get keepAliveInterval;@JsonKey(name: 'unified-delay') bool get unifiedDelay;@JsonKey(name: 'tcp-concurrent') bool get tcpConcurrent;@JsonKey(fromJson: Tun.safeFormJson) Tun get tun;@JsonKey(fromJson: Dns.safeDnsFromJson) Dns get dns;@JsonKey(fromJson: Sniffer.safeFromJson) Sniffer get sniffer;@JsonKey(name: 'geox-url', fromJson: _geoXUrlFromJson, toJson: _geoXUrlToJson) Map<GeoResource, String> get geoXUrl;@JsonKey(name: 'geodata-loader') GeodataLoader get geodataLoader;@JsonKey(name: 'global-ua') String? get globalUa;@JsonKey(name: 'external-controller') ExternalControllerStatus get externalController; Map<String, String> get hosts;@JsonKey(name: 'geo-auto-update') bool get geoAutoUpdate;@JsonKey(name: 'geo-update-interval') int get geoUpdateInterval;
 /// Create a copy of PatchClashConfig
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -3626,16 +3632,16 @@ $PatchClashConfigCopyWith<PatchClashConfig> get copyWith => _$PatchClashConfigCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is PatchClashConfig&&(identical(other.mixedPort, mixedPort) || other.mixedPort == mixedPort)&&(identical(other.socksPort, socksPort) || other.socksPort == socksPort)&&(identical(other.port, port) || other.port == port)&&(identical(other.redirPort, redirPort) || other.redirPort == redirPort)&&(identical(other.tproxyPort, tproxyPort) || other.tproxyPort == tproxyPort)&&(identical(other.mode, mode) || other.mode == mode)&&(identical(other.allowLan, allowLan) || other.allowLan == allowLan)&&(identical(other.logLevel, logLevel) || other.logLevel == logLevel)&&(identical(other.ipv6, ipv6) || other.ipv6 == ipv6)&&(identical(other.findProcessMode, findProcessMode) || other.findProcessMode == findProcessMode)&&(identical(other.keepAliveInterval, keepAliveInterval) || other.keepAliveInterval == keepAliveInterval)&&(identical(other.unifiedDelay, unifiedDelay) || other.unifiedDelay == unifiedDelay)&&(identical(other.tcpConcurrent, tcpConcurrent) || other.tcpConcurrent == tcpConcurrent)&&(identical(other.tun, tun) || other.tun == tun)&&(identical(other.dns, dns) || other.dns == dns)&&const DeepCollectionEquality().equals(other.geoXUrl, geoXUrl)&&(identical(other.geodataLoader, geodataLoader) || other.geodataLoader == geodataLoader)&&(identical(other.globalUa, globalUa) || other.globalUa == globalUa)&&(identical(other.externalController, externalController) || other.externalController == externalController)&&const DeepCollectionEquality().equals(other.hosts, hosts)&&(identical(other.geoAutoUpdate, geoAutoUpdate) || other.geoAutoUpdate == geoAutoUpdate)&&(identical(other.geoUpdateInterval, geoUpdateInterval) || other.geoUpdateInterval == geoUpdateInterval));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PatchClashConfig&&(identical(other.mixedPort, mixedPort) || other.mixedPort == mixedPort)&&(identical(other.socksPort, socksPort) || other.socksPort == socksPort)&&(identical(other.port, port) || other.port == port)&&(identical(other.redirPort, redirPort) || other.redirPort == redirPort)&&(identical(other.tproxyPort, tproxyPort) || other.tproxyPort == tproxyPort)&&(identical(other.mode, mode) || other.mode == mode)&&(identical(other.allowLan, allowLan) || other.allowLan == allowLan)&&(identical(other.logLevel, logLevel) || other.logLevel == logLevel)&&(identical(other.ipv6, ipv6) || other.ipv6 == ipv6)&&(identical(other.findProcessMode, findProcessMode) || other.findProcessMode == findProcessMode)&&(identical(other.keepAliveInterval, keepAliveInterval) || other.keepAliveInterval == keepAliveInterval)&&(identical(other.unifiedDelay, unifiedDelay) || other.unifiedDelay == unifiedDelay)&&(identical(other.tcpConcurrent, tcpConcurrent) || other.tcpConcurrent == tcpConcurrent)&&(identical(other.tun, tun) || other.tun == tun)&&(identical(other.dns, dns) || other.dns == dns)&&(identical(other.sniffer, sniffer) || other.sniffer == sniffer)&&const DeepCollectionEquality().equals(other.geoXUrl, geoXUrl)&&(identical(other.geodataLoader, geodataLoader) || other.geodataLoader == geodataLoader)&&(identical(other.globalUa, globalUa) || other.globalUa == globalUa)&&(identical(other.externalController, externalController) || other.externalController == externalController)&&const DeepCollectionEquality().equals(other.hosts, hosts)&&(identical(other.geoAutoUpdate, geoAutoUpdate) || other.geoAutoUpdate == geoAutoUpdate)&&(identical(other.geoUpdateInterval, geoUpdateInterval) || other.geoUpdateInterval == geoUpdateInterval));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,mixedPort,socksPort,port,redirPort,tproxyPort,mode,allowLan,logLevel,ipv6,findProcessMode,keepAliveInterval,unifiedDelay,tcpConcurrent,tun,dns,const DeepCollectionEquality().hash(geoXUrl),geodataLoader,globalUa,externalController,const DeepCollectionEquality().hash(hosts),geoAutoUpdate,geoUpdateInterval]);
+int get hashCode => Object.hashAll([runtimeType,mixedPort,socksPort,port,redirPort,tproxyPort,mode,allowLan,logLevel,ipv6,findProcessMode,keepAliveInterval,unifiedDelay,tcpConcurrent,tun,dns,sniffer,const DeepCollectionEquality().hash(geoXUrl),geodataLoader,globalUa,externalController,const DeepCollectionEquality().hash(hosts),geoAutoUpdate,geoUpdateInterval]);
 
 @override
 String toString() {
-  return 'PatchClashConfig(mixedPort: $mixedPort, socksPort: $socksPort, port: $port, redirPort: $redirPort, tproxyPort: $tproxyPort, mode: $mode, allowLan: $allowLan, logLevel: $logLevel, ipv6: $ipv6, findProcessMode: $findProcessMode, keepAliveInterval: $keepAliveInterval, unifiedDelay: $unifiedDelay, tcpConcurrent: $tcpConcurrent, tun: $tun, dns: $dns, geoXUrl: $geoXUrl, geodataLoader: $geodataLoader, globalUa: $globalUa, externalController: $externalController, hosts: $hosts, geoAutoUpdate: $geoAutoUpdate, geoUpdateInterval: $geoUpdateInterval)';
+  return 'PatchClashConfig(mixedPort: $mixedPort, socksPort: $socksPort, port: $port, redirPort: $redirPort, tproxyPort: $tproxyPort, mode: $mode, allowLan: $allowLan, logLevel: $logLevel, ipv6: $ipv6, findProcessMode: $findProcessMode, keepAliveInterval: $keepAliveInterval, unifiedDelay: $unifiedDelay, tcpConcurrent: $tcpConcurrent, tun: $tun, dns: $dns, sniffer: $sniffer, geoXUrl: $geoXUrl, geodataLoader: $geodataLoader, globalUa: $globalUa, externalController: $externalController, hosts: $hosts, geoAutoUpdate: $geoAutoUpdate, geoUpdateInterval: $geoUpdateInterval)';
 }
 
 
@@ -3646,11 +3652,11 @@ abstract mixin class $PatchClashConfigCopyWith<$Res>  {
   factory $PatchClashConfigCopyWith(PatchClashConfig value, $Res Function(PatchClashConfig) _then) = _$PatchClashConfigCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'mixed-port') int mixedPort,@JsonKey(name: 'socks-port') int socksPort,@JsonKey(name: 'port') int port,@JsonKey(name: 'redir-port') int redirPort,@JsonKey(name: 'tproxy-port') int tproxyPort, Mode mode,@JsonKey(name: 'allow-lan') bool allowLan,@JsonKey(name: 'log-level') LogLevel logLevel, bool ipv6,@JsonKey(name: 'find-process-mode', unknownEnumValue: FindProcessMode.always) FindProcessMode findProcessMode,@JsonKey(name: 'keep-alive-interval') int keepAliveInterval,@JsonKey(name: 'unified-delay') bool unifiedDelay,@JsonKey(name: 'tcp-concurrent') bool tcpConcurrent,@JsonKey(fromJson: Tun.safeFormJson) Tun tun,@JsonKey(fromJson: Dns.safeDnsFromJson) Dns dns,@JsonKey(name: 'geox-url', fromJson: _geoXUrlFromJson, toJson: _geoXUrlToJson) Map<GeoResource, String> geoXUrl,@JsonKey(name: 'geodata-loader') GeodataLoader geodataLoader,@JsonKey(name: 'global-ua') String? globalUa,@JsonKey(name: 'external-controller') ExternalControllerStatus externalController, Map<String, String> hosts,@JsonKey(name: 'geo-auto-update') bool geoAutoUpdate,@JsonKey(name: 'geo-update-interval') int geoUpdateInterval
+@JsonKey(name: 'mixed-port') int mixedPort,@JsonKey(name: 'socks-port') int socksPort,@JsonKey(name: 'port') int port,@JsonKey(name: 'redir-port') int redirPort,@JsonKey(name: 'tproxy-port') int tproxyPort, Mode mode,@JsonKey(name: 'allow-lan') bool allowLan,@JsonKey(name: 'log-level') LogLevel logLevel, bool ipv6,@JsonKey(name: 'find-process-mode', unknownEnumValue: FindProcessMode.always) FindProcessMode findProcessMode,@JsonKey(name: 'keep-alive-interval') int keepAliveInterval,@JsonKey(name: 'unified-delay') bool unifiedDelay,@JsonKey(name: 'tcp-concurrent') bool tcpConcurrent,@JsonKey(fromJson: Tun.safeFormJson) Tun tun,@JsonKey(fromJson: Dns.safeDnsFromJson) Dns dns,@JsonKey(fromJson: Sniffer.safeFromJson) Sniffer sniffer,@JsonKey(name: 'geox-url', fromJson: _geoXUrlFromJson, toJson: _geoXUrlToJson) Map<GeoResource, String> geoXUrl,@JsonKey(name: 'geodata-loader') GeodataLoader geodataLoader,@JsonKey(name: 'global-ua') String? globalUa,@JsonKey(name: 'external-controller') ExternalControllerStatus externalController, Map<String, String> hosts,@JsonKey(name: 'geo-auto-update') bool geoAutoUpdate,@JsonKey(name: 'geo-update-interval') int geoUpdateInterval
 });
 
 
-$TunCopyWith<$Res> get tun;$DnsCopyWith<$Res> get dns;
+$TunCopyWith<$Res> get tun;$DnsCopyWith<$Res> get dns;$SnifferCopyWith<$Res> get sniffer;
 
 }
 /// @nodoc
@@ -3663,7 +3669,7 @@ class _$PatchClashConfigCopyWithImpl<$Res>
 
 /// Create a copy of PatchClashConfig
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? mixedPort = null,Object? socksPort = null,Object? port = null,Object? redirPort = null,Object? tproxyPort = null,Object? mode = null,Object? allowLan = null,Object? logLevel = null,Object? ipv6 = null,Object? findProcessMode = null,Object? keepAliveInterval = null,Object? unifiedDelay = null,Object? tcpConcurrent = null,Object? tun = null,Object? dns = null,Object? geoXUrl = null,Object? geodataLoader = null,Object? globalUa = freezed,Object? externalController = null,Object? hosts = null,Object? geoAutoUpdate = null,Object? geoUpdateInterval = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? mixedPort = null,Object? socksPort = null,Object? port = null,Object? redirPort = null,Object? tproxyPort = null,Object? mode = null,Object? allowLan = null,Object? logLevel = null,Object? ipv6 = null,Object? findProcessMode = null,Object? keepAliveInterval = null,Object? unifiedDelay = null,Object? tcpConcurrent = null,Object? tun = null,Object? dns = null,Object? sniffer = null,Object? geoXUrl = null,Object? geodataLoader = null,Object? globalUa = freezed,Object? externalController = null,Object? hosts = null,Object? geoAutoUpdate = null,Object? geoUpdateInterval = null,}) {
   return _then(_self.copyWith(
 mixedPort: null == mixedPort ? _self.mixedPort : mixedPort // ignore: cast_nullable_to_non_nullable
 as int,socksPort: null == socksPort ? _self.socksPort : socksPort // ignore: cast_nullable_to_non_nullable
@@ -3680,7 +3686,8 @@ as int,unifiedDelay: null == unifiedDelay ? _self.unifiedDelay : unifiedDelay //
 as bool,tcpConcurrent: null == tcpConcurrent ? _self.tcpConcurrent : tcpConcurrent // ignore: cast_nullable_to_non_nullable
 as bool,tun: null == tun ? _self.tun : tun // ignore: cast_nullable_to_non_nullable
 as Tun,dns: null == dns ? _self.dns : dns // ignore: cast_nullable_to_non_nullable
-as Dns,geoXUrl: null == geoXUrl ? _self.geoXUrl : geoXUrl // ignore: cast_nullable_to_non_nullable
+as Dns,sniffer: null == sniffer ? _self.sniffer : sniffer // ignore: cast_nullable_to_non_nullable
+as Sniffer,geoXUrl: null == geoXUrl ? _self.geoXUrl : geoXUrl // ignore: cast_nullable_to_non_nullable
 as Map<GeoResource, String>,geodataLoader: null == geodataLoader ? _self.geodataLoader : geodataLoader // ignore: cast_nullable_to_non_nullable
 as GeodataLoader,globalUa: freezed == globalUa ? _self.globalUa : globalUa // ignore: cast_nullable_to_non_nullable
 as String?,externalController: null == externalController ? _self.externalController : externalController // ignore: cast_nullable_to_non_nullable
@@ -3707,6 +3714,15 @@ $DnsCopyWith<$Res> get dns {
   
   return $DnsCopyWith<$Res>(_self.dns, (value) {
     return _then(_self.copyWith(dns: value));
+  });
+}/// Create a copy of PatchClashConfig
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$SnifferCopyWith<$Res> get sniffer {
+  
+  return $SnifferCopyWith<$Res>(_self.sniffer, (value) {
+    return _then(_self.copyWith(sniffer: value));
   });
 }
 }
@@ -3790,10 +3806,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'mixed-port')  int mixedPort, @JsonKey(name: 'socks-port')  int socksPort, @JsonKey(name: 'port')  int port, @JsonKey(name: 'redir-port')  int redirPort, @JsonKey(name: 'tproxy-port')  int tproxyPort,  Mode mode, @JsonKey(name: 'allow-lan')  bool allowLan, @JsonKey(name: 'log-level')  LogLevel logLevel,  bool ipv6, @JsonKey(name: 'find-process-mode', unknownEnumValue: FindProcessMode.always)  FindProcessMode findProcessMode, @JsonKey(name: 'keep-alive-interval')  int keepAliveInterval, @JsonKey(name: 'unified-delay')  bool unifiedDelay, @JsonKey(name: 'tcp-concurrent')  bool tcpConcurrent, @JsonKey(fromJson: Tun.safeFormJson)  Tun tun, @JsonKey(fromJson: Dns.safeDnsFromJson)  Dns dns, @JsonKey(name: 'geox-url', fromJson: _geoXUrlFromJson, toJson: _geoXUrlToJson)  Map<GeoResource, String> geoXUrl, @JsonKey(name: 'geodata-loader')  GeodataLoader geodataLoader, @JsonKey(name: 'global-ua')  String? globalUa, @JsonKey(name: 'external-controller')  ExternalControllerStatus externalController,  Map<String, String> hosts, @JsonKey(name: 'geo-auto-update')  bool geoAutoUpdate, @JsonKey(name: 'geo-update-interval')  int geoUpdateInterval)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'mixed-port')  int mixedPort, @JsonKey(name: 'socks-port')  int socksPort, @JsonKey(name: 'port')  int port, @JsonKey(name: 'redir-port')  int redirPort, @JsonKey(name: 'tproxy-port')  int tproxyPort,  Mode mode, @JsonKey(name: 'allow-lan')  bool allowLan, @JsonKey(name: 'log-level')  LogLevel logLevel,  bool ipv6, @JsonKey(name: 'find-process-mode', unknownEnumValue: FindProcessMode.always)  FindProcessMode findProcessMode, @JsonKey(name: 'keep-alive-interval')  int keepAliveInterval, @JsonKey(name: 'unified-delay')  bool unifiedDelay, @JsonKey(name: 'tcp-concurrent')  bool tcpConcurrent, @JsonKey(fromJson: Tun.safeFormJson)  Tun tun, @JsonKey(fromJson: Dns.safeDnsFromJson)  Dns dns, @JsonKey(fromJson: Sniffer.safeFromJson)  Sniffer sniffer, @JsonKey(name: 'geox-url', fromJson: _geoXUrlFromJson, toJson: _geoXUrlToJson)  Map<GeoResource, String> geoXUrl, @JsonKey(name: 'geodata-loader')  GeodataLoader geodataLoader, @JsonKey(name: 'global-ua')  String? globalUa, @JsonKey(name: 'external-controller')  ExternalControllerStatus externalController,  Map<String, String> hosts, @JsonKey(name: 'geo-auto-update')  bool geoAutoUpdate, @JsonKey(name: 'geo-update-interval')  int geoUpdateInterval)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _PatchClashConfig() when $default != null:
-return $default(_that.mixedPort,_that.socksPort,_that.port,_that.redirPort,_that.tproxyPort,_that.mode,_that.allowLan,_that.logLevel,_that.ipv6,_that.findProcessMode,_that.keepAliveInterval,_that.unifiedDelay,_that.tcpConcurrent,_that.tun,_that.dns,_that.geoXUrl,_that.geodataLoader,_that.globalUa,_that.externalController,_that.hosts,_that.geoAutoUpdate,_that.geoUpdateInterval);case _:
+return $default(_that.mixedPort,_that.socksPort,_that.port,_that.redirPort,_that.tproxyPort,_that.mode,_that.allowLan,_that.logLevel,_that.ipv6,_that.findProcessMode,_that.keepAliveInterval,_that.unifiedDelay,_that.tcpConcurrent,_that.tun,_that.dns,_that.sniffer,_that.geoXUrl,_that.geodataLoader,_that.globalUa,_that.externalController,_that.hosts,_that.geoAutoUpdate,_that.geoUpdateInterval);case _:
   return orElse();
 
 }
@@ -3811,10 +3827,10 @@ return $default(_that.mixedPort,_that.socksPort,_that.port,_that.redirPort,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'mixed-port')  int mixedPort, @JsonKey(name: 'socks-port')  int socksPort, @JsonKey(name: 'port')  int port, @JsonKey(name: 'redir-port')  int redirPort, @JsonKey(name: 'tproxy-port')  int tproxyPort,  Mode mode, @JsonKey(name: 'allow-lan')  bool allowLan, @JsonKey(name: 'log-level')  LogLevel logLevel,  bool ipv6, @JsonKey(name: 'find-process-mode', unknownEnumValue: FindProcessMode.always)  FindProcessMode findProcessMode, @JsonKey(name: 'keep-alive-interval')  int keepAliveInterval, @JsonKey(name: 'unified-delay')  bool unifiedDelay, @JsonKey(name: 'tcp-concurrent')  bool tcpConcurrent, @JsonKey(fromJson: Tun.safeFormJson)  Tun tun, @JsonKey(fromJson: Dns.safeDnsFromJson)  Dns dns, @JsonKey(name: 'geox-url', fromJson: _geoXUrlFromJson, toJson: _geoXUrlToJson)  Map<GeoResource, String> geoXUrl, @JsonKey(name: 'geodata-loader')  GeodataLoader geodataLoader, @JsonKey(name: 'global-ua')  String? globalUa, @JsonKey(name: 'external-controller')  ExternalControllerStatus externalController,  Map<String, String> hosts, @JsonKey(name: 'geo-auto-update')  bool geoAutoUpdate, @JsonKey(name: 'geo-update-interval')  int geoUpdateInterval)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'mixed-port')  int mixedPort, @JsonKey(name: 'socks-port')  int socksPort, @JsonKey(name: 'port')  int port, @JsonKey(name: 'redir-port')  int redirPort, @JsonKey(name: 'tproxy-port')  int tproxyPort,  Mode mode, @JsonKey(name: 'allow-lan')  bool allowLan, @JsonKey(name: 'log-level')  LogLevel logLevel,  bool ipv6, @JsonKey(name: 'find-process-mode', unknownEnumValue: FindProcessMode.always)  FindProcessMode findProcessMode, @JsonKey(name: 'keep-alive-interval')  int keepAliveInterval, @JsonKey(name: 'unified-delay')  bool unifiedDelay, @JsonKey(name: 'tcp-concurrent')  bool tcpConcurrent, @JsonKey(fromJson: Tun.safeFormJson)  Tun tun, @JsonKey(fromJson: Dns.safeDnsFromJson)  Dns dns, @JsonKey(fromJson: Sniffer.safeFromJson)  Sniffer sniffer, @JsonKey(name: 'geox-url', fromJson: _geoXUrlFromJson, toJson: _geoXUrlToJson)  Map<GeoResource, String> geoXUrl, @JsonKey(name: 'geodata-loader')  GeodataLoader geodataLoader, @JsonKey(name: 'global-ua')  String? globalUa, @JsonKey(name: 'external-controller')  ExternalControllerStatus externalController,  Map<String, String> hosts, @JsonKey(name: 'geo-auto-update')  bool geoAutoUpdate, @JsonKey(name: 'geo-update-interval')  int geoUpdateInterval)  $default,) {final _that = this;
 switch (_that) {
 case _PatchClashConfig():
-return $default(_that.mixedPort,_that.socksPort,_that.port,_that.redirPort,_that.tproxyPort,_that.mode,_that.allowLan,_that.logLevel,_that.ipv6,_that.findProcessMode,_that.keepAliveInterval,_that.unifiedDelay,_that.tcpConcurrent,_that.tun,_that.dns,_that.geoXUrl,_that.geodataLoader,_that.globalUa,_that.externalController,_that.hosts,_that.geoAutoUpdate,_that.geoUpdateInterval);case _:
+return $default(_that.mixedPort,_that.socksPort,_that.port,_that.redirPort,_that.tproxyPort,_that.mode,_that.allowLan,_that.logLevel,_that.ipv6,_that.findProcessMode,_that.keepAliveInterval,_that.unifiedDelay,_that.tcpConcurrent,_that.tun,_that.dns,_that.sniffer,_that.geoXUrl,_that.geodataLoader,_that.globalUa,_that.externalController,_that.hosts,_that.geoAutoUpdate,_that.geoUpdateInterval);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -3831,10 +3847,10 @@ return $default(_that.mixedPort,_that.socksPort,_that.port,_that.redirPort,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'mixed-port')  int mixedPort, @JsonKey(name: 'socks-port')  int socksPort, @JsonKey(name: 'port')  int port, @JsonKey(name: 'redir-port')  int redirPort, @JsonKey(name: 'tproxy-port')  int tproxyPort,  Mode mode, @JsonKey(name: 'allow-lan')  bool allowLan, @JsonKey(name: 'log-level')  LogLevel logLevel,  bool ipv6, @JsonKey(name: 'find-process-mode', unknownEnumValue: FindProcessMode.always)  FindProcessMode findProcessMode, @JsonKey(name: 'keep-alive-interval')  int keepAliveInterval, @JsonKey(name: 'unified-delay')  bool unifiedDelay, @JsonKey(name: 'tcp-concurrent')  bool tcpConcurrent, @JsonKey(fromJson: Tun.safeFormJson)  Tun tun, @JsonKey(fromJson: Dns.safeDnsFromJson)  Dns dns, @JsonKey(name: 'geox-url', fromJson: _geoXUrlFromJson, toJson: _geoXUrlToJson)  Map<GeoResource, String> geoXUrl, @JsonKey(name: 'geodata-loader')  GeodataLoader geodataLoader, @JsonKey(name: 'global-ua')  String? globalUa, @JsonKey(name: 'external-controller')  ExternalControllerStatus externalController,  Map<String, String> hosts, @JsonKey(name: 'geo-auto-update')  bool geoAutoUpdate, @JsonKey(name: 'geo-update-interval')  int geoUpdateInterval)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'mixed-port')  int mixedPort, @JsonKey(name: 'socks-port')  int socksPort, @JsonKey(name: 'port')  int port, @JsonKey(name: 'redir-port')  int redirPort, @JsonKey(name: 'tproxy-port')  int tproxyPort,  Mode mode, @JsonKey(name: 'allow-lan')  bool allowLan, @JsonKey(name: 'log-level')  LogLevel logLevel,  bool ipv6, @JsonKey(name: 'find-process-mode', unknownEnumValue: FindProcessMode.always)  FindProcessMode findProcessMode, @JsonKey(name: 'keep-alive-interval')  int keepAliveInterval, @JsonKey(name: 'unified-delay')  bool unifiedDelay, @JsonKey(name: 'tcp-concurrent')  bool tcpConcurrent, @JsonKey(fromJson: Tun.safeFormJson)  Tun tun, @JsonKey(fromJson: Dns.safeDnsFromJson)  Dns dns, @JsonKey(fromJson: Sniffer.safeFromJson)  Sniffer sniffer, @JsonKey(name: 'geox-url', fromJson: _geoXUrlFromJson, toJson: _geoXUrlToJson)  Map<GeoResource, String> geoXUrl, @JsonKey(name: 'geodata-loader')  GeodataLoader geodataLoader, @JsonKey(name: 'global-ua')  String? globalUa, @JsonKey(name: 'external-controller')  ExternalControllerStatus externalController,  Map<String, String> hosts, @JsonKey(name: 'geo-auto-update')  bool geoAutoUpdate, @JsonKey(name: 'geo-update-interval')  int geoUpdateInterval)?  $default,) {final _that = this;
 switch (_that) {
 case _PatchClashConfig() when $default != null:
-return $default(_that.mixedPort,_that.socksPort,_that.port,_that.redirPort,_that.tproxyPort,_that.mode,_that.allowLan,_that.logLevel,_that.ipv6,_that.findProcessMode,_that.keepAliveInterval,_that.unifiedDelay,_that.tcpConcurrent,_that.tun,_that.dns,_that.geoXUrl,_that.geodataLoader,_that.globalUa,_that.externalController,_that.hosts,_that.geoAutoUpdate,_that.geoUpdateInterval);case _:
+return $default(_that.mixedPort,_that.socksPort,_that.port,_that.redirPort,_that.tproxyPort,_that.mode,_that.allowLan,_that.logLevel,_that.ipv6,_that.findProcessMode,_that.keepAliveInterval,_that.unifiedDelay,_that.tcpConcurrent,_that.tun,_that.dns,_that.sniffer,_that.geoXUrl,_that.geodataLoader,_that.globalUa,_that.externalController,_that.hosts,_that.geoAutoUpdate,_that.geoUpdateInterval);case _:
   return null;
 
 }
@@ -3846,7 +3862,7 @@ return $default(_that.mixedPort,_that.socksPort,_that.port,_that.redirPort,_that
 @JsonSerializable()
 
 class _PatchClashConfig implements PatchClashConfig {
-  const _PatchClashConfig({@JsonKey(name: 'mixed-port') this.mixedPort = defaultMixedPort, @JsonKey(name: 'socks-port') this.socksPort = 0, @JsonKey(name: 'port') this.port = 0, @JsonKey(name: 'redir-port') this.redirPort = 0, @JsonKey(name: 'tproxy-port') this.tproxyPort = 0, this.mode = Mode.rule, @JsonKey(name: 'allow-lan') this.allowLan = false, @JsonKey(name: 'log-level') this.logLevel = LogLevel.error, this.ipv6 = false, @JsonKey(name: 'find-process-mode', unknownEnumValue: FindProcessMode.always) this.findProcessMode = FindProcessMode.always, @JsonKey(name: 'keep-alive-interval') this.keepAliveInterval = defaultKeepAliveInterval, @JsonKey(name: 'unified-delay') this.unifiedDelay = true, @JsonKey(name: 'tcp-concurrent') this.tcpConcurrent = true, @JsonKey(fromJson: Tun.safeFormJson) this.tun = defaultTun, @JsonKey(fromJson: Dns.safeDnsFromJson) this.dns = defaultDns, @JsonKey(name: 'geox-url', fromJson: _geoXUrlFromJson, toJson: _geoXUrlToJson) final  Map<GeoResource, String> geoXUrl = defaultGeoXUrl, @JsonKey(name: 'geodata-loader') this.geodataLoader = GeodataLoader.memconservative, @JsonKey(name: 'global-ua') this.globalUa, @JsonKey(name: 'external-controller') this.externalController = ExternalControllerStatus.close, final  Map<String, String> hosts = const {}, @JsonKey(name: 'geo-auto-update') this.geoAutoUpdate = false, @JsonKey(name: 'geo-update-interval') this.geoUpdateInterval = 24}): _geoXUrl = geoXUrl,_hosts = hosts;
+  const _PatchClashConfig({@JsonKey(name: 'mixed-port') this.mixedPort = defaultMixedPort, @JsonKey(name: 'socks-port') this.socksPort = 0, @JsonKey(name: 'port') this.port = 0, @JsonKey(name: 'redir-port') this.redirPort = 0, @JsonKey(name: 'tproxy-port') this.tproxyPort = 0, this.mode = Mode.rule, @JsonKey(name: 'allow-lan') this.allowLan = false, @JsonKey(name: 'log-level') this.logLevel = LogLevel.error, this.ipv6 = false, @JsonKey(name: 'find-process-mode', unknownEnumValue: FindProcessMode.always) this.findProcessMode = FindProcessMode.always, @JsonKey(name: 'keep-alive-interval') this.keepAliveInterval = defaultKeepAliveInterval, @JsonKey(name: 'unified-delay') this.unifiedDelay = true, @JsonKey(name: 'tcp-concurrent') this.tcpConcurrent = true, @JsonKey(fromJson: Tun.safeFormJson) this.tun = defaultTun, @JsonKey(fromJson: Dns.safeDnsFromJson) this.dns = defaultDns, @JsonKey(fromJson: Sniffer.safeFromJson) this.sniffer = const Sniffer(), @JsonKey(name: 'geox-url', fromJson: _geoXUrlFromJson, toJson: _geoXUrlToJson) final  Map<GeoResource, String> geoXUrl = defaultGeoXUrl, @JsonKey(name: 'geodata-loader') this.geodataLoader = GeodataLoader.memconservative, @JsonKey(name: 'global-ua') this.globalUa, @JsonKey(name: 'external-controller') this.externalController = ExternalControllerStatus.close, final  Map<String, String> hosts = const {}, @JsonKey(name: 'geo-auto-update') this.geoAutoUpdate = false, @JsonKey(name: 'geo-update-interval') this.geoUpdateInterval = 24}): _geoXUrl = geoXUrl,_hosts = hosts;
   factory _PatchClashConfig.fromJson(Map<String, dynamic> json) => _$PatchClashConfigFromJson(json);
 
 @override@JsonKey(name: 'mixed-port') final  int mixedPort;
@@ -3864,6 +3880,7 @@ class _PatchClashConfig implements PatchClashConfig {
 @override@JsonKey(name: 'tcp-concurrent') final  bool tcpConcurrent;
 @override@JsonKey(fromJson: Tun.safeFormJson) final  Tun tun;
 @override@JsonKey(fromJson: Dns.safeDnsFromJson) final  Dns dns;
+@override@JsonKey(fromJson: Sniffer.safeFromJson) final  Sniffer sniffer;
  final  Map<GeoResource, String> _geoXUrl;
 @override@JsonKey(name: 'geox-url', fromJson: _geoXUrlFromJson, toJson: _geoXUrlToJson) Map<GeoResource, String> get geoXUrl {
   if (_geoXUrl is EqualUnmodifiableMapView) return _geoXUrl;
@@ -3897,16 +3914,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PatchClashConfig&&(identical(other.mixedPort, mixedPort) || other.mixedPort == mixedPort)&&(identical(other.socksPort, socksPort) || other.socksPort == socksPort)&&(identical(other.port, port) || other.port == port)&&(identical(other.redirPort, redirPort) || other.redirPort == redirPort)&&(identical(other.tproxyPort, tproxyPort) || other.tproxyPort == tproxyPort)&&(identical(other.mode, mode) || other.mode == mode)&&(identical(other.allowLan, allowLan) || other.allowLan == allowLan)&&(identical(other.logLevel, logLevel) || other.logLevel == logLevel)&&(identical(other.ipv6, ipv6) || other.ipv6 == ipv6)&&(identical(other.findProcessMode, findProcessMode) || other.findProcessMode == findProcessMode)&&(identical(other.keepAliveInterval, keepAliveInterval) || other.keepAliveInterval == keepAliveInterval)&&(identical(other.unifiedDelay, unifiedDelay) || other.unifiedDelay == unifiedDelay)&&(identical(other.tcpConcurrent, tcpConcurrent) || other.tcpConcurrent == tcpConcurrent)&&(identical(other.tun, tun) || other.tun == tun)&&(identical(other.dns, dns) || other.dns == dns)&&const DeepCollectionEquality().equals(other._geoXUrl, _geoXUrl)&&(identical(other.geodataLoader, geodataLoader) || other.geodataLoader == geodataLoader)&&(identical(other.globalUa, globalUa) || other.globalUa == globalUa)&&(identical(other.externalController, externalController) || other.externalController == externalController)&&const DeepCollectionEquality().equals(other._hosts, _hosts)&&(identical(other.geoAutoUpdate, geoAutoUpdate) || other.geoAutoUpdate == geoAutoUpdate)&&(identical(other.geoUpdateInterval, geoUpdateInterval) || other.geoUpdateInterval == geoUpdateInterval));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PatchClashConfig&&(identical(other.mixedPort, mixedPort) || other.mixedPort == mixedPort)&&(identical(other.socksPort, socksPort) || other.socksPort == socksPort)&&(identical(other.port, port) || other.port == port)&&(identical(other.redirPort, redirPort) || other.redirPort == redirPort)&&(identical(other.tproxyPort, tproxyPort) || other.tproxyPort == tproxyPort)&&(identical(other.mode, mode) || other.mode == mode)&&(identical(other.allowLan, allowLan) || other.allowLan == allowLan)&&(identical(other.logLevel, logLevel) || other.logLevel == logLevel)&&(identical(other.ipv6, ipv6) || other.ipv6 == ipv6)&&(identical(other.findProcessMode, findProcessMode) || other.findProcessMode == findProcessMode)&&(identical(other.keepAliveInterval, keepAliveInterval) || other.keepAliveInterval == keepAliveInterval)&&(identical(other.unifiedDelay, unifiedDelay) || other.unifiedDelay == unifiedDelay)&&(identical(other.tcpConcurrent, tcpConcurrent) || other.tcpConcurrent == tcpConcurrent)&&(identical(other.tun, tun) || other.tun == tun)&&(identical(other.dns, dns) || other.dns == dns)&&(identical(other.sniffer, sniffer) || other.sniffer == sniffer)&&const DeepCollectionEquality().equals(other._geoXUrl, _geoXUrl)&&(identical(other.geodataLoader, geodataLoader) || other.geodataLoader == geodataLoader)&&(identical(other.globalUa, globalUa) || other.globalUa == globalUa)&&(identical(other.externalController, externalController) || other.externalController == externalController)&&const DeepCollectionEquality().equals(other._hosts, _hosts)&&(identical(other.geoAutoUpdate, geoAutoUpdate) || other.geoAutoUpdate == geoAutoUpdate)&&(identical(other.geoUpdateInterval, geoUpdateInterval) || other.geoUpdateInterval == geoUpdateInterval));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,mixedPort,socksPort,port,redirPort,tproxyPort,mode,allowLan,logLevel,ipv6,findProcessMode,keepAliveInterval,unifiedDelay,tcpConcurrent,tun,dns,const DeepCollectionEquality().hash(_geoXUrl),geodataLoader,globalUa,externalController,const DeepCollectionEquality().hash(_hosts),geoAutoUpdate,geoUpdateInterval]);
+int get hashCode => Object.hashAll([runtimeType,mixedPort,socksPort,port,redirPort,tproxyPort,mode,allowLan,logLevel,ipv6,findProcessMode,keepAliveInterval,unifiedDelay,tcpConcurrent,tun,dns,sniffer,const DeepCollectionEquality().hash(_geoXUrl),geodataLoader,globalUa,externalController,const DeepCollectionEquality().hash(_hosts),geoAutoUpdate,geoUpdateInterval]);
 
 @override
 String toString() {
-  return 'PatchClashConfig(mixedPort: $mixedPort, socksPort: $socksPort, port: $port, redirPort: $redirPort, tproxyPort: $tproxyPort, mode: $mode, allowLan: $allowLan, logLevel: $logLevel, ipv6: $ipv6, findProcessMode: $findProcessMode, keepAliveInterval: $keepAliveInterval, unifiedDelay: $unifiedDelay, tcpConcurrent: $tcpConcurrent, tun: $tun, dns: $dns, geoXUrl: $geoXUrl, geodataLoader: $geodataLoader, globalUa: $globalUa, externalController: $externalController, hosts: $hosts, geoAutoUpdate: $geoAutoUpdate, geoUpdateInterval: $geoUpdateInterval)';
+  return 'PatchClashConfig(mixedPort: $mixedPort, socksPort: $socksPort, port: $port, redirPort: $redirPort, tproxyPort: $tproxyPort, mode: $mode, allowLan: $allowLan, logLevel: $logLevel, ipv6: $ipv6, findProcessMode: $findProcessMode, keepAliveInterval: $keepAliveInterval, unifiedDelay: $unifiedDelay, tcpConcurrent: $tcpConcurrent, tun: $tun, dns: $dns, sniffer: $sniffer, geoXUrl: $geoXUrl, geodataLoader: $geodataLoader, globalUa: $globalUa, externalController: $externalController, hosts: $hosts, geoAutoUpdate: $geoAutoUpdate, geoUpdateInterval: $geoUpdateInterval)';
 }
 
 
@@ -3917,11 +3934,11 @@ abstract mixin class _$PatchClashConfigCopyWith<$Res> implements $PatchClashConf
   factory _$PatchClashConfigCopyWith(_PatchClashConfig value, $Res Function(_PatchClashConfig) _then) = __$PatchClashConfigCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'mixed-port') int mixedPort,@JsonKey(name: 'socks-port') int socksPort,@JsonKey(name: 'port') int port,@JsonKey(name: 'redir-port') int redirPort,@JsonKey(name: 'tproxy-port') int tproxyPort, Mode mode,@JsonKey(name: 'allow-lan') bool allowLan,@JsonKey(name: 'log-level') LogLevel logLevel, bool ipv6,@JsonKey(name: 'find-process-mode', unknownEnumValue: FindProcessMode.always) FindProcessMode findProcessMode,@JsonKey(name: 'keep-alive-interval') int keepAliveInterval,@JsonKey(name: 'unified-delay') bool unifiedDelay,@JsonKey(name: 'tcp-concurrent') bool tcpConcurrent,@JsonKey(fromJson: Tun.safeFormJson) Tun tun,@JsonKey(fromJson: Dns.safeDnsFromJson) Dns dns,@JsonKey(name: 'geox-url', fromJson: _geoXUrlFromJson, toJson: _geoXUrlToJson) Map<GeoResource, String> geoXUrl,@JsonKey(name: 'geodata-loader') GeodataLoader geodataLoader,@JsonKey(name: 'global-ua') String? globalUa,@JsonKey(name: 'external-controller') ExternalControllerStatus externalController, Map<String, String> hosts,@JsonKey(name: 'geo-auto-update') bool geoAutoUpdate,@JsonKey(name: 'geo-update-interval') int geoUpdateInterval
+@JsonKey(name: 'mixed-port') int mixedPort,@JsonKey(name: 'socks-port') int socksPort,@JsonKey(name: 'port') int port,@JsonKey(name: 'redir-port') int redirPort,@JsonKey(name: 'tproxy-port') int tproxyPort, Mode mode,@JsonKey(name: 'allow-lan') bool allowLan,@JsonKey(name: 'log-level') LogLevel logLevel, bool ipv6,@JsonKey(name: 'find-process-mode', unknownEnumValue: FindProcessMode.always) FindProcessMode findProcessMode,@JsonKey(name: 'keep-alive-interval') int keepAliveInterval,@JsonKey(name: 'unified-delay') bool unifiedDelay,@JsonKey(name: 'tcp-concurrent') bool tcpConcurrent,@JsonKey(fromJson: Tun.safeFormJson) Tun tun,@JsonKey(fromJson: Dns.safeDnsFromJson) Dns dns,@JsonKey(fromJson: Sniffer.safeFromJson) Sniffer sniffer,@JsonKey(name: 'geox-url', fromJson: _geoXUrlFromJson, toJson: _geoXUrlToJson) Map<GeoResource, String> geoXUrl,@JsonKey(name: 'geodata-loader') GeodataLoader geodataLoader,@JsonKey(name: 'global-ua') String? globalUa,@JsonKey(name: 'external-controller') ExternalControllerStatus externalController, Map<String, String> hosts,@JsonKey(name: 'geo-auto-update') bool geoAutoUpdate,@JsonKey(name: 'geo-update-interval') int geoUpdateInterval
 });
 
 
-@override $TunCopyWith<$Res> get tun;@override $DnsCopyWith<$Res> get dns;
+@override $TunCopyWith<$Res> get tun;@override $DnsCopyWith<$Res> get dns;@override $SnifferCopyWith<$Res> get sniffer;
 
 }
 /// @nodoc
@@ -3934,7 +3951,7 @@ class __$PatchClashConfigCopyWithImpl<$Res>
 
 /// Create a copy of PatchClashConfig
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? mixedPort = null,Object? socksPort = null,Object? port = null,Object? redirPort = null,Object? tproxyPort = null,Object? mode = null,Object? allowLan = null,Object? logLevel = null,Object? ipv6 = null,Object? findProcessMode = null,Object? keepAliveInterval = null,Object? unifiedDelay = null,Object? tcpConcurrent = null,Object? tun = null,Object? dns = null,Object? geoXUrl = null,Object? geodataLoader = null,Object? globalUa = freezed,Object? externalController = null,Object? hosts = null,Object? geoAutoUpdate = null,Object? geoUpdateInterval = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? mixedPort = null,Object? socksPort = null,Object? port = null,Object? redirPort = null,Object? tproxyPort = null,Object? mode = null,Object? allowLan = null,Object? logLevel = null,Object? ipv6 = null,Object? findProcessMode = null,Object? keepAliveInterval = null,Object? unifiedDelay = null,Object? tcpConcurrent = null,Object? tun = null,Object? dns = null,Object? sniffer = null,Object? geoXUrl = null,Object? geodataLoader = null,Object? globalUa = freezed,Object? externalController = null,Object? hosts = null,Object? geoAutoUpdate = null,Object? geoUpdateInterval = null,}) {
   return _then(_PatchClashConfig(
 mixedPort: null == mixedPort ? _self.mixedPort : mixedPort // ignore: cast_nullable_to_non_nullable
 as int,socksPort: null == socksPort ? _self.socksPort : socksPort // ignore: cast_nullable_to_non_nullable
@@ -3951,7 +3968,8 @@ as int,unifiedDelay: null == unifiedDelay ? _self.unifiedDelay : unifiedDelay //
 as bool,tcpConcurrent: null == tcpConcurrent ? _self.tcpConcurrent : tcpConcurrent // ignore: cast_nullable_to_non_nullable
 as bool,tun: null == tun ? _self.tun : tun // ignore: cast_nullable_to_non_nullable
 as Tun,dns: null == dns ? _self.dns : dns // ignore: cast_nullable_to_non_nullable
-as Dns,geoXUrl: null == geoXUrl ? _self._geoXUrl : geoXUrl // ignore: cast_nullable_to_non_nullable
+as Dns,sniffer: null == sniffer ? _self.sniffer : sniffer // ignore: cast_nullable_to_non_nullable
+as Sniffer,geoXUrl: null == geoXUrl ? _self._geoXUrl : geoXUrl // ignore: cast_nullable_to_non_nullable
 as Map<GeoResource, String>,geodataLoader: null == geodataLoader ? _self.geodataLoader : geodataLoader // ignore: cast_nullable_to_non_nullable
 as GeodataLoader,globalUa: freezed == globalUa ? _self.globalUa : globalUa // ignore: cast_nullable_to_non_nullable
 as String?,externalController: null == externalController ? _self.externalController : externalController // ignore: cast_nullable_to_non_nullable
@@ -3979,6 +3997,15 @@ $DnsCopyWith<$Res> get dns {
   
   return $DnsCopyWith<$Res>(_self.dns, (value) {
     return _then(_self.copyWith(dns: value));
+  });
+}/// Create a copy of PatchClashConfig
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$SnifferCopyWith<$Res> get sniffer {
+  
+  return $SnifferCopyWith<$Res>(_self.sniffer, (value) {
+    return _then(_self.copyWith(sniffer: value));
   });
 }
 }

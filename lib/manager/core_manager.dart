@@ -44,6 +44,16 @@ class _CoreContainerState extends ConsumerState<CoreManager>
         ref.read(setupActionProvider.notifier).updateConfigDebounce();
       }
     });
+    ref.listenManual(patchClashConfigProvider, (prev, next) {
+      final dnsChanged = prev?.dns != next.dns;
+      final tunChanged = prev?.tun.mtu != next.tun.mtu ||
+          prev?.tun.strictRoute != next.tun.strictRoute;
+      if (dnsChanged || tunChanged) {
+        ref.read(setupActionProvider.notifier).applyProfileDebounce(
+          force: true,
+        );
+      }
+    });
     ref.listenManual(appSettingProvider.select((state) => state.openLogs), (
       prev,
       next,

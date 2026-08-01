@@ -196,6 +196,17 @@ abstract class Sniffer with _$Sniffer {
 
   factory Sniffer.fromJson(Map<String, Object?> json) =>
       _$SnifferFromJson(json);
+
+  factory Sniffer.safeFromJson(Map<String, Object?>? json) {
+    if (json == null) {
+      return const Sniffer();
+    }
+    try {
+      return Sniffer.fromJson(json);
+    } catch (_) {
+      return const Sniffer();
+    }
+  }
 }
 
 List<String> _formJsonPorts(List? ports) {
@@ -222,6 +233,8 @@ abstract class Tun with _$Tun {
     @Default(TunStack.mixed) TunStack stack,
     @JsonKey(name: 'dns-hijack') @Default(['any:53']) List<String> dnsHijack,
     @JsonKey(name: 'route-address') @Default([]) List<String> routeAddress,
+    @JsonKey(name: 'strict-route') @Default(false) bool strictRoute,
+    @Default(0) int mtu,
   }) = _Tun;
 
   factory Tun.fromJson(Map<String, Object?> json) => _$TunFromJson(json);
@@ -559,6 +572,7 @@ abstract class PatchClashConfig with _$PatchClashConfig {
     @Default(true) @JsonKey(name: 'tcp-concurrent') bool tcpConcurrent,
     @Default(defaultTun) @JsonKey(fromJson: Tun.safeFormJson) Tun tun,
     @Default(defaultDns) @JsonKey(fromJson: Dns.safeDnsFromJson) Dns dns,
+    @Default(Sniffer()) @JsonKey(fromJson: Sniffer.safeFromJson) Sniffer sniffer,
     @Default(defaultGeoXUrl)
     @JsonKey(
       name: 'geox-url',

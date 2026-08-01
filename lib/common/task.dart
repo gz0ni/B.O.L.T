@@ -140,6 +140,16 @@ Future<VM2<String, String>> _makeRealProfileTask(
   rawConfig['tun']['stack'] = realPatchConfig.tun.stack.name;
   rawConfig['tun']['route-address'] = realPatchConfig.tun.routeAddress;
   rawConfig['tun']['auto-route'] = realPatchConfig.tun.autoRoute;
+  if (realPatchConfig.tun.strictRoute) {
+    rawConfig['tun']['strict-route'] = true;
+  }
+  if (realPatchConfig.tun.mtu > 0) {
+    rawConfig['tun']['mtu'] = realPatchConfig.tun.mtu;
+  }
+  if (rawConfig['sniffer'] == null) {
+    rawConfig['sniffer'] = <String, dynamic>{};
+  }
+  rawConfig['sniffer']['enable'] = realPatchConfig.sniffer.enable;
   rawConfig['geodata-loader'] = realPatchConfig.geodataLoader.name;
   if (rawConfig['sniffer']?['sniff'] != null) {
     for (final value in (rawConfig['sniffer']?['sniff'] as Map).values) {

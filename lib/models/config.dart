@@ -85,6 +85,7 @@ abstract class AppSettingProps with _$AppSettingProps {
     @Default(RestoreStrategy.compatible) RestoreStrategy restoreStrategy,
     @Default(true) bool showTrayTitle,
     @Default('') String customUserAgent,
+    @Default(true) bool notifications,
   }) = _AppSettingProps;
 
   factory AppSettingProps.fromJson(Map<String, Object?> json) =>

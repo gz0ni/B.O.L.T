@@ -15,6 +15,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   tray_manager
   url_launcher_windows
   wifi_ssid
+  win_toast
   window_ext
   window_manager
 )
