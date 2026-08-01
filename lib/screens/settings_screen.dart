@@ -20,10 +20,10 @@ class SettingsScreen extends ConsumerStatefulWidget {
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   static const _categories = [
     'Основное',
+    'Приложение',
     'Ядро · mihomo',
     'DNS',
     'Сеть',
-    'Приложение',
   ];
 
   int _category = 0;
@@ -140,11 +140,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 children: [
                   if (_category == 0)
                     ..._quickRows(patchConfig, network, themeProps),
-                  if (_category == 1) ..._coreRows(patchConfig, appSetting),
-                  if (_category == 2) ..._dnsRows(patchConfig),
-                  if (_category == 3) ..._networkRows(network),
-                  if (_category == 4)
-                    ..._appRows(appSetting, themeProps),
+                  if (_category == 1) ..._appRows(appSetting, themeProps),
+                  if (_category == 2) ..._coreRows(patchConfig, appSetting),
+                  if (_category == 3) ..._dnsRows(patchConfig),
+                  if (_category == 4) ..._networkRows(network),
                   const SizedBox(height: AppSpace.s6),
                 ],
               ),

@@ -1043,6 +1043,10 @@ class ProfilesAction extends _$ProfilesAction {
         );
         final configText = utf8.decode(config, allowMalformed: true);
         if (!isManagedKeysConfig(configText)) {
+          if (configText == text && text.contains('://')) {
+            throw 'Ключи не распознаны. Поддерживаются: '
+                'vless://, vmess://, trojan://, ss://, hysteria2://';
+          }
           return Profile.normal(label: 'Ручная подписка').saveFile(config);
         }
         final newKeys = extractManagedKeys(configText) ?? [];
@@ -1073,6 +1077,10 @@ class ProfilesAction extends _$ProfilesAction {
 
   /// Добавляет сырые ключи в managed-профиль (пересобирает конфиг).
   Future<void> addKeysToProfile(Profile profile, List<String> links) async {
+    final unsupported = unsupportedKeyLinks(links);
+    if (unsupported.isNotEmpty) {
+      throw 'Не удалось распознать ключи:\n${unsupported.join('\n')}';
+    }
     final existingKeys = await _readManagedKeys(profile);
     if (existingKeys == null) {
       throw 'Этот профиль не хранит сырые ключи';

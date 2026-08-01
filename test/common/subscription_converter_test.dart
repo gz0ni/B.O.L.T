@@ -218,4 +218,34 @@ trojan://trojan-pass@trojan.com:443?sni=trojan.com&type=ws&path=%2Fws#Node3
       expect(buildConfigFromKeys(['not a link']), isNull);
     });
   });
+
+  group('unsupportedKeyLinks', () {
+    const link1 = 'hysteria2://pass@example.com:443?sni=example.com#Node1';
+    const link2 = 'vless://uuid@server.com:443?security=tls&type=tcp#Node2';
+
+    test('empty for supported links', () {
+      expect(
+        unsupportedKeyLinks([
+          link1,
+          link2,
+          'trojan://pass@trojan.com:443?sni=trojan.com#TR',
+          'ss://YWVzLTI1Ni1nY206cGFzc3dvcmQ=@ss.com:8388#SS',
+        ]),
+        isEmpty,
+      );
+    });
+
+    test('finds unsupported schemes and garbage', () {
+      expect(
+        unsupportedKeyLinks([link1, 'tuic://uuid@host.com:443', 'garbage']),
+        ['tuic://uuid@host.com:443', 'garbage'],
+      );
+    });
+
+    test('trims whitespace before checking', () {
+      expect(unsupportedKeyLinks(['  $link1\n']), isEmpty);
+      expect(unsupportedKeyLinks(['  tuic://host.com:443  ']),
+          ['tuic://host.com:443']);
+    });
+  });
 }

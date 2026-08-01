@@ -35,6 +35,16 @@ String? buildConfigFromKeys(Iterable<String> keys) {
   return _buildConfigFromLinks(keys.join('\n'));
 }
 
+/// Возвращает ссылки, которые не удалось распознать как поддерживаемые ключи.
+List<String> unsupportedKeyLinks(Iterable<String> links) {
+  final unsupported = <String>[];
+  for (final link in links) {
+    final trimmed = link.trim();
+    if (_tryParseLink(trimmed) == null) unsupported.add(trimmed);
+  }
+  return unsupported;
+}
+
 /// Приводит контент подписки к clash-совместимому YAML-конфигу:
 /// - уже YAML → возвращается как есть;
 /// - base64-строка → декодируется (YAML или список ссылок);
