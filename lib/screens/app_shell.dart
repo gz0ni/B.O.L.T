@@ -127,6 +127,7 @@ class _LocationsSidebar extends ConsumerStatefulWidget {
 class _LocationsSidebarState extends ConsumerState<_LocationsSidebar> {
   final _favorites = <String>{}; // локальный UI-стейт, не перситится
   final _searchController = TextEditingController();
+  final _pingingNodes = <String>{};
   String _query = '';
   bool _pinging = false;
 
@@ -144,17 +145,38 @@ class _LocationsSidebarState extends ConsumerState<_LocationsSidebar> {
     super.dispose();
   }
 
+  String _testUrl(String? groupTestUrl) {
+    return groupTestUrl?.isNotEmpty == true
+        ? groupTestUrl!
+        : ref.read(appSettingProvider).testUrl;
+  }
+
+  Future<void> _pingNode(Proxy node, String? groupTestUrl) async {
+    if (_pingingNodes.contains(node.name)) return;
+    setState(() => _pingingNodes.add(node.name));
+    try {
+      await coreController.getDelay(_testUrl(groupTestUrl), node.name);
+    } finally {
+      if (mounted) setState(() => _pingingNodes.remove(node.name));
+    }
+  }
+
   Future<void> _testAllDelays(List<Proxy> nodes, String? groupTestUrl) async {
     if (_pinging || nodes.isEmpty) return;
     setState(() => _pinging = true);
     try {
-      final testUrl = groupTestUrl?.isNotEmpty == true
-          ? groupTestUrl!
-          : ref.read(appSettingProvider).testUrl;
-      for (final node in nodes) {
-        if (!mounted) return;
-        await coreController.getDelay(testUrl, node.name);
-      }
+      final testUrl = _testUrl(groupTestUrl);
+      // Пингуем все ноды параллельно: каждая добавляется в _pingingNodes,
+      // чтобы тайл показывал спиннер до получения собственного результата.
+      final futures = nodes.map((node) async {
+        setState(() => _pingingNodes.add(node.name));
+        try {
+          await coreController.getDelay(testUrl, node.name);
+        } finally {
+          if (mounted) setState(() => _pingingNodes.remove(node.name));
+        }
+      });
+      await Future.wait(futures);
     } finally {
       if (mounted) setState(() => _pinging = false);
     }
@@ -280,6 +302,8 @@ class _LocationsSidebarState extends ConsumerState<_LocationsSidebar> {
                         testUrl: group.testUrl,
                         isSelected: isSelected,
                         isFavorite: isFav,
+                        isPinging: _pingingNodes.contains(node.name),
+                        onPingTap: () => _pingNode(node, group.testUrl),
                         onFavoriteTap: () => setState(() {
                           if (isFav) {
                             _favorites.remove(node.name);
@@ -304,6 +328,8 @@ class _LocationTile extends ConsumerWidget {
     required this.testUrl,
     required this.isSelected,
     required this.isFavorite,
+    required this.isPinging,
+    required this.onPingTap,
     required this.onFavoriteTap,
   });
 
@@ -312,6 +338,8 @@ class _LocationTile extends ConsumerWidget {
   final String? testUrl;
   final bool isSelected;
   final bool isFavorite;
+  final bool isPinging;
+  final VoidCallback onPingTap;
   final VoidCallback onFavoriteTap;
 
   @override
@@ -381,9 +409,44 @@ class _LocationTile extends ConsumerWidget {
                   ],
                 ),
               ),
-              Text(
-                delayMs == null ? '...' : (delayMs <= 0 ? 'timeout' : '$delayMs мс'),
-                style: TextStyle(color: pingColor(), fontSize: AppFontSize.xs),
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: isPinging ? null : onPingTap,
+                child: AnimatedSwitcher(
+                  duration: AppMotion.base,
+                  switchInCurve: AppMotion.ease,
+                  switchOutCurve: Curves.easeOut,
+                  transitionBuilder: (child, animation) => FadeTransition(
+                    opacity: animation,
+                    child: SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(0, 0.25),
+                        end: Offset.zero,
+                      ).animate(animation),
+                      child: child,
+                    ),
+                  ),
+                  child: isPinging
+                      ? SizedBox(
+                          key: const ValueKey('pinging'),
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation(semantic.on),
+                          ),
+                        )
+                      : Text(
+                          delayMs == null
+                              ? '...'
+                              : (delayMs <= 0 ? 'timeout' : '$delayMs мс'),
+                          key: ValueKey(delayMs ?? -1),
+                          style: TextStyle(
+                            color: pingColor(),
+                            fontSize: AppFontSize.xs,
+                          ),
+                        ),
+                ),
               ),
               IconButton(
                 icon: Icon(
@@ -467,23 +530,49 @@ class _MainArea extends ConsumerWidget {
             onTap: () => ref.read(commonActionProvider.notifier).updateStart(),
           ),
           const SizedBox(height: AppSpace.s6),
-          Text(
-            isStart ? 'Подключено' : 'Отключено',
-            style: TextStyle(
-              fontSize: AppFontSize.xl,
-              fontWeight: FontWeight.w600,
-              color: isStart ? semantic.on : surfaces.text1,
+          AnimatedSwitcher(
+            duration: AppMotion.base,
+            switchInCurve: AppMotion.ease,
+            switchOutCurve: Curves.easeOut,
+            transitionBuilder: (child, animation) => FadeTransition(
+              opacity: animation,
+              child: SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0, 0.2),
+                  end: Offset.zero,
+                ).animate(animation),
+                child: child,
+              ),
+            ),
+            child: Text(
+              isStart ? 'Подключено' : 'Отключено',
+              key: ValueKey(isStart),
+              style: TextStyle(
+                fontSize: AppFontSize.xl,
+                fontWeight: FontWeight.w600,
+                color: isStart ? semantic.on : surfaces.text1,
+              ),
             ),
           ),
           const SizedBox(height: AppSpace.s2),
-          Text(
-            isStart
-                ? (currentSelected?.isNotEmpty == true ? currentSelected! : '—')
-                : 'Нажмите, чтобы подключиться',
-            style: TextStyle(
-              color: surfaces.text3,
-              fontSize: AppFontSize.sm,
-              fontFamily: 'monospace',
+          AnimatedSwitcher(
+            duration: AppMotion.base,
+            switchInCurve: AppMotion.ease,
+            switchOutCurve: Curves.easeOut,
+            transitionBuilder: (child, animation) => FadeTransition(
+              opacity: animation,
+              child: child,
+            ),
+            child: Text(
+              isStart
+                  ? (currentSelected?.isNotEmpty == true ? currentSelected! : '—')
+                  : 'Нажмите, чтобы подключиться',
+              key: ValueKey(isStart ? currentSelected : 'idle'),
+              style: TextStyle(
+                color: surfaces.text3,
+                fontSize: AppFontSize.sm,
+                fontFamily: 'monospace',
+              ),
             ),
           ),
           const Spacer(),

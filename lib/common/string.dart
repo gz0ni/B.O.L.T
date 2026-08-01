@@ -4,6 +4,26 @@ import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:fl_clash/common/common.dart';
 
+/// Некоторые VPN-провайдеры отдают подписку в виде base64-строки без
+/// переносов. Пытаемся декодировать такой контент перед валидацией:
+/// декодируем только если получившийся текст похож на clash-конфиг.
+Uint8List decodeBase64Config(Uint8List bytes) {
+  final text = utf8.decode(bytes, allowMalformed: true).trim();
+  if (text.length < 20) return bytes;
+  try {
+    final decoded = base64.decode(text);
+    final decodedText = utf8.decode(decoded, allowMalformed: true);
+    if (decodedText.contains('proxies:') ||
+        decodedText.contains('proxy-providers:') ||
+        decodedText.contains('mixed-port:') ||
+        decodedText.contains('port:') ||
+        decodedText.contains('tun:')) {
+      return decoded;
+    }
+  } catch (_) {}
+  return bytes;
+}
+
 extension StringExtension on String {
   bool get isUrl {
     final uri = Uri.tryParse(this);

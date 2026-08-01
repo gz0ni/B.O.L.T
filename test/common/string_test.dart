@@ -1,7 +1,41 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:fl_clash/common/string.dart';
 import 'package:test/test.dart';
 
 void main() {
+  group('decodeBase64Config', () {
+    const yaml = 'mixed-port: 7890\nproxies:\n  - name: test\n';
+    test('decodes base64 subscription to yaml', () {
+      final encoded = utf8.encode(base64.encode(utf8.encode(yaml)));
+      final decoded = decodeBase64Config(Uint8List.fromList(encoded));
+      expect(utf8.decode(decoded), yaml);
+    });
+
+    test('returns plain yaml unchanged', () {
+      final bytes = Uint8List.fromList(utf8.encode(yaml));
+      expect(decodeBase64Config(bytes), bytes);
+    });
+
+    test('returns non-base64 garbage unchanged', () {
+      final bytes = Uint8List.fromList(utf8.encode('not base64 !!! content'));
+      expect(decodeBase64Config(bytes), bytes);
+    });
+
+    test('returns short strings unchanged', () {
+      final bytes = Uint8List.fromList(utf8.encode('short'));
+      expect(decodeBase64Config(bytes), bytes);
+    });
+
+    test('returns original bytes when decoded data is not a config', () {
+      final original = Uint8List.fromList(
+        utf8.encode(base64.encode(utf8.encode('hello world hello world'))),
+      );
+      expect(decodeBase64Config(original), original);
+    });
+  });
+
   group('StringExtension.isUrl', () {
     test('valid http URL', () {
       expect('http://example.com'.isUrl, isTrue);

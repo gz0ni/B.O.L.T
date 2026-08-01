@@ -51,36 +51,52 @@ class _RadarRingsState extends State<_RadarRings>
 
   @override
   Widget build(BuildContext context) {
-    if (!widget.active) return const SizedBox.shrink();
-    // Три кольца со сдвигом по фазе .9s / 1.8s из 2.6s цикла — те же
-    // пропорции, что в CSS-анимации мокапа.
-    return Stack(
-      alignment: Alignment.center,
-      children: List.generate(3, (i) {
-        final delay = i / 3; // 0, .333, .666 доли периода
-        return AnimatedBuilder(
-          animation: _controller,
-          builder: (context, _) {
-            final t = (_controller.value + (1 - delay)) % 1.0;
-            final scale = 0.72 + t * (1.28 - 0.72);
-            final opacity = (1 - t) * 0.55;
-            return Opacity(
-              opacity: opacity.clamp(0, 1),
-              child: Transform.scale(
-                scale: scale,
-                child: Container(
-                  width: 208,
-                  height: 208,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: widget.color, width: 1),
+    if (!widget.active) {
+      return const AnimatedOpacity(
+        opacity: 0,
+        duration: AppMotion.base,
+        curve: AppMotion.ease,
+        child: SizedBox(
+          width: 208,
+          height: 208,
+          child: Stack(),
+        ),
+      );
+    }
+    return AnimatedOpacity(
+      opacity: 1,
+      duration: AppMotion.base,
+      curve: AppMotion.ease,
+      // Три кольца со сдвигом по фазе .9s / 1.8s из 2.6s цикла — те же
+      // пропорции, что в CSS-анимации мокапа.
+      child: Stack(
+        alignment: Alignment.center,
+        children: List.generate(3, (i) {
+          final delay = i / 3; // 0, .333, .666 доли периода
+          return AnimatedBuilder(
+            animation: _controller,
+            builder: (context, _) {
+              final t = (_controller.value + (1 - delay)) % 1.0;
+              final scale = 0.72 + t * (1.28 - 0.72);
+              final opacity = (1 - t) * 0.55;
+              return Opacity(
+                opacity: opacity.clamp(0, 1),
+                child: Transform.scale(
+                  scale: scale,
+                  child: Container(
+                    width: 208,
+                    height: 208,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: widget.color, width: 1),
+                    ),
                   ),
                 ),
-              ),
-            );
-          },
-        );
-      }),
+              );
+            },
+          );
+        }),
+      ),
     );
   }
 }
@@ -168,16 +184,37 @@ class PowerButton extends StatelessWidget {
                 ],
               ),
               child: Center(
-                child: isConnecting
-                    ? SizedBox(
-                        width: 40,
-                        height: 40,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.5,
-                          valueColor: AlwaysStoppedAnimation(color),
+                child: AnimatedSwitcher(
+                  duration: AppMotion.base,
+                  switchInCurve: AppMotion.ease,
+                  switchOutCurve: Curves.easeOut,
+                  transitionBuilder: (child, animation) => FadeTransition(
+                    opacity: animation,
+                    child: ScaleTransition(
+                      scale: Tween<double>(
+                        begin: 0.7,
+                        end: 1,
+                      ).animate(animation),
+                      child: child,
+                    ),
+                  ),
+                  child: isConnecting
+                      ? SizedBox(
+                          key: const ValueKey('connecting'),
+                          width: 40,
+                          height: 40,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            valueColor: AlwaysStoppedAnimation(color),
+                          ),
+                        )
+                      : Icon(
+                          Icons.power_settings_new,
+                          key: const ValueKey('power'),
+                          size: 54,
+                          color: color,
                         ),
-                      )
-                    : Icon(Icons.power_settings_new, size: 54, color: color),
+                ),
               ),
             ),
           ),

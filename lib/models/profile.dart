@@ -213,7 +213,7 @@ extension ProfileExtension on Profile {
   Future<Profile> saveFile(Uint8List bytes) async {
     final path = await appPath.tempFilePath;
     final tempFile = File(path);
-    await tempFile.safeWriteAsBytes(bytes);
+    await tempFile.safeWriteAsBytes(decodeBase64Config(bytes));
     final message = await coreController.validateConfig(path);
     if (message.isNotEmpty) {
       throw message;
