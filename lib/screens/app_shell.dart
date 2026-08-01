@@ -5,6 +5,7 @@ import 'package:fl_clash/enum/enum.dart';
 import 'package:fl_clash/models/models.dart';
 import 'package:fl_clash/providers/providers.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'config_editor_screen.dart';
@@ -500,6 +501,7 @@ class _MainArea extends ConsumerWidget {
     final currentProfile = ref.watch(currentProfileProvider);
     final traffic = ref.watch(trafficsProvider).list.safeLast(const Traffic());
     final runTime = ref.watch(runTimeProvider);
+    final ipInfo = ref.watch(networkDetectionProvider).ipInfo;
     final currentGroup = _resolvePreferredGroup(
       ref.watch(currentGroupsStateProvider).value,
     );
@@ -578,27 +580,58 @@ class _MainArea extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(AppSpace.s4, 0, AppSpace.s4, AppSpace.s3),
             child: _UsageCard(profile: currentProfile, onTap: onOpenSubscriptions),
           ),
-          if (isStart) ...[
-            Container(height: 1, color: surfaces.border),
-            Padding(
-              padding: const EdgeInsets.all(AppSpace.s4),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _StatCard(
-                      label: 'Скорость',
-                      value: traffic.speedText,
-                    ),
+          Container(height: 1, color: surfaces.border),
+          Padding(
+            padding: const EdgeInsets.all(AppSpace.s4),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _StatCard(
+                    label: 'Приём',
+                    value: isStart ? '${traffic.down.traffic.show}/s' : '—',
+                    dimmed: !isStart,
                   ),
-                  const SizedBox(width: AppSpace.s2),
-                  Expanded(child: _StatCard(label: 'Время', value: _formatRunTime(runTime))),
-                ],
-              ),
+                ),
+                const SizedBox(width: AppSpace.s2),
+                Expanded(
+                  child: _StatCard(
+                    label: 'Отдача',
+                    value: isStart ? '${traffic.up.traffic.show}/s' : '—',
+                    dimmed: !isStart,
+                  ),
+                ),
+                const SizedBox(width: AppSpace.s2),
+                Expanded(
+                  child: _StatCard(
+                    label: 'Время',
+                    value: isStart ? _formatRunTime(runTime) : '—',
+                    dimmed: !isStart,
+                  ),
+                ),
+                const SizedBox(width: AppSpace.s2),
+                Expanded(
+                  child: _StatCard(
+                    label: ipInfo?.countryCode ?? 'IP',
+                    value: isStart ? (ipInfo?.ip ?? '—') : '—',
+                    dimmed: !isStart || ipInfo == null,
+                    onCopy: isStart && ipInfo != null
+                        ? () => _copyIp(context, ipInfo.ip)
+                        : null,
+                  ),
+                ),
+              ],
             ),
-          ] else
-            const SizedBox(height: AppSpace.s2),
+          ),
         ],
       ),
+    );
+  }
+
+  Future<void> _copyIp(BuildContext context, String ip) async {
+    await Clipboard.setData(ClipboardData(text: ip));
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('IP скопирован: $ip')),
     );
   }
 
@@ -744,35 +777,68 @@ class _UsageCard extends StatelessWidget {
 }
 
 class _StatCard extends StatelessWidget {
-  const _StatCard({required this.label, required this.value});
+  const _StatCard({
+    required this.label,
+    required this.value,
+    this.dimmed = false,
+    this.onCopy,
+  });
+
   final String label;
   final String value;
+  final bool dimmed;
+  final VoidCallback? onCopy;
 
   @override
   Widget build(BuildContext context) {
     final surfaces = context.surfaces;
-    return Container(
+    final content = Padding(
       padding: const EdgeInsets.symmetric(vertical: AppSpace.s3),
-      decoration: BoxDecoration(
-        color: surfaces.card,
-        border: Border.all(color: surfaces.border),
-        borderRadius: BorderRadius.circular(AppRadius.sm),
-      ),
       child: Column(
         children: [
-          Text(
-            value,
-            style: TextStyle(
-              fontFamily: 'monospace',
-              fontSize: AppFontSize.sm,
-              color: surfaces.text1,
-              fontWeight: FontWeight.w500,
-            ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (onCopy != null) ...[
+                Icon(Icons.copy, size: 11, color: surfaces.text3),
+                const SizedBox(width: 4),
+              ],
+              Text(
+                value,
+                style: TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: AppFontSize.sm,
+                  color: dimmed ? surfaces.text3 : surfaces.text1,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 2),
-          Text(label.toUpperCase(), style: TextStyle(fontSize: 10, color: surfaces.text3, letterSpacing: 0.6)),
+          Text(
+            label.toUpperCase(),
+            style: TextStyle(
+              fontSize: 10,
+              color: surfaces.text3,
+              letterSpacing: 0.6,
+            ),
+          ),
         ],
       ),
     );
+    final card = Material(
+      color: surfaces.card,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        side: BorderSide(color: surfaces.border),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onCopy,
+        child: content,
+      ),
+    );
+    if (onCopy == null) return card;
+    return Tooltip(message: 'Скопировать IP', child: card);
   }
 }
