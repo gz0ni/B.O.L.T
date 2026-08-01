@@ -298,7 +298,7 @@ class SetupAction extends _$SetupAction {
       onUpdated: () async {
         await ref.read(proxiesActionProvider.notifier).updateGroups();
         await ref.read(providersProvider.notifier).syncProviders();
-        await _autoPingCurrentGroup();
+        unawaited(_autoPingCurrentGroup());
       },
     );
   }
@@ -425,13 +425,18 @@ class SetupAction extends _$SetupAction {
     VoidCallback? preloadInvoke,
     FutureOr Function()? onUpdated,
   }) async {
+    final stopwatch = Stopwatch()..start();
+    void logStep(String step) {
+      commonPrint.log('setup $step: ${stopwatch.elapsedMilliseconds}ms');
+    }
+
     var profile = ref.read(currentProfileProvider);
     final nextProfile = await profile?.checkAndUpdateAndCopy();
     if (nextProfile != null) {
       profile = nextProfile;
       ref.read(profilesProvider.notifier).put(nextProfile);
     }
-    commonPrint.log('setup ===> ${profile?.id}');
+    logStep('checkUpdate');
     final patchConfig = ref.read(patchClashConfigProvider);
     final res = await _requestAdmin(patchConfig.tun.enable);
     if (res.isError) return;
@@ -447,6 +452,7 @@ class SetupAction extends _$SetupAction {
       setupState: setupState,
       patchConfig: realPatchConfig,
     );
+    logStep('getProfile');
     final yamlString = vm2.a;
     final yamlMd5 = vm2.b;
     if (yamlMd5 == globalState.lastConfigMd5 && force == false) return;
@@ -463,8 +469,10 @@ class SetupAction extends _$SetupAction {
         if (message.isNotEmpty && !message.endsWith('is empty')) {
           throw message;
         }
+        logStep('coreSetupConfig');
         ref.read(checkIpNumProvider.notifier).add();
         await onUpdated?.call();
+        logStep('onUpdated');
       },
       silence: true,
       tag: !silence ? LoadingTag.proxies : null,
