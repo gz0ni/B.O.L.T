@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'config_editor_screen.dart';
+import 'package:fl_clash/common/common.dart';
 import 'package:fl_clash/common/format.dart';
 import 'package:fl_clash/enum/enum.dart';
 import 'package:fl_clash/models/models.dart';
@@ -10,6 +12,15 @@ import 'package:fl_clash/theme/app_tokens.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+/// Ключи managed-профиля (конфиг с маркером bolt-managed: keys);
+/// null — профиль не хранит сырые ключи.
+final managedKeysProvider =
+    FutureProvider.family<List<String>?, int>((ref, profileId) async {
+      final file = File(await appPath.getProfilePath(profileId.toString()));
+      if (!await file.exists()) return null;
+      return extractManagedKeys(await file.readAsString());
+    });
 
 class SubscriptionsScreen extends ConsumerStatefulWidget {
   const SubscriptionsScreen({super.key, this.onClose});
@@ -430,6 +441,166 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
     );
   }
 
+  Future<void> _showKeysDialog(Profile profile) async {
+    final surfaces = context.surfaces;
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        final controller = TextEditingController();
+        Future<void> addKeys() async {
+          final links = controller.text
+              .split(RegExp(r'\r?\n'))
+              .map((link) => link.trim())
+              .where((link) => link.isNotEmpty)
+              .toList();
+          if (links.isEmpty) return;
+          try {
+            await ref
+                .read(profilesActionProvider.notifier)
+                .addKeysToProfile(profile, links);
+            if (!dialogContext.mounted) return;
+            controller.clear();
+            ScaffoldMessenger.of(dialogContext).showSnackBar(
+              SnackBar(content: Text('Добавлено ключей: ${links.length}')),
+            );
+            ref.invalidate(managedKeysProvider(profile.id));
+          } catch (e) {
+            if (!dialogContext.mounted) return;
+            ScaffoldMessenger.of(dialogContext).showSnackBar(
+              SnackBar(content: Text('Не удалось добавить: $e')),
+            );
+          }
+        }
+
+        Future<void> removeKey(String link) async {
+          try {
+            final deleted = await ref
+                .read(profilesActionProvider.notifier)
+                .deleteKeyFromProfile(profile, link);
+            if (!dialogContext.mounted) return;
+            if (deleted) {
+              Navigator.of(dialogContext).pop();
+              return;
+            }
+            ref.invalidate(managedKeysProvider(profile.id));
+          } catch (e) {
+            if (!dialogContext.mounted) return;
+            ScaffoldMessenger.of(dialogContext).showSnackBar(
+              SnackBar(content: Text('Не удалось удалить: $e')),
+            );
+          }
+        }
+
+        return AlertDialog(
+          backgroundColor: surfaces.card,
+          title: Text(
+            'Ключи — ${profile.realLabel}',
+            style: TextStyle(color: surfaces.text1),
+          ),
+          content: SizedBox(
+            width: 440,
+            child: Consumer(
+              builder: (context, consumerRef, _) {
+                final keysAsync = consumerRef.watch(
+                  managedKeysProvider(profile.id),
+                );
+                final keys = keysAsync.value ?? const <String>[];
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (keysAsync.isLoading)
+                      const Padding(
+                        padding: EdgeInsets.all(AppSpace.s3),
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                    else if (keys.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.all(AppSpace.s3),
+                        child: Text(
+                          'Ключей нет',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: surfaces.text3),
+                        ),
+                      )
+                    else
+                      SizedBox(
+                        height: 260,
+                        child: ListView(
+                          shrinkWrap: true,
+                          children: [
+                            for (final key in keys)
+                              ListTile(
+                                dense: true,
+                                contentPadding: EdgeInsets.zero,
+                                leading: Icon(
+                                  Icons.key,
+                                  size: 16,
+                                  color: surfaces.text2,
+                                ),
+                                title: Text(
+                                  key,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: surfaces.text1,
+                                    fontFamily: 'monospace',
+                                    fontSize: AppFontSize.xs,
+                                  ),
+                                ),
+                                trailing: _SquareIconButton(
+                                  tooltip: 'Удалить ключ',
+                                  size: 28,
+                                  danger: true,
+                                  onPressed: () => removeKey(key),
+                                  child: Icon(
+                                    Icons.delete_outline,
+                                    size: 15,
+                                    color: context.semanticColors.danger,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    const SizedBox(height: AppSpace.s2),
+                    TextField(
+                      controller: controller,
+                      maxLines: 3,
+                      style: TextStyle(color: surfaces.text1),
+                      decoration: InputDecoration(
+                        hintText: 'hysteria2://... vless://... trojan://...',
+                        hintStyle: TextStyle(color: surfaces.text3),
+                        filled: true,
+                        fillColor: surfaces.card2,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                      onSubmitted: (_) => addKeys(),
+                    ),
+                    const SizedBox(height: AppSpace.s2),
+                    FilledButton(
+                      onPressed: addKeys,
+                      child: const Text('Добавить ключ'),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Закрыть'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final surfaces = context.surfaces;
@@ -508,6 +679,7 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
                                 : null,
                             onEdit: () => _openEditor(profile),
                             onDelete: () => _remove(profile),
+                            onManageKeys: () => _showKeysDialog(profile),
                           ),
                           const SizedBox(height: AppSpace.s2),
                         ],
@@ -530,6 +702,7 @@ class _SubscriptionTile extends ConsumerWidget {
     this.onRefresh,
     this.onEdit,
     this.onDelete,
+    this.onManageKeys,
   });
 
   final Profile profile;
@@ -539,15 +712,19 @@ class _SubscriptionTile extends ConsumerWidget {
   final VoidCallback? onRefresh;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
+  final VoidCallback? onManageKeys;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final surfaces = context.surfaces;
     final semantic = context.semanticColors;
     final updating = ref.watch(isUpdatingProvider(profile.updatingKey));
+    final keys = ref.watch(managedKeysProvider(profile.id));
     final subtitle = profile.type == ProfileType.url
         ? profile.url
-        : 'Локальный источник';
+        : (keys.value != null
+            ? 'Ключи: ${keys.value!.length}'
+            : 'Локальный источник');
     final usage = usageSummary(profile.subscriptionInfo);
 
     return Material(
@@ -644,6 +821,15 @@ class _SubscriptionTile extends ConsumerWidget {
                     child: const Icon(Icons.edit, size: 15),
                   ),
                 const SizedBox(width: AppSpace.s1),
+                if (keys.value != null && onManageKeys != null) ...[
+                  _SquareIconButton(
+                    tooltip: 'Ключи',
+                    size: 28,
+                    onPressed: onManageKeys,
+                    child: const Icon(Icons.key, size: 15),
+                  ),
+                  const SizedBox(width: AppSpace.s1),
+                ],
                 if (onDelete != null)
                   _SquareIconButton(
                     tooltip: 'Удалить',

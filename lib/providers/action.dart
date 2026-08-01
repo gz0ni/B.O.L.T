@@ -1038,8 +1038,29 @@ class ProfilesAction extends _$ProfilesAction {
     final profile = await globalState.loadingRun(
       tag: LoadingTag.profiles,
       () async {
-        return Profile.normal(label: 'Ручная подписка').saveFile(
+        final config = convertSubscriptionToConfig(
           Uint8List.fromList(utf8.encode(text)),
+        );
+        final configText = utf8.decode(config, allowMalformed: true);
+        if (!isManagedKeysConfig(configText)) {
+          return Profile.normal(label: 'Ручная подписка').saveFile(config);
+        }
+        final newKeys = extractManagedKeys(configText) ?? [];
+        final managedProfile = await _findManagedKeysProfile();
+        if (managedProfile == null) {
+          return Profile.normal(label: 'Ручная подписка').saveFile(config);
+        }
+        final existingKeys = await _readManagedKeys(managedProfile);
+        if (existingKeys == null) {
+          throw 'Профиль ключей не удалось прочитать';
+        }
+        final merged = <String>{...existingKeys, ...newKeys}.toList();
+        final rebuilt = buildConfigFromKeys(merged);
+        if (rebuilt == null) {
+          throw 'Ни один ключ не распознан';
+        }
+        return managedProfile.saveFile(
+          Uint8List.fromList(utf8.encode(rebuilt)),
         );
       },
       title: currentAppLocalizations.addProfile,
@@ -1047,6 +1068,64 @@ class ProfilesAction extends _$ProfilesAction {
     if (profile != null) {
       putProfile(profile);
       activateProfile(profile);
+    }
+  }
+
+  /// Добавляет сырые ключи в managed-профиль (пересобирает конфиг).
+  Future<void> addKeysToProfile(Profile profile, List<String> links) async {
+    final existingKeys = await _readManagedKeys(profile);
+    if (existingKeys == null) {
+      throw 'Этот профиль не хранит сырые ключи';
+    }
+    final merged = <String>{...existingKeys, ...links}.toList();
+    await _saveManagedKeys(profile, merged);
+  }
+
+  /// Удаляет сырой ключ из managed-профиля. Возвращает true, если профиль
+  /// был удалён целиком (это был последний ключ).
+  Future<bool> deleteKeyFromProfile(Profile profile, String link) async {
+    final existingKeys = await _readManagedKeys(profile);
+    if (existingKeys == null) {
+      throw 'Этот профиль не хранит сырые ключи';
+    }
+    final remaining = existingKeys.where((key) => key != link).toList();
+    if (remaining.isEmpty) {
+      await deleteProfile(profile.id);
+      return true;
+    }
+    await _saveManagedKeys(profile, remaining);
+    return false;
+  }
+
+  Future<void> _saveManagedKeys(Profile profile, List<String> keys) async {
+    final rebuilt = buildConfigFromKeys(keys);
+    if (rebuilt == null) {
+      throw 'Ни один ключ не распознан';
+    }
+    final updated = await profile.saveFile(
+      Uint8List.fromList(utf8.encode(rebuilt)),
+    );
+    setProfileAndAutoApply(updated);
+  }
+
+  Future<Profile?> _findManagedKeysProfile() async {
+    final profiles = ref.read(profilesProvider);
+    for (final profile in profiles) {
+      if (profile.url.isNotEmpty) continue;
+      final keys = await _readManagedKeys(profile);
+      if (keys != null) return profile;
+    }
+    return null;
+  }
+
+  Future<List<String>?> _readManagedKeys(Profile profile) async {
+    try {
+      final file = File(await appPath.getProfilePath(profile.id.toString()));
+      if (!await file.exists()) return null;
+      return extractManagedKeys(await file.readAsString());
+    } catch (e) {
+      commonPrint.log('readManagedKeys error: $e', logLevel: LogLevel.warning);
+      return null;
     }
   }
 

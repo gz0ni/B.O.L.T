@@ -168,4 +168,54 @@ trojan://trojan-pass@trojan.com:443?sni=trojan.com&type=ws&path=%2Fws#Node3
       expect(config, isNot(contains('dns:')));
     });
   });
+
+  group('managed keys config', () {
+    const link1 = 'hysteria2://pass@example.com:443?sni=example.com#Node1';
+    const link2 = 'vless://uuid@server.com:443?security=tls&type=tcp#Node2';
+
+    test('generated config has marker header', () {
+      final config = configFrom('$link1\n$link2')!;
+      expect(config, startsWith(boltManagedKeysHeader));
+      expect(config, contains('\n# $link1\n'));
+      expect(config, contains('\n# $link2\n'));
+    });
+
+    test('base64 links also get marker and keys', () {
+      final encoded = base64.encode(utf8.encode('$link1\n$link2'));
+      final config = configFrom(encoded)!;
+      expect(config, startsWith(boltManagedKeysHeader));
+      expect(extractManagedKeys(config), [link1, link2]);
+    });
+
+    test('isManagedKeysConfig only true with marker', () {
+      expect(
+        isManagedKeysConfig('$boltManagedKeysHeader\n# x\nmixed-port: 7890'),
+        isTrue,
+      );
+      expect(isManagedKeysConfig('mixed-port: 7890\nproxies:\n'), isFalse);
+      expect(isManagedKeysConfig(''), isFalse);
+    });
+
+    test('yaml passthrough has no marker', () {
+      const yaml = 'mixed-port: 7890\nproxies:\n  - name: test\n';
+      expect(isManagedKeysConfig(configFrom(yaml)!), isFalse);
+      expect(extractManagedKeys(yaml), isNull);
+    });
+
+    test('extractManagedKeys round-trips through buildConfigFromKeys', () {
+      final config = configFrom('$link1\n$link2')!;
+      final keys = extractManagedKeys(config);
+      expect(keys, [link1, link2]);
+      expect(buildConfigFromKeys(keys!), config);
+    });
+
+    test('buildConfigFromKeys skips unparsable keys', () {
+      final rebuilt = buildConfigFromKeys([link1, 'not a link'])!;
+      expect(extractManagedKeys(rebuilt), [link1]);
+    });
+
+    test('buildConfigFromKeys returns null for garbage', () {
+      expect(buildConfigFromKeys(['not a link']), isNull);
+    });
+  });
 }

@@ -1,6 +1,40 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+/// Маркер-шапка конфига, собранного из сырых ключей. Ссылки-ключи хранятся
+/// строками-комментариями следом за маркером — это единственный источник
+/// правды для управления ключами (добавление/удаление без правки конфига).
+const boltManagedKeysHeader = '# bolt-managed: keys';
+
+/// True, если конфиг собран из сырых ключей (имеет маркер-шапку).
+bool isManagedKeysConfig(String text) {
+  final lines = text.split(RegExp(r'\r?\n'));
+  return lines.isNotEmpty && lines.first.trim().startsWith(boltManagedKeysHeader);
+}
+
+/// Возвращает список сырых ключей managed-конфига или null, если маркера нет.
+List<String>? extractManagedKeys(String config) {
+  final lines = config.split(RegExp(r'\r?\n'));
+  if (lines.isEmpty || !lines.first.trim().startsWith(boltManagedKeysHeader)) {
+    return null;
+  }
+  final keys = <String>[];
+  for (final line in lines.skip(1)) {
+    final trimmed = line.trim();
+    if (trimmed.isEmpty) continue;
+    if (!trimmed.startsWith('#')) break;
+    final key = trimmed.substring(1).trim();
+    if (key.isNotEmpty) keys.add(key);
+  }
+  return keys;
+}
+
+/// Пересобирает managed-конфиг из списка сырых ключей.
+/// Возвращает null, если ни один ключ не распознан.
+String? buildConfigFromKeys(Iterable<String> keys) {
+  return _buildConfigFromLinks(keys.join('\n'));
+}
+
 /// Приводит контент подписки к clash-совместимому YAML-конфигу:
 /// - уже YAML → возвращается как есть;
 /// - base64-строка → декодируется (YAML или список ссылок);
@@ -59,14 +93,18 @@ String? _tryDecodeBase64(String text) {
 
 String? _buildConfigFromLinks(String text) {
   final proxies = <Map<String, dynamic>>[];
+  final links = <String>[];
   for (final line in text.split(RegExp(r'\r?\n'))) {
     final link = line.trim();
     if (link.isEmpty) continue;
     final proxy = _tryParseLink(link);
-    if (proxy != null) proxies.add(proxy);
+    if (proxy != null) {
+      proxies.add(proxy);
+      links.add(link);
+    }
   }
   if (proxies.isEmpty) return null;
-  return _buildConfig(proxies);
+  return _buildConfig(proxies, links);
 }
 
 Map<String, dynamic>? _tryParseLink(String link) {
@@ -253,9 +291,17 @@ Map<String, dynamic> _parseHysteria2(Uri uri) {
   };
 }
 
-String _buildConfig(List<Map<String, dynamic>> proxies) {
+String _buildConfig(
+  List<Map<String, dynamic>> proxies,
+  List<String> links,
+) {
   final names = proxies.map((p) => p['name'] as String).toList();
   final sb = StringBuffer()
+    ..writeln(boltManagedKeysHeader);
+  for (final link in links) {
+    sb.writeln('# $link');
+  }
+  sb
     ..writeln('mixed-port: 7890')
     ..writeln('allow-lan: false')
     ..writeln('mode: rule')
