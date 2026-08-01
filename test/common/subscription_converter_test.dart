@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:fl_clash/common/subscription_converter.dart';
@@ -11,6 +12,9 @@ void main() {
     final result = convertSubscriptionToConfig(bytes(text));
     return utf8.decode(result);
   }
+
+  Uint8List fixture(String name) =>
+      File('test/common/fixtures/$name').readAsBytesSync();
 
   group('convertSubscriptionToConfig', () {
     test('returns yaml config unchanged', () {
@@ -101,6 +105,38 @@ ss://YWVzLTI1Ni1nY206cGFzc3dvcmQ=@ss.com:8388#SS
 
     test('returns empty text unchanged', () {
       expect(configFrom(''), '');
+    });
+
+    test('passes real skill-up yaml config unchanged', () {
+      final source = fixture('skill_up.yaml');
+      expect(convertSubscriptionToConfig(source), source);
+    });
+
+    test('passes second provider yaml config unchanged', () {
+      final source = fixture('second_provider.yaml');
+      expect(convertSubscriptionToConfig(source), source);
+    });
+
+    test('decodes base64 of real skill-up config to exact yaml', () {
+      final source = fixture('skill_up.yaml');
+      final encoded = base64.encode(source);
+      expect(convertSubscriptionToConfig(bytes(encoded)), source);
+    });
+
+    test('generated config adds no provider rules or dns', () {
+      const links = '''
+hysteria2://pass@example.com:443?sni=example.com#Node1
+vless://uuid@server.com:443?security=reality&type=tcp&sni=servername.com&pbk=public-key-here&sid=#Node2
+trojan://trojan-pass@trojan.com:443?sni=trojan.com&type=ws&path=%2Fws#Node3
+''';
+      final config = configFrom(links)!;
+      expect(config, contains('MATCH,🌍 VPN'));
+      expect(config, isNot(contains('REJECT')));
+      expect(config, isNot(contains(',DIRECT')));
+      expect(config, isNot(contains('GEOIP')));
+      expect(config, isNot(contains('GEOSITE')));
+      expect(config, isNot(contains('fake-ip')));
+      expect(config, isNot(contains('dns:')));
     });
   });
 }
