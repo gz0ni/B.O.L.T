@@ -447,13 +447,20 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
       context: context,
       builder: (dialogContext) {
         final controller = TextEditingController();
+        final listController = ScrollController();
         Future<void> addKeys() async {
           final links = controller.text
               .split(RegExp(r'\r?\n'))
               .map((link) => link.trim())
               .where((link) => link.isNotEmpty)
               .toList();
-          if (links.isEmpty) return;
+          if (links.isEmpty) {
+            if (!dialogContext.mounted) return;
+            ScaffoldMessenger.of(dialogContext).showSnackBar(
+              const SnackBar(content: Text('Введите ключ')),
+            );
+            return;
+          }
           try {
             await ref
                 .read(profilesActionProvider.notifier)
@@ -464,6 +471,16 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
               SnackBar(content: Text('Добавлено ключей: ${links.length}')),
             );
             ref.invalidate(managedKeysProvider(profile.id));
+            await ref.read(managedKeysProvider(profile.id).future);
+            if (!dialogContext.mounted) return;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!listController.hasClients) return;
+              listController.animateTo(
+                listController.position.maxScrollExtent,
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOut,
+              );
+            });
           } catch (e) {
             if (!dialogContext.mounted) return;
             ScaffoldMessenger.of(dialogContext).showSnackBar(
@@ -499,101 +516,104 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
           ),
           content: SizedBox(
             width: 440,
-            child: Consumer(
-              builder: (context, consumerRef, _) {
-                final keysAsync = consumerRef.watch(
-                  managedKeysProvider(profile.id),
-                );
-                final keys = keysAsync.value ?? const <String>[];
-                return Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (keysAsync.isLoading)
-                      const Padding(
-                        padding: EdgeInsets.all(AppSpace.s3),
-                        child: Center(child: CircularProgressIndicator()),
-                      )
-                    else if (keys.isEmpty)
-                      Padding(
-                        padding: const EdgeInsets.all(AppSpace.s3),
-                        child: Text(
-                          'Ключей нет',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: surfaces.text3),
-                        ),
-                      )
-                    else
-                      SizedBox(
-                        height: 260,
-                        child: ListView(
-                          shrinkWrap: true,
-                          children: [
-                            for (final key in keys)
-                              ListTile(
-                                dense: true,
-                                contentPadding: EdgeInsets.zero,
-                                leading: Icon(
-                                  Icons.key,
-                                  size: 16,
-                                  color: surfaces.text2,
-                                ),
-                                title: Text(
-                                  key,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: surfaces.text1,
-                                    fontFamily: 'monospace',
-                                    fontSize: AppFontSize.xs,
+            child: SingleChildScrollView(
+              child: Consumer(
+                builder: (context, consumerRef, _) {
+                  final keysAsync = consumerRef.watch(
+                    managedKeysProvider(profile.id),
+                  );
+                  final keys = keysAsync.value ?? const <String>[];
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (keysAsync.isLoading)
+                        const Padding(
+                          padding: EdgeInsets.all(AppSpace.s3),
+                          child: Center(child: CircularProgressIndicator()),
+                        )
+                      else if (keys.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.all(AppSpace.s3),
+                          child: Text(
+                            'Ключей нет',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: surfaces.text3),
+                          ),
+                        )
+                      else
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxHeight: 260),
+                          child: ListView(
+                            controller: listController,
+                            shrinkWrap: true,
+                            children: [
+                              for (final key in keys)
+                                ListTile(
+                                  dense: true,
+                                  contentPadding: EdgeInsets.zero,
+                                  leading: Icon(
+                                    Icons.key,
+                                    size: 16,
+                                    color: surfaces.text2,
+                                  ),
+                                  title: Text(
+                                    key,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: surfaces.text1,
+                                      fontFamily: 'monospace',
+                                      fontSize: AppFontSize.xs,
+                                    ),
+                                  ),
+                                  trailing: _SquareIconButton(
+                                    tooltip: 'Удалить ключ',
+                                    size: 28,
+                                    danger: true,
+                                    onPressed: () => removeKey(key),
+                                    child: Icon(
+                                      Icons.delete_outline,
+                                      size: 15,
+                                      color: context.semanticColors.danger,
+                                    ),
                                   ),
                                 ),
-                                trailing: _SquareIconButton(
-                                  tooltip: 'Удалить ключ',
-                                  size: 28,
-                                  danger: true,
-                                  onPressed: () => removeKey(key),
-                                  child: Icon(
-                                    Icons.delete_outline,
-                                    size: 15,
-                                    color: context.semanticColors.danger,
-                                  ),
-                                ),
-                              ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                    const SizedBox(height: AppSpace.s2),
-                    TextField(
-                      controller: controller,
-                      maxLines: 3,
-                      style: TextStyle(color: surfaces.text1),
-                      decoration: InputDecoration(
-                        hintText: 'hysteria2://... vless://... trojan://...',
-                        hintStyle: TextStyle(color: surfaces.text3),
-                        filled: true,
-                        fillColor: surfaces.card2,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(AppRadius.sm),
-                          borderSide: BorderSide.none,
+                      const SizedBox(height: AppSpace.s2),
+                      TextField(
+                        controller: controller,
+                        maxLines: 3,
+                        style: TextStyle(color: surfaces.text1),
+                        decoration: InputDecoration(
+                          hintText:
+                              'hysteria2://... vless://... trojan://...',
+                          hintStyle: TextStyle(color: surfaces.text3),
+                          filled: true,
+                          fillColor: surfaces.card2,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(AppRadius.sm),
+                            borderSide: BorderSide.none,
+                          ),
                         ),
+                        onSubmitted: (_) => addKeys(),
                       ),
-                      onSubmitted: (_) => addKeys(),
-                    ),
-                    const SizedBox(height: AppSpace.s2),
-                    FilledButton(
-                      onPressed: addKeys,
-                      child: const Text('Добавить ключ'),
-                    ),
-                  ],
-                );
-              },
+                    ],
+                  );
+                },
+              ),
             ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
               child: const Text('Закрыть'),
+            ),
+            FilledButton(
+              onPressed: addKeys,
+              child: const Text('Добавить ключ'),
             ),
           ],
         );
