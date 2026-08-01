@@ -178,6 +178,12 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
                   onTap: () => _showUrlDialog(),
                 ),
                 method(
+                  icon: Icons.key,
+                  title: 'Сырой ключ',
+                  subtitle: 'vless:// trojan:// ss:// — свои ключи',
+                  onTap: () => _showRawKeyDialog(),
+                ),
+                method(
                   icon: Icons.content_paste,
                   title: 'Из буфера обмена',
                   subtitle: 'Вставить скопированную ссылку или конфиг',
@@ -249,6 +255,73 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
                 Navigator.of(dialogContext).pop();
                 ref.read(profilesActionProvider.notifier).addProfileFormURL(url);
               },
+              child: const Text('Добавить'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showRawKeyDialog() {
+    final surfaces = context.surfaces;
+    final controller = TextEditingController();
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        void submit() {
+          final text = controller.text.trim();
+          if (text.isEmpty) return;
+          Navigator.of(dialogContext).pop();
+          ref
+              .read(profilesActionProvider.notifier)
+              .addProfileFromText(text);
+        }
+
+        return AlertDialog(
+          backgroundColor: surfaces.card,
+          title: Text(
+            'Сырой ключ',
+            style: TextStyle(color: surfaces.text1),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextField(
+                controller: controller,
+                autofocus: true,
+                maxLines: 5,
+                style: TextStyle(color: surfaces.text1),
+                decoration: InputDecoration(
+                  hintText: 'hysteria2://...\nvless://...\ntrojan://...',
+                  hintStyle: TextStyle(color: surfaces.text3),
+                  filled: true,
+                  fillColor: surfaces.card2,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+                onSubmitted: (_) => submit(),
+              ),
+              const SizedBox(height: AppSpace.s2),
+              Text(
+                'vless:// trojan:// ss:// — свои ключи',
+                style: TextStyle(
+                  color: surfaces.text3,
+                  fontSize: AppFontSize.xs,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Отмена'),
+            ),
+            FilledButton(
+              onPressed: submit,
               child: const Text('Добавить'),
             ),
           ],

@@ -266,31 +266,17 @@ String _buildConfig(List<Map<String, dynamic>> proxies) {
   }
   sb.writeln('proxy-groups:');
   sb.writeln(
-    _groupToYaml('🌍 VPN', 'select', names),
-  );
-  sb.writeln(
-    _groupToYaml(
-      '⚡️ Fastest',
-      'url-test',
-      names,
-      url: 'http://www.gstatic.com/generate_204',
-    ),
+    _groupToYaml('VPN', 'select', names),
   );
   sb.writeln('rules:');
-  sb.writeln('  - MATCH,🌍 VPN');
+  sb.writeln('  - MATCH,VPN');
   return sb.toString();
 }
 
-String _groupToYaml(String name, String type, List<String> names,
-    {String? url}) {
+String _groupToYaml(String name, String type, List<String> names) {
   final sb = StringBuffer()
     ..writeln('  - name: ${_quote(name)}')
     ..writeln('    type: $type');
-  if (type == 'url-test') {
-    sb.writeln('    url: ${_quote(url ?? 'http://www.gstatic.com/generate_204')}');
-    sb.writeln('    interval: 300');
-    sb.writeln('    tolerance: 50');
-  }
   sb.writeln('    proxies:');
   for (final n in names) {
     sb.writeln('      - ${_quote(n)}');

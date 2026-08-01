@@ -32,10 +32,9 @@ void main() {
       expect(config, contains('password: pass'));
       expect(config, contains('name: "My Node"'));
       expect(config, contains('proxy-groups:'));
-      expect(config, contains('name: "🌍 VPN"'));
-      expect(config, contains('name: "⚡️ Fastest"'));
+      expect(config, contains('name: VPN'));
       expect(config, contains('rules:'));
-      expect(config, contains('MATCH,🌍 VPN'));
+      expect(config, contains('MATCH,VPN'));
     });
 
     test('converts base64 subscription of hysteria2 links', () {
@@ -123,6 +122,36 @@ ss://YWVzLTI1Ni1nY206cGFzc3dvcmQ=@ss.com:8388#SS
       expect(convertSubscriptionToConfig(bytes(encoded)), source);
     });
 
+    test('generated config from real user keys is minimal', () {
+      const links = '''
+hysteria2://130701a5-b228-436c-b601-9b015cea686e@de01.skill-up.store:443/?sni=de01.skill-up.store&fm=%7B%22quicParams%22%3A%7B%22debug%22%3Afalse%2C%22congestion%22%3A%22bbr%22%7D%7D#Germany01-Hysteria2
+trojan://uK1Vp-86J8VGb2hR6wA3Q@de03.skill-up.store:443?type=ws&path=%2Fws&security=tls&sni=de03.skill-up.store&fp=chrome#Germany03-Trojan
+vless://130701a5-b228-436c-b601-9b015cea686e@de02.skill-up.store:443?encryption=none&flow=xtls-rprx-vision&type=tcp&security=reality&sni=videolink.okcdn.ru&fp=chrome&pbk=xgKrIKkuicarolThzm4nDv8-H20AgwWQfItV9HqmMik#Germani02-Vless
+''';
+      final config = configFrom(links)!;
+      expect(config, contains('proxies:'));
+      expect(config, contains('name: Germany01-Hysteria2'));
+      expect(config, contains('name: Germany03-Trojan'));
+      expect(config, contains('name: Germani02-Vless'));
+      expect(config, contains('type: hysteria2'));
+      expect(config, contains('type: trojan'));
+      expect(config, contains('type: vless'));
+      expect(config, contains('name: VPN'));
+      expect(config, contains('MATCH,VPN'));
+      expect(config, isNot(contains('🌍')));
+      expect(config, isNot(contains('⚡️')));
+      expect(config, isNot(contains('url-test')));
+      expect(config, isNot(contains('generate_204')));
+      expect(config, isNot(contains('interval')));
+      expect(config, isNot(contains('tolerance')));
+      expect(config, isNot(contains('REJECT')));
+      expect(config, isNot(contains(',DIRECT')));
+      expect(config, isNot(contains('GEOIP')));
+      expect(config, isNot(contains('GEOSITE')));
+      expect(config, isNot(contains('fake-ip')));
+      expect(config, isNot(contains('dns:')));
+    });
+
     test('generated config adds no provider rules or dns', () {
       const links = '''
 hysteria2://pass@example.com:443?sni=example.com#Node1
@@ -130,7 +159,7 @@ vless://uuid@server.com:443?security=reality&type=tcp&sni=servername.com&pbk=pub
 trojan://trojan-pass@trojan.com:443?sni=trojan.com&type=ws&path=%2Fws#Node3
 ''';
       final config = configFrom(links)!;
-      expect(config, contains('MATCH,🌍 VPN'));
+      expect(config, contains('MATCH,VPN'));
       expect(config, isNot(contains('REJECT')));
       expect(config, isNot(contains(',DIRECT')));
       expect(config, isNot(contains('GEOIP')));

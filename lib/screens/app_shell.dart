@@ -18,7 +18,7 @@ import '../theme/app_tokens.dart';
 /// Если такой группы нет в текущем профиле (например, у стороннего
 /// импортированного конфига группы называются иначе) — берём первую
 /// попавшуюся группу-селектор.
-const _preferredGroupName = '🌍 VPN';
+const _preferredGroupName = 'VPN';
 
 Group? _resolvePreferredGroup(List<Group> groups) {
   final preferred = groups.getGroup(_preferredGroupName);
