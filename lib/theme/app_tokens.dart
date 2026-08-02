@@ -8,6 +8,7 @@ class AppRadius {
   AppRadius._();
 
   static const double lg = 28;
+  static const double sheetTop = 26;
   static const double md = 16;
   static const double sm = 10;
   static const double xs = 7;
@@ -34,6 +35,32 @@ class AppFontSize {
   static const double lg = 16;
   static const double xl = 22;
 }
+
+/// Шрифты из мокапа: --font-ui (Inter), --font-display (Space Grotesk),
+/// --font-mono (JetBrains Mono). Подставляются темой; в виджетах
+/// используйте `AppFontFamily.mono` вместо хардкода 'monospace'.
+class AppFontFamily {
+  AppFontFamily._();
+
+  static const String ui = 'Inter';
+  static const String display = 'Space Grotesk';
+  static const String mono = 'JetBrains Mono';
+}
+
+/// Тёмный текст на заливке --on (primary-btn, switch, check): в мокапе
+/// #0C1310 — не путать со старым хардкодом 0xFF0A130F.
+const Color primaryOnText = Color(0xFF0C1310);
+
+/// Затемнение модального барьера: rgba(8,9,13,0.55) из мокапа.
+const Color modalBarrierColor = Color(0x8C08090D);
+
+/// Топ-левел ссылки на семантические цвета (для утилит без контекста):
+/// цвета подключения из мокапа.
+const Color semanticIdle = Color(0xFF4B4E5F);
+const Color semanticConnecting = Color(0xFFE8A857);
+const Color semanticOn = Color(0xFF4FE0B0);
+const Color semanticDanger = Color(0xFFFF6B6B);
+const Color semanticInfo = Color(0xFF5B9DFF);
 
 class AppMotion {
   AppMotion._();
@@ -92,7 +119,7 @@ class AppSemanticColors {
     idleDim: Color(0x1F5A5D6E),
     connecting: Color(0xFFE8A857),
     connectingDim: Color(0x28D28C32),
-    on: Color(0xFF4FE0B0),
+    on: Color(0xFF14B482),
     onDim: Color(0x2414B482),
     danger: Color(0xFFFF6B6B),
     dangerDim: Color(0x28FF6B6B),
@@ -129,8 +156,7 @@ class AppSemanticColorsThemeExtension
       AppSemanticColors(
         idle: Color.lerp(colors.idle, other.colors.idle, t)!,
         idleDim: Color.lerp(colors.idleDim, other.colors.idleDim, t)!,
-        connecting:
-            Color.lerp(colors.connecting, other.colors.connecting, t)!,
+        connecting: Color.lerp(colors.connecting, other.colors.connecting, t)!,
         connectingDim: Color.lerp(
           colors.connectingDim,
           other.colors.connectingDim,
@@ -139,8 +165,7 @@ class AppSemanticColorsThemeExtension
         on: Color.lerp(colors.on, other.colors.on, t)!,
         onDim: Color.lerp(colors.onDim, other.colors.onDim, t)!,
         danger: Color.lerp(colors.danger, other.colors.danger, t)!,
-        dangerDim:
-            Color.lerp(colors.dangerDim, other.colors.dangerDim, t)!,
+        dangerDim: Color.lerp(colors.dangerDim, other.colors.dangerDim, t)!,
         info: Color.lerp(colors.info, other.colors.info, t)!,
         infoDim: Color.lerp(colors.infoDim, other.colors.infoDim, t)!,
       ),

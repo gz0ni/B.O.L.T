@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:fl_clash/state.dart';
+import 'package:bolt/state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rust_api/rust_api.dart';
@@ -17,7 +17,7 @@ Future<void> main() async {
     }
     final version = await system.version;
     final container = await globalState.init(version);
-    HttpOverrides.global = FlClashHttpOverrides();
+    HttpOverrides.global = BOLTHttpOverrides();
     runApp(
       UncontrolledProviderScope(
         container: container,

@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:fl_clash/common/string.dart';
+import 'package:bolt/common/string.dart';
 import 'package:test/test.dart';
 
 void main() {

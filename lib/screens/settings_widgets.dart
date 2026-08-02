@@ -2,26 +2,16 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
 import '../theme/app_tokens.dart';
+import '../widgets/bolt_controls.dart';
+import '../widgets/bolt_icon_button.dart';
+import '../widgets/bolt_list.dart';
 
 class SettingsSectionLabel extends StatelessWidget {
   const SettingsSectionLabel(this.text, {super.key});
   final String text;
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(AppSpace.s3, AppSpace.s4, AppSpace.s3, AppSpace.s2),
-      child: Text(
-        text.toUpperCase(),
-        style: TextStyle(
-          fontSize: 11,
-          letterSpacing: 0.8,
-          color: context.surfaces.text3,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => BoltSectionLabel(text);
 }
 
 class SettingsRow extends StatelessWidget {
@@ -42,7 +32,7 @@ class SettingsRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final surfaces = context.surfaces;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpace.s3, vertical: AppSpace.s3),
+      padding: const EdgeInsets.fromLTRB(10, 12, 10, 12),
       child: Row(
         children: [
           Expanded(
@@ -57,6 +47,7 @@ class SettingsRow extends StatelessWidget {
                         style: TextStyle(
                           color: surfaces.text1,
                           fontSize: AppFontSize.md,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ),
@@ -77,7 +68,7 @@ class SettingsRow extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     description!,
-                    style: TextStyle(color: surfaces.text3, fontSize: AppFontSize.xs),
+                    style: TextStyle(color: surfaces.text3, fontSize: 11.5),
                   ),
                 ],
               ],
@@ -98,21 +89,7 @@ class SettingsSwitch extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final semantic = context.semanticColors;
-    final surfaces = context.surfaces;
-    return Switch(
-      value: value,
-      onChanged: onChanged,
-      activeThumbColor: Colors.white,
-      activeTrackColor: semantic.on,
-      inactiveTrackColor: semantic.idle,
-      inactiveThumbColor: Colors.white,
-      trackOutlineColor: WidgetStateProperty.resolveWith(
-        (states) => states.contains(WidgetState.selected)
-            ? Colors.transparent
-            : surfaces.border,
-      ),
-    );
+    return BoltSwitch(value: value, onChanged: onChanged ?? (_) {});
   }
 }
 
@@ -132,39 +109,13 @@ class SettingsSegmented<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final surfaces = context.surfaces;
-    final semantic = context.semanticColors;
-    return Container(
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        color: surfaces.card2,
-        borderRadius: BorderRadius.circular(AppRadius.xs),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: options.map((option) {
-          final selected = option == value;
-          return GestureDetector(
-            onTap: () => onChanged(option),
-            child: AnimatedContainer(
-              duration: AppMotion.fast,
-              padding: const EdgeInsets.symmetric(horizontal: AppSpace.s3, vertical: 6),
-              decoration: BoxDecoration(
-                color: selected ? semantic.on : Colors.transparent,
-                borderRadius: BorderRadius.circular(AppRadius.xs - 2),
-              ),
-              child: Text(
-                labels[option] ?? option.toString(),
-                style: TextStyle(
-                  fontSize: AppFontSize.sm,
-                  color: selected ? const Color(0xFF0A130F) : surfaces.text2,
-                  fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                ),
-              ),
-            ),
-          );
-        }).toList(),
-      ),
+    return BoltSegmented<T>(
+      options: [
+        for (final option in options)
+          BoltSegmentedOption(option, labels[option] ?? option.toString()),
+      ],
+      value: value,
+      onChanged: onChanged,
     );
   }
 }
@@ -187,37 +138,14 @@ class SettingsStepper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final surfaces = context.surfaces;
-    return Container(
-      decoration: BoxDecoration(
-        color: surfaces.card2,
-        borderRadius: BorderRadius.circular(AppRadius.xs),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          IconButton(
-            icon: const Icon(Icons.remove, size: 16),
-            onPressed: onChanged == null || value - step < min
-                ? null
-                : () => onChanged!(value - step),
-          ),
-          SizedBox(
-            width: 48,
-            child: Text(
-              '$value',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: surfaces.text1, fontSize: AppFontSize.sm),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.add, size: 16),
-            onPressed: onChanged == null || value + step > max
-                ? null
-                : () => onChanged!(value + step),
-          ),
-        ],
-      ),
+    return BoltStepper(
+      value: value,
+      onDecrement: onChanged == null || value - step < min
+          ? null
+          : () => onChanged!(value - step),
+      onIncrement: onChanged == null || value + step > max
+          ? null
+          : () => onChanged!(value + step),
     );
   }
 }
@@ -227,7 +155,7 @@ class SettingsDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Divider(color: context.surfaces.border, height: AppSpace.s5);
+    return Divider(color: context.surfaces.borderSoft, height: AppSpace.s5);
   }
 }
 
@@ -284,6 +212,7 @@ class _SettingsInputState extends State<SettingsInput> {
   @override
   Widget build(BuildContext context) {
     final surfaces = context.surfaces;
+    final semantic = context.semanticColors;
     return SizedBox(
       width: widget.width,
       child: TextField(
@@ -292,19 +221,24 @@ class _SettingsInputState extends State<SettingsInput> {
             ? TextInputType.number
             : TextInputType.text,
         style: TextStyle(color: surfaces.text1, fontSize: AppFontSize.sm),
+        cursorColor: semantic.on,
         decoration: InputDecoration(
           isDense: true,
           hintText: widget.hint,
           hintStyle: TextStyle(color: surfaces.text3),
           contentPadding: const EdgeInsets.symmetric(
             horizontal: AppSpace.s3,
-            vertical: 8,
+            vertical: 11,
           ),
           filled: true,
-          fillColor: surfaces.card2,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(AppRadius.xs),
-            borderSide: BorderSide.none,
+          fillColor: surfaces.card,
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(AppRadius.sm),
+            borderSide: BorderSide(color: surfaces.border),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(AppRadius.sm),
+            borderSide: BorderSide(color: semantic.on),
           ),
         ),
         onSubmitted: (_) => _submit(),
@@ -313,6 +247,8 @@ class _SettingsInputState extends State<SettingsInput> {
   }
 }
 
+/// `.mini-btn` из мокапа: фон on-dim, рамка --on, текст --on.
+/// Здесь — кнопка-редактор со счётчиком текущих значений.
 class _EditorButton extends StatelessWidget {
   const _EditorButton({required this.count, required this.onTap});
 
@@ -321,35 +257,39 @@ class _EditorButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final surfaces = context.surfaces;
+    final semantic = context.semanticColors;
     return Tooltip(
       message: 'Изменить',
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppRadius.xs),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpace.s3,
-            vertical: 6,
-          ),
-          decoration: BoxDecoration(
-            color: surfaces.card2,
-            borderRadius: BorderRadius.circular(AppRadius.xs),
-            border: Border.all(color: surfaces.border),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.edit_outlined, size: 14, color: surfaces.text2),
-              const SizedBox(width: AppSpace.s1),
-              Text(
-                '$count',
-                style: TextStyle(
-                  color: surfaces.text2,
-                  fontSize: AppFontSize.sm,
+      child: Material(
+        color: semantic.onDim,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          side: BorderSide(color: semantic.on),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          hoverColor: semantic.onDim.withValues(alpha: 0.5),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpace.s3,
+              vertical: 6,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.edit_outlined, size: 14, color: semantic.on),
+                const SizedBox(width: AppSpace.s1),
+                Text(
+                  '$count',
+                  style: TextStyle(
+                    color: semantic.on,
+                    fontSize: AppFontSize.sm,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -380,7 +320,6 @@ class SettingsListEditor extends StatelessWidget {
   }
 
   void _showListEditor(BuildContext context) {
-    final surfaces = context.surfaces;
     final items = List<String>.from(value);
     final controller = TextEditingController();
     showDialog<void>(
@@ -397,11 +336,7 @@ class SettingsListEditor extends StatelessWidget {
             }
 
             return AlertDialog(
-              backgroundColor: surfaces.card,
-              title: Text(
-                title,
-                style: TextStyle(color: surfaces.text1),
-              ),
+              title: Text(title),
               content: SizedBox(
                 width: 360,
                 child: Column(
@@ -412,46 +347,36 @@ class SettingsListEditor extends StatelessWidget {
                         shrinkWrap: true,
                         children: [
                           for (final item in items)
-                            ListTile(
-                              dense: true,
-                              contentPadding: EdgeInsets.zero,
-                              title: Text(
-                                item,
-                                style: TextStyle(
-                                  color: surfaces.text1,
-                                  fontSize: AppFontSize.sm,
-                                ),
-                              ),
-                              trailing: IconButton(
-                                icon: Icon(
-                                  Icons.close,
-                                  size: 16,
-                                  color: context.semanticColors.danger,
-                                ),
-                                onPressed: () {
+                            _dialogListItem(
+                              context,
+                              key: item,
+                              trailing: BoltIconButton(
+                                icon: Icons.close,
+                                tooltip: 'Удалить',
+                                compact: true,
+                                color: context.semanticColors.danger,
+                                danger: true,
+                                onTap: () {
                                   items.remove(item);
                                   setState(() {});
                                 },
+                              ),
+                              child: Text(
+                                item,
+                                style: TextStyle(
+                                  color: context.surfaces.text1,
+                                  fontSize: AppFontSize.sm,
+                                ),
                               ),
                             ),
                         ],
                       ),
                     ),
                     const SizedBox(height: AppSpace.s2),
-                    TextField(
+                    _dialogTextField(
+                      context,
                       controller: controller,
-                      style: TextStyle(color: surfaces.text1),
-                      decoration: InputDecoration(
-                        isDense: true,
-                        hintText: hint,
-                        hintStyle: TextStyle(color: surfaces.text3),
-                        filled: true,
-                        fillColor: surfaces.card2,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(AppRadius.xs),
-                          borderSide: BorderSide.none,
-                        ),
-                      ),
+                      hint: hint,
                       onSubmitted: (_) => add(),
                     ),
                   ],
@@ -503,7 +428,6 @@ class SettingsMapEditor extends StatelessWidget {
   }
 
   void _showMapEditor(BuildContext context) {
-    final surfaces = context.surfaces;
     final items = Map<String, String>.from(value);
     final keyController = TextEditingController();
     final valueController = TextEditingController();
@@ -523,11 +447,7 @@ class SettingsMapEditor extends StatelessWidget {
             }
 
             return AlertDialog(
-              backgroundColor: surfaces.card,
-              title: Text(
-                title,
-                style: TextStyle(color: surfaces.text1),
-              ),
+              title: Text(title),
               content: SizedBox(
                 width: 360,
                 child: Column(
@@ -538,28 +458,27 @@ class SettingsMapEditor extends StatelessWidget {
                         shrinkWrap: true,
                         children: [
                           for (final entry in items.entries)
-                            ListTile(
-                              dense: true,
-                              contentPadding: EdgeInsets.zero,
-                              title: Text(
+                            _dialogListItem(
+                              context,
+                              key: entry.key,
+                              trailing: BoltIconButton(
+                                icon: Icons.close,
+                                tooltip: 'Удалить',
+                                compact: true,
+                                color: context.semanticColors.danger,
+                                onTap: () {
+                                  items.remove(entry.key);
+                                  setState(() {});
+                                },
+                              ),
+                              child: Text(
                                 '${entry.key} → ${entry.value}',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  color: surfaces.text1,
+                                  color: context.surfaces.text1,
                                   fontSize: AppFontSize.sm,
                                 ),
-                              ),
-                              trailing: IconButton(
-                                icon: Icon(
-                                  Icons.close,
-                                  size: 16,
-                                  color: context.semanticColors.danger,
-                                ),
-                                onPressed: () {
-                                  items.remove(entry.key);
-                                  setState(() {});
-                                },
                               ),
                             ),
                         ],
@@ -569,46 +488,27 @@ class SettingsMapEditor extends StatelessWidget {
                     Row(
                       children: [
                         Expanded(
-                          child: TextField(
+                          child: _dialogTextField(
+                            context,
                             controller: keyController,
-                            style: TextStyle(color: surfaces.text1),
-                            decoration: InputDecoration(
-                              isDense: true,
-                              hintText: keyHint,
-                              hintStyle: TextStyle(color: surfaces.text3),
-                              filled: true,
-                              fillColor: surfaces.card2,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(
-                                  AppRadius.xs,
-                                ),
-                                borderSide: BorderSide.none,
-                              ),
-                            ),
+                            hint: keyHint,
                           ),
                         ),
                         const SizedBox(width: AppSpace.s2),
                         Expanded(
-                          child: TextField(
+                          child: _dialogTextField(
+                            context,
                             controller: valueController,
-                            style: TextStyle(color: surfaces.text1),
-                            decoration: InputDecoration(
-                              isDense: true,
-                              hintText: valueHint,
-                              hintStyle: TextStyle(color: surfaces.text3),
-                              filled: true,
-                              fillColor: surfaces.card2,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(
-                                  AppRadius.xs,
-                                ),
-                                borderSide: BorderSide.none,
-                              ),
-                            ),
+                            hint: valueHint,
                           ),
                         ),
                         const SizedBox(width: AppSpace.s1),
-                        _SquareAddButton(onTap: add),
+                        BoltIconButton(
+                          icon: Icons.add,
+                          tooltip: 'Добавить',
+                          compact: true,
+                          onTap: add,
+                        ),
                       ],
                     ),
                   ],
@@ -635,31 +535,6 @@ class SettingsMapEditor extends StatelessWidget {
   }
 }
 
-class _SquareAddButton extends StatelessWidget {
-  const _SquareAddButton({required this.onTap});
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final surfaces = context.surfaces;
-    return InkWell(
-      borderRadius: BorderRadius.circular(AppRadius.xs),
-      onTap: onTap,
-      child: Container(
-        width: 36,
-        height: 36,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: surfaces.card2,
-          borderRadius: BorderRadius.circular(AppRadius.xs),
-          border: Border.all(color: surfaces.border),
-        ),
-        child: Icon(Icons.add, size: 16, color: surfaces.text2),
-      ),
-    );
-  }
-}
-
 class SettingsPortsEditor extends StatelessWidget {
   const SettingsPortsEditor({
     super.key,
@@ -682,15 +557,18 @@ class SettingsPortsEditor extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _EditorButton(
-      count: [mixedPort, socksPort, port, redirPort, tproxyPort]
-          .where((v) => v > 0)
-          .length,
+      count: [
+        mixedPort,
+        socksPort,
+        port,
+        redirPort,
+        tproxyPort,
+      ].where((v) => v > 0).length,
       onTap: () => _showPortsDialog(context),
     );
   }
 
   void _showPortsDialog(BuildContext context) {
-    final surfaces = context.surfaces;
     final mixed = TextEditingController(text: '$mixedPort');
     final socks = TextEditingController(text: '$socksPort');
     final portCtrl = TextEditingController(text: '$port');
@@ -708,23 +586,14 @@ class SettingsPortsEditor extends StatelessWidget {
                   width: 120,
                   child: Text(
                     label,
-                    style: TextStyle(color: surfaces.text2),
+                    style: TextStyle(color: context.surfaces.text2),
                   ),
                 ),
                 Expanded(
-                  child: TextField(
+                  child: _dialogTextField(
+                    context,
                     controller: controller,
-                    keyboardType: TextInputType.number,
-                    style: TextStyle(color: surfaces.text1),
-                    decoration: InputDecoration(
-                      isDense: true,
-                      filled: true,
-                      fillColor: surfaces.card2,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.xs),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
+                    numeric: true,
                   ),
                 ),
               ],
@@ -733,11 +602,7 @@ class SettingsPortsEditor extends StatelessWidget {
         }
 
         return AlertDialog(
-          backgroundColor: surfaces.card,
-          title: Text(
-            'Порты',
-            style: TextStyle(color: surfaces.text1),
-          ),
+          title: const Text('Порты'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -771,4 +636,70 @@ class SettingsPortsEditor extends StatelessWidget {
       },
     );
   }
+}
+
+/// Строка списка в диалогах-редакторах (list-item из мокапа:
+/// padding 11x10, радиус sm, hover -> card).
+Widget _dialogListItem(
+  BuildContext context, {
+  required String key,
+  required Widget child,
+  required Widget trailing,
+}) {
+  final surfaces = context.surfaces;
+  return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: surfaces.card,
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+      ),
+      child: Row(
+        children: [
+          Expanded(child: child),
+          const SizedBox(width: AppSpace.s2),
+          trailing,
+        ],
+      ),
+    ),
+  );
+}
+
+/// Инпут в стиле form-field мокапа внутри диалогов.
+Widget _dialogTextField(
+  BuildContext context, {
+  required TextEditingController controller,
+  String? hint,
+  bool numeric = false,
+  ValueChanged<String>? onSubmitted,
+}) {
+  final surfaces = context.surfaces;
+  final semantic = context.semanticColors;
+  return TextField(
+    controller: controller,
+    keyboardType: numeric ? TextInputType.number : TextInputType.text,
+    style: TextStyle(color: surfaces.text1, fontSize: AppFontSize.md),
+    cursorColor: semantic.on,
+    decoration: InputDecoration(
+      isDense: true,
+      hintText: hint,
+      hintStyle: TextStyle(color: surfaces.text3),
+      filled: true,
+      fillColor: surfaces.card,
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: AppSpace.s3,
+        vertical: 11,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        borderSide: BorderSide(color: surfaces.border),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        borderSide: BorderSide(color: semantic.on),
+      ),
+    ),
+    onSubmitted: onSubmitted,
+  );
 }

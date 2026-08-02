@@ -9,7 +9,8 @@ const boltManagedKeysHeader = '# bolt-managed: keys';
 /// True, если конфиг собран из сырых ключей (имеет маркер-шапку).
 bool isManagedKeysConfig(String text) {
   final lines = text.split(RegExp(r'\r?\n'));
-  return lines.isNotEmpty && lines.first.trim().startsWith(boltManagedKeysHeader);
+  return lines.isNotEmpty &&
+      lines.first.trim().startsWith(boltManagedKeysHeader);
 }
 
 /// Возвращает список сырых ключей managed-конфига или null, если маркера нет.
@@ -43,6 +44,19 @@ List<String> unsupportedKeyLinks(Iterable<String> links) {
     if (_tryParseLink(trimmed) == null) unsupported.add(trimmed);
   }
   return unsupported;
+}
+
+/// True, если текст состоит только из распознанных ссылок-ключей
+/// (vless://, vmess://, trojan://, ss://, hysteria2://) — т.е. это
+/// сырые ключи, а не YAML-конфиг или подписка.
+bool isRawKeysText(String text) {
+  final lines = text
+      .split(RegExp(r'\r?\n'))
+      .map((line) => line.trim())
+      .where((line) => line.isNotEmpty)
+      .toList();
+  if (lines.isEmpty) return false;
+  return unsupportedKeyLinks(lines).isEmpty;
 }
 
 /// Приводит контент подписки к clash-совместимому YAML-конфигу:
@@ -103,18 +117,16 @@ String? _tryDecodeBase64(String text) {
 
 String? _buildConfigFromLinks(String text) {
   final proxies = <Map<String, dynamic>>[];
-  final links = <String>[];
   for (final line in text.split(RegExp(r'\r?\n'))) {
     final link = line.trim();
     if (link.isEmpty) continue;
     final proxy = _tryParseLink(link);
     if (proxy != null) {
       proxies.add(proxy);
-      links.add(link);
     }
   }
   if (proxies.isEmpty) return null;
-  return _buildConfig(proxies, links);
+  return _buildConfig(proxies);
 }
 
 Map<String, dynamic>? _tryParseLink(String link) {
@@ -214,9 +226,7 @@ Map<String, dynamic>? _parseVmess(String link) {
   }
 
   if (net == 'grpc') {
-    map['grpc-opts'] = {
-      'grpc-service-name': (data['path'] as String?) ?? '',
-    };
+    map['grpc-opts'] = {'grpc-service-name': (data['path'] as String?) ?? ''};
   }
 
   return map;
@@ -301,17 +311,9 @@ Map<String, dynamic> _parseHysteria2(Uri uri) {
   };
 }
 
-String _buildConfig(
-  List<Map<String, dynamic>> proxies,
-  List<String> links,
-) {
+String _buildConfig(List<Map<String, dynamic>> proxies) {
   final names = proxies.map((p) => p['name'] as String).toList();
   final sb = StringBuffer()
-    ..writeln(boltManagedKeysHeader);
-  for (final link in links) {
-    sb.writeln('# $link');
-  }
-  sb
     ..writeln('mixed-port: 7890')
     ..writeln('allow-lan: false')
     ..writeln('mode: rule')
@@ -321,9 +323,7 @@ String _buildConfig(
     sb.writeln(_proxyToYaml(proxy));
   }
   sb.writeln('proxy-groups:');
-  sb.writeln(
-    _groupToYaml('VPN', 'select', names),
-  );
+  sb.writeln(_groupToYaml('VPN', 'select', names));
   sb.writeln('rules:');
   sb.writeln('  - MATCH,VPN');
   return sb.toString();
@@ -380,7 +380,8 @@ String _yamlValue(Object? value, String indent) {
 }
 
 String _quote(String value) {
-  final isSafe = RegExp(r'^[a-zA-Z0-9_\-./+=]+$').hasMatch(value) &&
+  final isSafe =
+      RegExp(r'^[a-zA-Z0-9_\-./+=]+$').hasMatch(value) &&
       !RegExp(r'^-?[0-9]+(\.[0-9]+)?$').hasMatch(value) &&
       value != 'true' &&
       value != 'false' &&

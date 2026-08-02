@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:fl_clash/common/subscription_converter.dart';
+import 'package:bolt/common/subscription_converter.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -69,19 +69,21 @@ ss://YWVzLTI1Ni1nY206cGFzc3dvcmQ=@ss.com:8388#SS
 
     test('converts vmess base64 link', () {
       final vmessPayload = base64.encode(
-        utf8.encode(json.encode({
-          'v': '2',
-          'ps': 'VM',
-          'add': 'vmess.com',
-          'port': '443',
-          'id': 'uuid-123',
-          'aid': '0',
-          'scy': 'auto',
-          'net': 'ws',
-          'host': 'vmess.com',
-          'path': '/ws',
-          'tls': 'tls',
-        })),
+        utf8.encode(
+          json.encode({
+            'v': '2',
+            'ps': 'VM',
+            'add': 'vmess.com',
+            'port': '443',
+            'id': 'uuid-123',
+            'aid': '0',
+            'scy': 'auto',
+            'net': 'ws',
+            'host': 'vmess.com',
+            'path': '/ws',
+            'tls': 'tls',
+          }),
+        ),
       );
       final config = configFrom('vmess://$vmessPayload');
       expect(config, contains('type: vmess'));
@@ -173,18 +175,20 @@ trojan://trojan-pass@trojan.com:443?sni=trojan.com&type=ws&path=%2Fws#Node3
     const link1 = 'hysteria2://pass@example.com:443?sni=example.com#Node1';
     const link2 = 'vless://uuid@server.com:443?security=tls&type=tcp#Node2';
 
-    test('generated config has marker header', () {
+    test('generated config is clean yaml without keys', () {
       final config = configFrom('$link1\n$link2')!;
-      expect(config, startsWith(boltManagedKeysHeader));
-      expect(config, contains('\n# $link1\n'));
-      expect(config, contains('\n# $link2\n'));
+      expect(config, startsWith('mixed-port: 7890'));
+      expect(config, isNot(contains(boltManagedKeysHeader)));
+      expect(config, isNot(contains('# $link1')));
+      expect(config, isNot(contains('# $link2')));
+      expect(extractManagedKeys(config), isNull);
     });
 
-    test('base64 links also get marker and keys', () {
+    test('base64 links produce clean yaml', () {
       final encoded = base64.encode(utf8.encode('$link1\n$link2'));
       final config = configFrom(encoded)!;
-      expect(config, startsWith(boltManagedKeysHeader));
-      expect(extractManagedKeys(config), [link1, link2]);
+      expect(config, startsWith('mixed-port: 7890'));
+      expect(extractManagedKeys(config), isNull);
     });
 
     test('isManagedKeysConfig only true with marker', () {
@@ -202,20 +206,46 @@ trojan://trojan-pass@trojan.com:443?sni=trojan.com&type=ws&path=%2Fws#Node3
       expect(extractManagedKeys(yaml), isNull);
     });
 
-    test('extractManagedKeys round-trips through buildConfigFromKeys', () {
-      final config = configFrom('$link1\n$link2')!;
-      final keys = extractManagedKeys(config);
-      expect(keys, [link1, link2]);
-      expect(buildConfigFromKeys(keys!), config);
+    test('extractManagedKeys still reads legacy marker configs', () {
+      const legacy =
+          '$boltManagedKeysHeader\n# $link1\n# $link2\nmixed-port: 7890';
+      expect(extractManagedKeys(legacy), [link1, link2]);
+    });
+
+    test('buildConfigFromKeys produces clean yaml without keys', () {
+      final rebuilt = buildConfigFromKeys([link1, link2])!;
+      expect(rebuilt, startsWith('mixed-port: 7890'));
+      expect(extractManagedKeys(rebuilt), isNull);
+      expect(isManagedKeysConfig(rebuilt), isFalse);
     });
 
     test('buildConfigFromKeys skips unparsable keys', () {
       final rebuilt = buildConfigFromKeys([link1, 'not a link'])!;
-      expect(extractManagedKeys(rebuilt), [link1]);
+      expect(rebuilt, contains('Node1'));
+      expect(rebuilt, isNot(contains('not a link')));
+      expect(extractManagedKeys(rebuilt), isNull);
     });
 
     test('buildConfigFromKeys returns null for garbage', () {
       expect(buildConfigFromKeys(['not a link']), isNull);
+    });
+  });
+
+  group('isRawKeysText', () {
+    const link1 = 'hysteria2://pass@example.com:443?sni=example.com#Node1';
+    const link2 = 'vless://uuid@server.com:443?security=tls&type=tcp#Node2';
+
+    test('true for supported key links', () {
+      expect(isRawKeysText('$link1\n$link2'), isTrue);
+      expect(isRawKeysText('  $link1  '), isTrue);
+    });
+
+    test('false for yaml, garbage, urls and empty text', () {
+      expect(isRawKeysText('mixed-port: 7890\nproxies:'), isFalse);
+      expect(isRawKeysText('not a link'), isFalse);
+      expect(isRawKeysText(''), isFalse);
+      expect(isRawKeysText('https://example.com/sub'), isFalse);
+      expect(isRawKeysText('tuic://host.com:443'), isFalse);
     });
   });
 
@@ -244,8 +274,9 @@ trojan://trojan-pass@trojan.com:443?sni=trojan.com&type=ws&path=%2Fws#Node3
 
     test('trims whitespace before checking', () {
       expect(unsupportedKeyLinks(['  $link1\n']), isEmpty);
-      expect(unsupportedKeyLinks(['  tuic://host.com:443  ']),
-          ['tuic://host.com:443']);
+      expect(unsupportedKeyLinks(['  tuic://host.com:443  ']), [
+        'tuic://host.com:443',
+      ]);
     });
   });
 }

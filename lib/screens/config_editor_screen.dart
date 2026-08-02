@@ -1,10 +1,13 @@
 import 'dart:io';
 
-import 'package:fl_clash/common/common.dart';
-import 'package:fl_clash/models/models.dart';
-import 'package:fl_clash/providers/providers.dart';
-import 'package:fl_clash/theme/app_theme.dart';
-import 'package:fl_clash/theme/app_tokens.dart';
+import 'package:bolt/common/common.dart';
+import 'package:bolt/models/models.dart';
+import 'package:bolt/providers/providers.dart';
+import 'package:bolt/theme/app_theme.dart';
+import 'package:bolt/theme/app_tokens.dart';
+import 'package:bolt/widgets/bolt_buttons.dart';
+import 'package:bolt/widgets/bolt_icon_button.dart';
+import 'package:bolt/widgets/bolt_surfaces.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -21,21 +24,28 @@ class ConfigEditorScreen extends ConsumerStatefulWidget {
 
 class _ConfigEditorScreenState extends ConsumerState<ConfigEditorScreen> {
   final _controller = TextEditingController();
+  final _focusNode = FocusNode();
   bool _loading = true;
   bool _saving = false;
+  bool _focused = false;
   String? _path;
 
-  Profile? get _profile => ref.read(profilesProvider).getProfile(widget.profileId);
+  Profile? get _profile =>
+      ref.read(profilesProvider).getProfile(widget.profileId);
 
   @override
   void initState() {
     super.initState();
     _load();
+    _focusNode.addListener(() {
+      if (mounted) setState(() => _focused = _focusNode.hasFocus);
+    });
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -76,14 +86,10 @@ class _ConfigEditorScreenState extends ConsumerState<ConfigEditorScreen> {
       final updated = await profile.saveFileWithPath(tempPath);
       ref.read(profilesActionProvider.notifier).setProfileAndAutoApply(updated);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Конфиг сохранён и применён')),
-      );
+      showBoltToast(context, 'Конфиг сохранён и применён');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Не удалось сохранить: $e')),
-      );
+      showBoltToast(context, 'Не удалось сохранить: $e');
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -92,51 +98,52 @@ class _ConfigEditorScreenState extends ConsumerState<ConfigEditorScreen> {
   @override
   Widget build(BuildContext context) {
     final surfaces = context.surfaces;
+    final semantic = context.semanticColors;
     final profile = _profile;
+    final ready = !_loading && profile != null;
 
     return Container(
-      color: surfaces.bg,
+      color: surfaces.bgSoft,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: const EdgeInsets.all(AppSpace.s4),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpace.s4,
+              AppSpace.s2,
+              AppSpace.s4,
+              AppSpace.s2,
+            ),
             child: Row(
               children: [
-                Text(
-                  profile == null ? 'Редактор конфига' : 'Конфиг: ${profile.realLabel}',
-                  style: TextStyle(
-                    fontSize: AppFontSize.lg,
-                    fontWeight: FontWeight.w600,
-                    color: surfaces.text1,
+                Expanded(
+                  child: Text(
+                    profile == null ? 'Профиль не найден' : profile.realLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: surfaces.text2,
+                      fontSize: AppFontSize.sm,
+                    ),
                   ),
                 ),
-                const Spacer(),
-                IconButton(
+                BoltIconButton(
                   tooltip: 'Открыть во внешнем редакторе',
-                  icon: const Icon(Icons.open_in_new),
-                  onPressed: _path == null ? null : _openExternal,
+                  onTap: _path == null ? null : _openExternal,
+                  icon: Icons.open_in_new,
                 ),
-                IconButton(
+                const SizedBox(width: AppSpace.s2),
+                BoltIconButton(
                   tooltip: 'Сбросить изменения',
-                  icon: const Icon(Icons.restart_alt),
-                  onPressed: _loading ? null : _load,
+                  onTap: _loading ? null : _load,
+                  icon: Icons.restart_alt,
                 ),
-                FilledButton(
-                  onPressed: (_loading || _saving) ? null : _save,
-                  child: _saving
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Сохранить и применить'),
+                const SizedBox(width: AppSpace.s2),
+                BoltIconButton(
+                  tooltip: 'Закрыть',
+                  onTap: widget.onClose,
+                  icon: Icons.close,
                 ),
-                if (widget.onClose != null)
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: widget.onClose,
-                  ),
               ],
             ),
           ),
@@ -144,42 +151,74 @@ class _ConfigEditorScreenState extends ConsumerState<ConfigEditorScreen> {
             child: _loading
                 ? const Center(child: CircularProgressIndicator())
                 : profile == null
-                    ? Center(
-                        child: Text(
-                          'Профиль не найден',
-                          style: TextStyle(color: surfaces.text3),
-                        ),
-                      )
-                    : Padding(
-                        padding: const EdgeInsets.fromLTRB(
-                          AppSpace.s4,
-                          0,
-                          AppSpace.s4,
-                          AppSpace.s4,
-                        ),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: surfaces.card,
-                            borderRadius: BorderRadius.circular(AppRadius.sm),
-                            border: Border.all(color: surfaces.border),
-                          ),
-                          child: TextField(
-                            controller: _controller,
-                            maxLines: null,
-                            expands: true,
-                            style: TextStyle(
-                              color: surfaces.text1,
-                              fontSize: AppFontSize.xs,
-                              fontFamily: 'monospace',
-                              height: 1.5,
-                            ),
-                            decoration: const InputDecoration(
-                              border: InputBorder.none,
-                              contentPadding: EdgeInsets.all(AppSpace.s3),
-                            ),
-                          ),
+                ? Center(
+                    child: Text(
+                      'Профиль не найден',
+                      style: TextStyle(color: surfaces.text3),
+                    ),
+                  )
+                : Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpace.s4,
+                      0,
+                      AppSpace.s4,
+                      AppSpace.s4,
+                    ),
+                    child: AnimatedContainer(
+                      duration: AppMotion.fast,
+                      curve: AppMotion.ease,
+                      decoration: BoxDecoration(
+                        color: surfaces.card,
+                        borderRadius: BorderRadius.circular(AppRadius.lg),
+                        border: Border.all(
+                          color: _focused ? semantic.on : surfaces.border,
                         ),
                       ),
+                      child: TextField(
+                        controller: _controller,
+                        focusNode: _focusNode,
+                        maxLines: null,
+                        expands: true,
+                        style: TextStyle(
+                          color: surfaces.text1,
+                          fontSize: AppFontSize.sm,
+                          fontFamily: AppTheme.monoFontFamily,
+                          height: 1.6,
+                        ),
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.all(AppSpace.s4),
+                        ),
+                      ),
+                    ),
+                  ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpace.s4,
+              0,
+              AppSpace.s4,
+              AppSpace.s4,
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: BoltSecondaryButton(
+                    label: 'Сбросить',
+                    onTap: _loading ? null : _load,
+                    enabled: !_loading,
+                  ),
+                ),
+                const SizedBox(width: AppSpace.s3),
+                Expanded(
+                  child: BoltPrimaryButton(
+                    label: 'Сохранить и применить',
+                    onTap: ready ? _save : null,
+                    enabled: ready && !_saving,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

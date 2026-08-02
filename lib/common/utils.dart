@@ -3,8 +3,9 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:ui';
 
-import 'package:fl_clash/common/common.dart';
-import 'package:fl_clash/enum/enum.dart';
+import 'package:bolt/common/common.dart';
+import 'package:bolt/enum/enum.dart';
+import 'package:bolt/theme/app_tokens.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -21,11 +22,11 @@ class Utils {
 
   Color? getDelayColor(int? delay) {
     if (delay == null) return null;
-    if (delay < 0) return Colors.red;
-    if (delay < 600) return Colors.green;
-    return const Color(0xFFC57F0A);
+    if (delay <= 0) return semanticDanger;
+    if (delay < 150) return semanticOn;
+    if (delay < 350) return semanticConnecting;
+    return semanticDanger;
   }
-
   String get id {
     final timestamp = DateTime.now().microsecondsSinceEpoch;
     final random = Random();

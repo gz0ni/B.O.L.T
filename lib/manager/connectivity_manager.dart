@@ -1,10 +1,10 @@
 import 'dart:async';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:fl_clash/common/common.dart';
-import 'package:fl_clash/enum/enum.dart';
-import 'package:fl_clash/providers/app.dart';
-import 'package:fl_clash/state.dart';
+import 'package:bolt/common/common.dart';
+import 'package:bolt/enum/enum.dart';
+import 'package:bolt/providers/app.dart';
+import 'package:bolt/state.dart';
 import 'package:flutter/material.dart';
 import 'package:wifi_ssid/wifi_ssid.dart';
 

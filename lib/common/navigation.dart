@@ -1,4 +1,4 @@
-import 'package:fl_clash/models/models.dart';
+import 'package:bolt/models/models.dart';
 
 class Navigation {
   static Navigation? _instance;

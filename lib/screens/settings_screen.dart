@@ -1,11 +1,13 @@
-import 'package:fl_clash/enum/enum.dart';
-import 'package:fl_clash/models/models.dart';
-import 'package:fl_clash/providers/providers.dart';
+import 'package:bolt/enum/enum.dart';
+import 'package:bolt/models/models.dart';
+import 'package:bolt/providers/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../theme/app_theme.dart';
 import '../theme/app_tokens.dart';
+import '../widgets/bolt_controls.dart';
+import '../widgets/bolt_icon_button.dart';
 import 'settings_widgets.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -38,9 +40,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   void _updateDns(Dns Function(Dns) update) {
     ref.read(overrideDnsProvider.notifier).value = true;
-    ref.read(patchClashConfigProvider.notifier).update(
-      (state) => state.copyWith(dns: update(state.dns)),
-    );
+    ref
+        .read(patchClashConfigProvider.notifier)
+        .update((state) => state.copyWith(dns: update(state.dns)));
   }
 
   void _updateAppSetting(AppSettingProps Function(AppSettingProps) update) {
@@ -50,25 +52,30 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final surfaces = context.surfaces;
-    final semantic = context.semanticColors;
     final patchConfig = ref.watch(patchClashConfigProvider);
     final network = ref.watch(networkSettingProvider);
     final appSetting = ref.watch(appSettingProvider);
     final themeProps = ref.watch(themeSettingProvider);
 
     return Container(
-      color: surfaces.bg,
+      color: surfaces.bgSoft,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(AppSpace.s4, AppSpace.s4, AppSpace.s2, 0),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpace.s4,
+              AppSpace.s4,
+              AppSpace.s2,
+              0,
+            ),
             child: Row(
               children: [
                 Expanded(
                   child: Text(
                     'Настройки',
                     style: TextStyle(
+                      fontFamily: AppFontFamily.display,
                       fontSize: AppFontSize.lg,
                       fontWeight: FontWeight.w600,
                       color: surfaces.text1,
@@ -76,56 +83,29 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ),
                 if (widget.onClose != null)
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: widget.onClose,
+                  BoltIconButton(
+                    icon: Icons.close,
+                    tooltip: 'Закрыть',
+                    onTap: widget.onClose,
                   ),
               ],
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(AppSpace.s4, AppSpace.s2, AppSpace.s4, 0),
-            child: Container(
-              padding: const EdgeInsets.all(3),
-              decoration: BoxDecoration(
-                color: surfaces.card2,
-                borderRadius: BorderRadius.circular(AppRadius.xs),
-              ),
-              child: Row(
-                children: [
-                  for (var i = 0; i < _categories.length; i++)
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => setState(() => _category = i),
-                        child: AnimatedContainer(
-                          duration: AppMotion.fast,
-                          padding: const EdgeInsets.symmetric(vertical: 6),
-                          decoration: BoxDecoration(
-                            color: _category == i
-                                ? semantic.on
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(AppRadius.xs - 2),
-                          ),
-                          child: Text(
-                            _categories[i],
-                            textAlign: TextAlign.center,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: AppFontSize.sm,
-                              color: _category == i
-                                  ? const Color(0xFF0A130F)
-                                  : surfaces.text2,
-                              fontWeight: _category == i
-                                  ? FontWeight.w600
-                                  : FontWeight.w400,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpace.s4,
+              AppSpace.s2,
+              AppSpace.s4,
+              0,
+            ),
+            child: BoltSegmented<int>(
+              expanded: true,
+              options: [
+                for (var i = 0; i < _categories.length; i++)
+                  BoltSegmentedOption(i, _categories[i]),
+              ],
+              value: _category,
+              onChanged: (v) => setState(() => _category = v),
             ),
           ),
           const SizedBox(height: AppSpace.s2),
@@ -157,7 +137,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   SettingsRow _modeRow(PatchClashConfig patchConfig) {
     return SettingsRow(
       title: 'Режим маршрутизации',
-      help: 'Правила — трафик по правилам конфига; Глобальный — весь '
+      help:
+          'Правила — трафик по правилам конфига; Глобальный — весь '
           'трафик через прокси; Прямой — без прокси.',
       trailing: SettingsSegmented<Mode>(
         options: Mode.values,
@@ -206,9 +187,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const SizedBox(width: AppSpace.s2),
           SettingsSwitch(
             value: patchConfig.tun.enable,
-            onChanged: (v) => _updatePatchConfig(
-              (state) => state.copyWith.tun(enable: v),
-            ),
+            onChanged: (v) =>
+                _updatePatchConfig((state) => state.copyWith.tun(enable: v)),
           ),
         ],
       ),
@@ -232,11 +212,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     return SettingsRow(
       title: 'Тема',
       trailing: SettingsSegmented<ThemeMode>(
-        options: const [
-          ThemeMode.dark,
-          ThemeMode.light,
-          ThemeMode.system,
-        ],
+        options: const [ThemeMode.dark, ThemeMode.light, ThemeMode.system],
         value: themeProps.themeMode,
         labels: const {
           ThemeMode.dark: 'Тёмная',
@@ -263,14 +239,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     ];
   }
 
-  List<Widget> _coreRows(PatchClashConfig patchConfig, AppSettingProps appSetting) {
-    final surfaces = context.surfaces;
+  List<Widget> _coreRows(
+    PatchClashConfig patchConfig,
+    AppSettingProps appSetting,
+  ) {
     return [
       _modeRow(patchConfig),
       _tunRow(patchConfig),
       SettingsRow(
         title: 'Стек TUN',
-        help: 'gVisor — лучшая совместимость; System — выше производительность; '
+        help:
+            'gVisor — лучшая совместимость; System — выше производительность; '
             'Mixed — гибрид обоих.',
         trailing: SettingsSegmented<TunStack>(
           options: TunStack.values,
@@ -280,24 +259,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             TunStack.system: 'System',
             TunStack.mixed: 'Mixed',
           },
-          onChanged: (v) => _updatePatchConfig(
-            (state) => state.copyWith.tun(stack: v),
-          ),
+          onChanged: (v) =>
+              _updatePatchConfig((state) => state.copyWith.tun(stack: v)),
         ),
       ),
       SettingsRow(
         title: 'MTU',
         description: 'Применяется перезапуском ядра',
-        help: 'Максимальный размер пакета в TUN. Стандарт — 9000; при '
+        help:
+            'Максимальный размер пакета в TUN. Стандарт — 9000; при '
             'проблемах подключения попробуйте 1500.',
         trailing: SettingsStepper(
           value: patchConfig.tun.mtu == 0 ? 9000 : patchConfig.tun.mtu,
           step: 100,
           min: 1000,
           max: 9000,
-          onChanged: (v) => _updatePatchConfig(
-            (state) => state.copyWith.tun(mtu: v),
-          ),
+          onChanged: (v) =>
+              _updatePatchConfig((state) => state.copyWith.tun(mtu: v)),
         ),
       ),
       SettingsRow(
@@ -305,33 +283,32 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         description: 'Весь трафик идёт через TUN, без обхода маршрутов',
         trailing: SettingsSwitch(
           value: patchConfig.tun.strictRoute,
-          onChanged: (v) => _updatePatchConfig(
-            (state) => state.copyWith.tun(strictRoute: v),
-          ),
+          onChanged: (v) =>
+              _updatePatchConfig((state) => state.copyWith.tun(strictRoute: v)),
         ),
       ),
       SettingsRow(
         title: 'Sniffer',
         description: 'Определение домена по TLS SNI / HTTP Host',
-        help: 'Распознаёт домен из зашифрованного трафика — нужно для '
+        help:
+            'Распознаёт домен из зашифрованного трафика — нужно для '
             'корректной работы правил по доменам.',
         trailing: SettingsSwitch(
           value: patchConfig.sniffer.enable,
           onChanged: (v) => _updatePatchConfig(
-            (state) => state.copyWith(
-              sniffer: state.sniffer.copyWith(enable: v),
-            ),
+            (state) =>
+                state.copyWith(sniffer: state.sniffer.copyWith(enable: v)),
           ),
         ),
       ),
       SettingsRow(
         title: 'Разрешить LAN',
-        help: 'Разрешить подключения к ядру с других устройств в локальной сети.',
+        help:
+            'Разрешить подключения к ядру с других устройств в локальной сети.',
         trailing: SettingsSwitch(
           value: patchConfig.allowLan,
-          onChanged: (v) => _updatePatchConfig(
-            (state) => state.copyWith(allowLan: v),
-          ),
+          onChanged: (v) =>
+              _updatePatchConfig((state) => state.copyWith(allowLan: v)),
         ),
       ),
       SettingsRow(
@@ -339,15 +316,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         help: 'Разрешить IPv6-трафик через ядро.',
         trailing: SettingsSwitch(
           value: patchConfig.ipv6,
-          onChanged: (v) => _updatePatchConfig(
-            (state) => state.copyWith(ipv6: v),
-          ),
+          onChanged: (v) =>
+              _updatePatchConfig((state) => state.copyWith(ipv6: v)),
         ),
       ),
       SettingsRow(
         title: 'Find Process Mode',
         description: 'Определение процесса-владельца соединения',
-        help: 'Нужно для правил PROCESS-NAME. Always — определять всегда; '
+        help:
+            'Нужно для правил PROCESS-NAME. Always — определять всегда; '
             'Off — отключить (ниже нагрузка).',
         trailing: SettingsSegmented<FindProcessMode>(
           options: FindProcessMode.values,
@@ -356,38 +333,38 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             FindProcessMode.always: 'Always',
             FindProcessMode.off: 'Off',
           },
-          onChanged: (v) => _updatePatchConfig(
-            (state) => state.copyWith(findProcessMode: v),
-          ),
+          onChanged: (v) =>
+              _updatePatchConfig((state) => state.copyWith(findProcessMode: v)),
         ),
       ),
       SettingsRow(
         title: 'Unified Delay',
         description: 'Единый метод замера задержки',
-        help: 'Все группы используют один метод замера, чтобы показания были '
+        help:
+            'Все группы используют один метод замера, чтобы показания были '
             'сопоставимы между собой.',
         trailing: SettingsSwitch(
           value: patchConfig.unifiedDelay,
-          onChanged: (v) => _updatePatchConfig(
-            (state) => state.copyWith(unifiedDelay: v),
-          ),
+          onChanged: (v) =>
+              _updatePatchConfig((state) => state.copyWith(unifiedDelay: v)),
         ),
       ),
       SettingsRow(
         title: 'TCP Concurrent',
         description: 'Параллельные попытки подключения для ускорения',
-        help: 'Ускоряет установку соединения за счёт параллельных попыток, '
+        help:
+            'Ускоряет установку соединения за счёт параллельных попыток, '
             'но может увеличить расход трафика.',
         trailing: SettingsSwitch(
           value: patchConfig.tcpConcurrent,
-          onChanged: (v) => _updatePatchConfig(
-            (state) => state.copyWith(tcpConcurrent: v),
-          ),
+          onChanged: (v) =>
+              _updatePatchConfig((state) => state.copyWith(tcpConcurrent: v)),
         ),
       ),
       SettingsRow(
         title: 'Geodata Loader',
-        help: 'Memory — геоданные в оперативной памяти (быстрее старт); '
+        help:
+            'Memory — геоданные в оперативной памяти (быстрее старт); '
             'Standard — с диска (меньше памяти).',
         trailing: SettingsSegmented<GeodataLoader>(
           options: GeodataLoader.values,
@@ -396,15 +373,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             GeodataLoader.memconservative: 'Memory',
             GeodataLoader.standard: 'Standard',
           },
-          onChanged: (v) => _updatePatchConfig(
-            (state) => state.copyWith(geodataLoader: v),
-          ),
+          onChanged: (v) =>
+              _updatePatchConfig((state) => state.copyWith(geodataLoader: v)),
         ),
       ),
       SettingsRow(
         title: 'External Controller',
         description: 'HTTP-API ядра (127.0.0.1:9090)',
-        help: 'Внешний API для управления ядром (например, через '
+        help:
+            'Внешний API для управления ядром (например, через '
             'сторонние дашборды).',
         trailing: SettingsSegmented<ExternalControllerStatus>(
           options: ExternalControllerStatus.values,
@@ -437,7 +414,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       SettingsRow(
         title: 'Порты',
         description: 'Mixed / SOCKS / HTTP / Redir / TProxy',
-        help: 'Порты, на которых ядро слушает прокси-протоколы. 0 — порт '
+        help:
+            'Порты, на которых ядро слушает прокси-протоколы. 0 — порт '
             'отключён.',
         trailing: SettingsPortsEditor(
           mixedPort: patchConfig.mixedPort,
@@ -445,16 +423,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           port: patchConfig.port,
           redirPort: patchConfig.redirPort,
           tproxyPort: patchConfig.tproxyPort,
-          onChanged: (mixed, socks, port, redir, tproxy) =>
-              _updatePatchConfig(
-                (state) => state.copyWith(
-                  mixedPort: mixed,
-                  socksPort: socks,
-                  port: port,
-                  redirPort: redir,
-                  tproxyPort: tproxy,
-                ),
-              ),
+          onChanged: (mixed, socks, port, redir, tproxy) => _updatePatchConfig(
+            (state) => state.copyWith(
+              mixedPort: mixed,
+              socksPort: socks,
+              port: port,
+              redirPort: redir,
+              tproxyPort: tproxy,
+            ),
+          ),
         ),
       ),
       SettingsRow(
@@ -465,9 +442,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           value: patchConfig.hosts,
           keyHint: 'example.com',
           valueHint: '1.2.3.4',
-          onChanged: (v) => _updatePatchConfig(
-            (state) => state.copyWith(hosts: v),
-          ),
+          onChanged: (v) =>
+              _updatePatchConfig((state) => state.copyWith(hosts: v)),
         ),
       ),
       SettingsRow(
@@ -480,16 +456,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               width: 160,
               value: patchConfig.globalUa ?? '',
               hint: 'clash-verge/v2.4.2',
-              onChanged: (v) => _updatePatchConfig(
-                (state) => state.copyWith(globalUa: v),
-              ),
+              onChanged: (v) =>
+                  _updatePatchConfig((state) => state.copyWith(globalUa: v)),
             ),
             const SizedBox(width: AppSpace.s2),
             PopupMenuButton<String>(
               tooltip: 'Пресеты',
-              onSelected: (v) => _updatePatchConfig(
-                (state) => state.copyWith(globalUa: v),
-              ),
+              onSelected: (v) =>
+                  _updatePatchConfig((state) => state.copyWith(globalUa: v)),
               itemBuilder: (_) => const [
                 PopupMenuItem(
                   value: 'clash-verge/v2.4.2',
@@ -499,23 +473,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   value: 'ClashforWindows/0.19.23',
                   child: Text('ClashforWindows/0.19.23'),
                 ),
-                PopupMenuItem(
-                  value: '',
-                  child: Text('По умолчанию'),
-                ),
+                PopupMenuItem(value: '', child: Text('По умолчанию')),
               ],
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: surfaces.card2,
-                  borderRadius: BorderRadius.circular(AppRadius.xs),
-                  border: Border.all(color: surfaces.border),
-                ),
-                child: Icon(
-                  Icons.arrow_drop_down,
-                  size: 16,
-                  color: surfaces.text2,
-                ),
+              child: const BoltIconButton(
+                icon: Icons.arrow_drop_down,
+                tooltip: 'Пресеты',
+                onTap: null,
+                compact: true,
               ),
             ),
           ],
@@ -528,9 +492,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         trailing: SettingsInput(
           width: 180,
           value: appSetting.testUrl,
-          onChanged: (v) => _updateAppSetting(
-            (state) => state.copyWith(testUrl: v),
-          ),
+          onChanged: (v) =>
+              _updateAppSetting((state) => state.copyWith(testUrl: v)),
         ),
       ),
     ];
@@ -540,7 +503,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     return [
       SettingsRow(
         title: 'Режим DNS',
-        help: 'Fake IP — доменам выдаются виртуальные адреса; '
+        help:
+            'Fake IP — доменам выдаются виртуальные адреса; '
             'Redir Host — перезапись Host в DNS-ответах.',
         trailing: SettingsSegmented<DnsMode>(
           options: const [DnsMode.fakeIp, DnsMode.redirHost],
@@ -564,7 +528,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
       SettingsRow(
         title: 'Prefer H3',
-        help: 'Использовать HTTP/3 (QUIC) для DoH-резолверов, где '
+        help:
+            'Использовать HTTP/3 (QUIC) для DoH-резолверов, где '
             'поддерживается.',
         trailing: SettingsSwitch(
           value: patchConfig.dns.preferH3,
@@ -584,9 +549,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         help: 'Учитывать системные hosts Windows при резолве.',
         trailing: SettingsSwitch(
           value: patchConfig.dns.useSystemHosts,
-          onChanged: (v) => _updateDns(
-            (dns) => dns.copyWith(useSystemHosts: v),
-          ),
+          onChanged: (v) =>
+              _updateDns((dns) => dns.copyWith(useSystemHosts: v)),
         ),
       ),
       SettingsRow(
@@ -594,9 +558,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         description: 'Учитывать правила при DNS-запросах',
         trailing: SettingsSwitch(
           value: patchConfig.dns.respectRules,
-          onChanged: (v) => _updateDns(
-            (dns) => dns.copyWith(respectRules: v),
-          ),
+          onChanged: (v) => _updateDns((dns) => dns.copyWith(respectRules: v)),
         ),
       ),
       SettingsRow(
@@ -609,7 +571,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
       SettingsRow(
         title: 'Fake-IP Range',
-        help: 'Подсеть для fake-ip адресов. Используется только в режиме '
+        help:
+            'Подсеть для fake-ip адресов. Используется только в режиме '
             'Fake IP.',
         trailing: SettingsInput(
           width: 130,
@@ -619,7 +582,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
       SettingsRow(
         title: 'Fake-IP Filter',
-        help: 'Домены из списка резолвятся реальным IP, а не через fake-ip '
+        help:
+            'Домены из списка резолвятся реальным IP, а не через fake-ip '
             '(например, *.lan).',
         trailing: SettingsListEditor(
           title: 'Fake-IP Filter',
@@ -635,9 +599,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           title: 'Default Nameserver',
           value: patchConfig.dns.defaultNameserver,
           hint: '223.5.5.5',
-          onChanged: (v) => _updateDns(
-            (dns) => dns.copyWith(defaultNameserver: v),
-          ),
+          onChanged: (v) =>
+              _updateDns((dns) => dns.copyWith(defaultNameserver: v)),
         ),
       ),
       SettingsRow(
@@ -652,7 +615,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
       SettingsRow(
         title: 'Fallback',
-        help: 'Резолверы для запросов, которые нужно обрабатывать отдельно '
+        help:
+            'Резолверы для запросов, которые нужно обрабатывать отдельно '
             '(например, при блокировке основного DNS).',
         trailing: SettingsListEditor(
           title: 'Fallback',
@@ -668,23 +632,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           title: 'Proxy Server Nameserver',
           value: patchConfig.dns.proxyServerNameserver,
           hint: 'https://doh.pub/dns-query',
-          onChanged: (v) => _updateDns(
-            (dns) => dns.copyWith(proxyServerNameserver: v),
-          ),
+          onChanged: (v) =>
+              _updateDns((dns) => dns.copyWith(proxyServerNameserver: v)),
         ),
       ),
       SettingsRow(
         title: 'Nameserver Policy',
-        help: 'Правила выбора резолверов по доменам (например, '
+        help:
+            'Правила выбора резолверов по доменам (например, '
             'geosite:cn → китайские DoH).',
         trailing: SettingsMapEditor(
           title: 'Nameserver Policy',
           value: patchConfig.dns.nameserverPolicy,
           keyHint: 'geosite:cn',
           valueHint: 'https://doh.pub/dns-query',
-          onChanged: (v) => _updateDns(
-            (dns) => dns.copyWith(nameserverPolicy: v),
-          ),
+          onChanged: (v) =>
+              _updateDns((dns) => dns.copyWith(nameserverPolicy: v)),
         ),
       ),
     ];
@@ -720,19 +683,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     ];
   }
 
-  List<Widget> _appRows(
-    AppSettingProps appSetting,
-    ThemeProps themeProps,
-  ) {
+  List<Widget> _appRows(AppSettingProps appSetting, ThemeProps themeProps) {
     return [
       SettingsRow(
         title: 'Автоподключение при запуске',
         description: 'Поднимать соединение сразу при старте приложения',
         trailing: SettingsSwitch(
           value: appSetting.autoRun,
-          onChanged: (v) => _updateAppSetting(
-            (state) => state.copyWith(autoRun: v),
-          ),
+          onChanged: (v) =>
+              _updateAppSetting((state) => state.copyWith(autoRun: v)),
         ),
       ),
       SettingsRow(
@@ -740,9 +699,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         help: 'Добавляет приложение в автозагрузку Windows.',
         trailing: SettingsSwitch(
           value: appSetting.autoLaunch,
-          onChanged: (v) => _updateAppSetting(
-            (state) => state.copyWith(autoLaunch: v),
-          ),
+          onChanged: (v) =>
+              _updateAppSetting((state) => state.copyWith(autoLaunch: v)),
         ),
       ),
       SettingsRow(
@@ -750,20 +708,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         description: 'Закрытие окна сворачивает приложение в трей',
         trailing: SettingsSwitch(
           value: appSetting.minimizeOnExit,
-          onChanged: (v) => _updateAppSetting(
-            (state) => state.copyWith(minimizeOnExit: v),
-          ),
+          onChanged: (v) =>
+              _updateAppSetting((state) => state.copyWith(minimizeOnExit: v)),
         ),
       ),
       SettingsRow(
         title: 'Закрывать соединения при выходе',
-        help: 'Закрывать активные соединения и останавливать ядро при '
+        help:
+            'Закрывать активные соединения и останавливать ядро при '
             'выходе из приложения.',
         trailing: SettingsSwitch(
           value: appSetting.closeConnections,
-          onChanged: (v) => _updateAppSetting(
-            (state) => state.copyWith(closeConnections: v),
-          ),
+          onChanged: (v) =>
+              _updateAppSetting((state) => state.copyWith(closeConnections: v)),
         ),
       ),
       SettingsRow(
@@ -781,9 +738,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         help: 'Автоматически проверять наличие новых версий приложения.',
         trailing: SettingsSwitch(
           value: appSetting.autoCheckUpdate,
-          onChanged: (v) => _updateAppSetting(
-            (state) => state.copyWith(autoCheckUpdate: v),
-          ),
+          onChanged: (v) =>
+              _updateAppSetting((state) => state.copyWith(autoCheckUpdate: v)),
         ),
       ),
       _themeRow(themeProps),

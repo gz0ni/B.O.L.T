@@ -3,10 +3,10 @@ import 'dart:io';
 
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:ffi/ffi.dart';
-import 'package:fl_clash/common/common.dart';
-import 'package:fl_clash/enum/enum.dart';
-import 'package:fl_clash/plugins/app.dart';
-import 'package:fl_clash/state.dart';
+import 'package:bolt/common/common.dart';
+import 'package:bolt/enum/enum.dart';
+import 'package:bolt/plugins/app.dart';
+import 'package:bolt/state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart';
@@ -100,32 +100,31 @@ class System {
     } else if (Platform.isLinux) {
       final shell = Platform.environment['SHELL'] ?? 'bash';
       final controller = TextEditingController();
-      final password = await globalState.showCommonDialog<String>(
-        child: AlertDialog(
-          title: Text(currentAppLocalizations.pleaseInputAdminPassword),
-          content: TextField(
-            controller: controller,
-            obscureText: true,
-            autofocus: true,
-            onSubmitted: (_) => Navigator.of(
-              globalState.navigatorKey.currentContext!,
-            ).pop(controller.text),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(
-                globalState.navigatorKey.currentContext!,
-              ).pop(),
-              child: Text(currentAppLocalizations.cancel),
+      final password = await showDialog<String>(
+        context: globalState.navigatorKey.currentContext!,
+        builder: (dialogContext) {
+          return AlertDialog(
+            title: Text(currentAppLocalizations.pleaseInputAdminPassword),
+            content: TextField(
+              controller: controller,
+              obscureText: true,
+              autofocus: true,
+              onSubmitted: (_) =>
+                  Navigator.of(dialogContext).pop(controller.text),
             ),
-            FilledButton(
-              onPressed: () => Navigator.of(
-                globalState.navigatorKey.currentContext!,
-              ).pop(controller.text),
-              child: Text(currentAppLocalizations.confirm),
-            ),
-          ],
-        ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: Text(currentAppLocalizations.cancel),
+              ),
+              FilledButton(
+                onPressed: () =>
+                    Navigator.of(dialogContext).pop(controller.text),
+                child: Text(currentAppLocalizations.confirm),
+              ),
+            ],
+          );
+        },
       );
       if (password == null || password.isEmpty) {
         return AuthorizeCode.error;
@@ -214,7 +213,7 @@ class Windows {
 
     commonPrint.log(
       'windows runas: $command $arguments resultCode:$result',
-      logLevel: LogLevel.warning,
+      logLevel: LogLevel.info,
     );
 
     if (result <= 32) {
@@ -239,11 +238,11 @@ class Windows {
   // }
 
   Future<WindowsHelperServiceStatus> checkService() async {
-    // final qcResult = await Process.run('sc', ['qc', appHelperService]);
-    // final qcOutput = qcResult.stdout.toString();
-    // if (qcResult.exitCode != 0 || !qcOutput.contains(appPath.helperPath)) {
-    //   return WindowsHelperServiceStatus.none;
-    // }
+    final qcResult = await Process.run('sc', ['qc', appHelperService]);
+    final qcOutput = qcResult.stdout.toString();
+    if (qcResult.exitCode != 0 || !qcOutput.contains(appPath.helperPath)) {
+      return WindowsHelperServiceStatus.none;
+    }
     final result = await Process.run('sc', ['query', appHelperService]);
     if (result.exitCode != 0) {
       return WindowsHelperServiceStatus.none;
@@ -264,17 +263,20 @@ class Windows {
 
     final command = [
       '/c',
-      if (status == WindowsHelperServiceStatus.presence) ...[
-        'taskkill',
-        '/F',
-        '/IM',
-        '$appHelperService.exe'
-            ' & '
-            'sc',
-        'delete',
-        appHelperService,
-        '&',
-      ],
+      'sc',
+      'stop',
+      appHelperService,
+      '&',
+      'sc',
+      'delete',
+      appHelperService,
+      '&',
+      'timeout',
+      '/t',
+      '2',
+      '/nobreak',
+      '>nul',
+      '&',
       'sc',
       'create',
       appHelperService,

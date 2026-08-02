@@ -2,8 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:fl_clash/common/common.dart';
-import 'package:fl_clash/enum/enum.dart';
+import 'package:bolt/common/common.dart';
+import 'package:bolt/enum/enum.dart';
 import 'package:rust_api/rust_api.dart';
 
 // ── Binary frame types (mirrors Rust ipc.rs) ────────────────────────────────

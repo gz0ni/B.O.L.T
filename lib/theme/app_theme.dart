@@ -56,6 +56,10 @@ class _Surfaces {
 class AppTheme {
   AppTheme._();
 
+  /// --font-mono: 'JetBrains Mono' — мета/статистика/редакторы. Вместо
+  /// хардкода 'monospace' в виджетах используйте AppTheme.monoFontFamily.
+  static final String? monoFontFamily = GoogleFonts.jetBrainsMono().fontFamily;
+
   static ThemeData dark() => _build(
         surfaces: _Surfaces.dark,
         semantic: AppSemanticColors.dark,
@@ -73,7 +77,8 @@ class AppTheme {
     required AppSemanticColors semantic,
     required Brightness brightness,
   }) {
-    final baseTextTheme = brightness == Brightness.dark
+    final isDark = brightness == Brightness.dark;
+    final baseTextTheme = isDark
         ? Typography.whiteMountainView
         : Typography.blackMountainView;
 
@@ -89,6 +94,44 @@ class AppTheme {
       fontWeight: FontWeight.w600,
     );
 
+    // Цвет тёмного текста на сплошной заливке --on (primary-btn,
+    // switch/check) — из мокапа #0C1310, одинаков в обеих темах.
+    const onAccentText = primaryOnText;
+
+    final colorScheme = ColorScheme(
+      brightness: brightness,
+      primary: semantic.on,
+      onPrimary: onAccentText,
+      primaryContainer: surfaces.card2,
+      onPrimaryContainer: surfaces.text1,
+      secondary: semantic.info,
+      onSecondary: onAccentText,
+      secondaryContainer: surfaces.card2,
+      onSecondaryContainer: surfaces.text1,
+      tertiary: semantic.connecting,
+      onTertiary: onAccentText,
+      tertiaryContainer: surfaces.card2,
+      onTertiaryContainer: surfaces.text1,
+      error: semantic.danger,
+      onError: Colors.white,
+      errorContainer: semantic.dangerDim,
+      onErrorContainer: semantic.danger,
+      surface: surfaces.card,
+      onSurface: surfaces.text1,
+      surfaceContainer: surfaces.bgSoft,
+      surfaceContainerLow: surfaces.bg,
+      surfaceContainerHigh: surfaces.card,
+      surfaceContainerHighest: surfaces.card2,
+      onSurfaceVariant: surfaces.text2,
+      outline: surfaces.text3,
+      outlineVariant: surfaces.border,
+      inverseSurface: surfaces.card2,
+      onInverseSurface: surfaces.text1,
+      inversePrimary: semantic.on,
+      shadow: Colors.black,
+      scrim: modalBarrierColor,
+    );
+
     return ThemeData(
       useMaterial3: true,
       brightness: brightness,
@@ -100,33 +143,164 @@ class AppTheme {
         titleMedium: displayFont.copyWith(fontSize: AppFontSize.lg),
         titleSmall: displayFont.copyWith(fontSize: AppFontSize.sm),
       ),
-      colorScheme: ColorScheme(
-        brightness: brightness,
-        primary: semantic.on,
-        onPrimary: brightness == Brightness.dark
-            ? const Color(0xFF0A130F)
-            : Colors.white,
-        secondary: semantic.info,
-        onSecondary: Colors.white,
-        error: semantic.danger,
-        onError: Colors.white,
-        surface: surfaces.card,
-        onSurface: surfaces.text1,
-      ),
+      colorScheme: colorScheme,
       cardTheme: CardThemeData(
         color: surfaces.card,
         elevation: 0,
+        surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.sm),
           side: BorderSide(color: surfaces.border),
         ),
       ),
       dividerTheme: DividerThemeData(
-        color: surfaces.border,
+        color: surfaces.borderSoft,
         thickness: 1,
         space: 1,
       ),
       iconTheme: IconThemeData(color: surfaces.text2),
+      dialogTheme: DialogThemeData(
+        backgroundColor: surfaces.bgSoft,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          side: BorderSide(color: surfaces.border),
+        ),
+        titleTextStyle: displayFont.copyWith(
+          fontSize: AppFontSize.lg,
+          fontWeight: FontWeight.w600,
+        ),
+        contentTextStyle: TextStyle(
+          color: surfaces.text2,
+          fontSize: AppFontSize.sm,
+          height: 1.5,
+        ),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: surfaces.bgSoft,
+        elevation: 0,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+          side: BorderSide(color: surfaces.border),
+        ),
+        contentTextStyle: TextStyle(
+          color: surfaces.text1,
+          fontSize: AppFontSize.sm,
+        ),
+        insetPadding: const EdgeInsets.symmetric(
+          horizontal: AppSpace.s4,
+          vertical: AppSpace.s2,
+        ),
+      ),
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: surfaces.bgSoft,
+        modalBackgroundColor: surfaces.bgSoft,
+        surfaceTintColor: Colors.transparent,
+        modalBarrierColor: modalBarrierColor,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(AppRadius.sheetTop),
+          ),
+        ),
+      ),
+      popupMenuTheme: PopupMenuThemeData(
+        color: surfaces.bgSoft,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          side: BorderSide(color: surfaces.border),
+        ),
+        textStyle: TextStyle(
+          color: surfaces.text1,
+          fontSize: AppFontSize.sm,
+        ),
+      ),
+      tooltipTheme: TooltipThemeData(
+        decoration: BoxDecoration(
+          color: surfaces.card,
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          border: Border.all(color: surfaces.border),
+        ),
+        textStyle: TextStyle(
+          color: surfaces.text1,
+          fontSize: AppFontSize.xs,
+        ),
+        waitDuration: const Duration(milliseconds: 400),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: semantic.on,
+          foregroundColor: onAccentText,
+          disabledBackgroundColor: surfaces.card2,
+          disabledForegroundColor: surfaces.text3,
+          elevation: 0,
+          textStyle: const TextStyle(
+            fontSize: AppFontSize.md,
+            fontWeight: FontWeight.w700,
+          ),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpace.s4,
+            vertical: AppSpace.s3,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.sm),
+          ),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          backgroundColor: surfaces.card,
+          foregroundColor: surfaces.text1,
+          disabledBackgroundColor: surfaces.card2,
+          disabledForegroundColor: surfaces.text3,
+          side: BorderSide(color: surfaces.border),
+          elevation: 0,
+          textStyle: const TextStyle(
+            fontSize: AppFontSize.sm,
+            fontWeight: FontWeight.w600,
+          ),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpace.s4,
+            vertical: AppSpace.s3,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.sm),
+          ),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: surfaces.text2,
+          disabledForegroundColor: surfaces.text3,
+          textStyle: const TextStyle(
+            fontSize: AppFontSize.sm,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+      switchTheme: SwitchThemeData(
+        trackColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? semantic.on
+              : surfaces.card2,
+        ),
+        thumbColor: const WidgetStatePropertyAll(Color(0xFFF2F3F6)),
+        trackOutlineColor: const WidgetStatePropertyAll(Colors.transparent),
+        overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+      ),
+      progressIndicatorTheme: ProgressIndicatorThemeData(
+        color: semantic.on,
+        linearTrackColor: surfaces.card2,
+      ),
+      scrollbarTheme: ScrollbarThemeData(
+        thumbColor: WidgetStateProperty.resolveWith(
+          (states) => surfaces.card2,
+        ),
+        thickness: const WidgetStatePropertyAll(6),
+        radius: const Radius.circular(3),
+      ),
       extensions: [
         AppSemanticColorsThemeExtension(semantic),
         AppSurfacesThemeExtension(surfaces.toPublic()),

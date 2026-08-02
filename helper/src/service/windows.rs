@@ -15,8 +15,8 @@ use windows_service::{
     service_dispatcher, Result,
 };
 
-// Переименовано под наш проект — не совпадает с "FlClashHelperService",
-// чтобы не конфликтовать, если у пользователя параллельно стоит FlClash.
+// Имя службы уникально для нашего проекта, чтобы не конфликтовать
+// с хелпером другого клиента, если он установлен на этой машине.
 const SERVICE_NAME: &str = "BoltVpnHelperService";
 
 const SERVICE_TYPE: ServiceType = ServiceType::OWN_PROCESS;

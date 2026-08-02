@@ -4,21 +4,21 @@ import 'dart:math';
 import 'dart:ui';
 
 import 'package:collection/collection.dart';
-import 'package:fl_clash/common/common.dart';
-import 'package:fl_clash/enum/enum.dart';
-import 'package:fl_clash/models/models.dart';
+import 'package:bolt/common/common.dart';
+import 'package:bolt/enum/enum.dart';
+import 'package:bolt/models/models.dart';
 import 'package:flutter/material.dart';
 
 const appName = 'B.O.L.T';
-const appHelperService = 'FlClashHelperService';
+const appHelperService = 'BOLT_HelperService';
 const coreName = 'clash.meta';
 const preferredGroupName = 'VPN';
 const browserUa =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 const packageName = 'com.follow.clash';
-final unixSocketPath = '/tmp/FlClashSocket_${Random().nextInt(10000)}.sock';
-final windowsPipeName = '\\\\.\\pipe\\FlClashCore_${Random().nextInt(10000)}';
-const helperPort = 47890;
+final unixSocketPath = '/tmp/BOLTSocket_${Random().nextInt(10000)}.sock';
+final windowsPipeName = '\\\\.\\pipe\\BOLTCore_${Random().nextInt(10000)}';
+const helperPort = 47892;
 const maxTextScale = 1.4;
 const minTextScale = 0.8;
 final baseInfoEdgeInsets = EdgeInsets.symmetric(
@@ -57,7 +57,7 @@ const localhost = '127.0.0.1';
 const clashConfigKey = 'clash_config';
 const configKey = 'config';
 const double dialogCommonWidth = 300;
-const repository = 'chen08209/FlClash';
+const repository = 'gz0ni/B.O.L.T';
 const defaultExternalController = '127.0.0.1:9090';
 const maxMobileWidth = 600;
 const maxLaptopWidth = 840;
@@ -112,9 +112,9 @@ double getWidgetHeight(num lines) {
 
 const maxLength = 1000;
 
-const mainIsolate = 'FlClashMainIsolate';
+const mainIsolate = 'BOLTMainIsolate';
 
-const serviceIsolate = 'FlClashServiceIsolate';
+const serviceIsolate = 'BOLTServiceIsolate';
 
 const defaultPrimaryColors = [
   0xFF795548,

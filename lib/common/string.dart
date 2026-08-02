@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
-import 'package:fl_clash/common/common.dart';
+import 'package:bolt/common/common.dart';
 
 /// Некоторые VPN-провайдеры отдают подписку в виде base64-строки без
 /// переносов. Пытаемся декодировать такой контент перед валидацией:

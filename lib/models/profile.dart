@@ -1,9 +1,9 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:fl_clash/common/common.dart';
-import 'package:fl_clash/core/controller.dart';
-import 'package:fl_clash/enum/enum.dart';
+import 'package:bolt/common/common.dart';
+import 'package:bolt/core/controller.dart';
+import 'package:bolt/enum/enum.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'clash_config.dart';
@@ -213,7 +213,7 @@ extension ProfileExtension on Profile {
   Future<Profile> saveFile(Uint8List bytes) async {
     final path = await appPath.tempFilePath;
     final tempFile = File(path);
-    await tempFile.safeWriteAsBytes(convertSubscriptionToConfig(bytes));
+    await tempFile.safeWriteAsBytes(bytes);
     final message = await coreController.validateConfig(path);
     if (message.isNotEmpty) {
       throw message;

@@ -26,6 +26,11 @@ make core-windows
 make core-android
 ```
 
+IMPORTANT: Windows release builds MUST go through `dart setup.dart windows` (or pass
+`--dart-define-from-file=env.json` to `flutter build`). `env.json` carries `CORE_SHA256`,
+which the app compares against the helper's `/ping` response; a plain `flutter build windows`
+embeds an empty value and silently breaks the elevated core/TUN flow.
+
 Pass `ARCH` or `TARGET_PLATFORM` through `make` when needed, for example:
 
 ```bash

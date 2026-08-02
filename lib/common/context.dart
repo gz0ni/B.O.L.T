@@ -1,6 +1,6 @@
-import 'package:fl_clash/l10n/l10n.dart';
-import 'package:fl_clash/manager/manager.dart';
-import 'package:fl_clash/models/state.dart';
+import 'package:bolt/l10n/l10n.dart';
+import 'package:bolt/manager/manager.dart';
+import 'package:bolt/models/state.dart';
 import 'package:flutter/material.dart';
 
 extension BuildContextExtension on BuildContext {
@@ -8,25 +8,6 @@ extension BuildContextExtension on BuildContext {
     return findAncestorStateOfType<StatusManagerState>()?.message(
       text,
       actionState: actionState,
-    );
-  }
-
-  void showSnackBar(String message, {SnackBarAction? action}) {
-    final width = viewWidth;
-    EdgeInsets margin;
-    if (width < 600) {
-      margin = const EdgeInsets.only(bottom: 16, right: 16, left: 16);
-    } else {
-      margin = EdgeInsets.only(bottom: 16, left: 16, right: width - 316);
-    }
-    ScaffoldMessenger.of(this).showSnackBar(
-      SnackBar(
-        action: action,
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(milliseconds: 1500),
-        margin: margin,
-      ),
     );
   }
 

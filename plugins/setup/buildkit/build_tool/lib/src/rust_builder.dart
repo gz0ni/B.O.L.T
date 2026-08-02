@@ -20,8 +20,9 @@ class RustBuilder {
   Future<String> build(Target target, String token,
       {bool release = true}) async {
     final args = ['build'];
+    args.addAll(['--features', 'windows-service']);
     if (release) {
-      args.addAll(['--release', '--features', 'windows-service']);
+      args.add('--release');
     }
     final env = {'TOKEN': token};
 

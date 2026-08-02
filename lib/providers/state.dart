@@ -1,10 +1,8 @@
-import 'package:dynamic_color/dynamic_color.dart';
-import 'package:fl_clash/common/common.dart';
-import 'package:fl_clash/core/controller.dart';
-import 'package:fl_clash/database/database.dart';
-import 'package:fl_clash/enum/enum.dart';
-import 'package:fl_clash/models/models.dart';
-import 'package:fl_clash/state.dart';
+import 'package:bolt/common/common.dart';
+import 'package:bolt/core/controller.dart';
+import 'package:bolt/database/database.dart';
+import 'package:bolt/enum/enum.dart';
+import 'package:bolt/models/models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -520,39 +518,6 @@ VM3<bool, int, bool> checkIp(Ref ref) {
     ),
   );
   return VM3(isInit, checkIpNum, containsDetection);
-}
-
-@riverpod
-ColorScheme genColorScheme(
-  Ref ref,
-  Brightness brightness, {
-  Color? color,
-  bool ignoreConfig = false,
-}) {
-  final vm2 = ref.watch(
-    themeSettingProvider.select(
-      (state) => VM2(state.primaryColor, state.schemeVariant),
-    ),
-  );
-  if (color == null && (ignoreConfig == true || vm2.a == null)) {
-    // if (globalState.corePalette != null) {
-    //   return globalState.corePalette!.toColorScheme(brightness: brightness);
-    // }
-    return ColorScheme.fromSeed(
-      seedColor:
-          globalState.corePalette
-              ?.toColorScheme(brightness: brightness)
-              .primary ??
-          globalState.accentColor,
-      brightness: brightness,
-      dynamicSchemeVariant: vm2.b,
-    );
-  }
-  return ColorScheme.fromSeed(
-    seedColor: color ?? Color(vm2.a!),
-    brightness: brightness,
-    dynamicSchemeVariant: vm2.b,
-  );
 }
 
 @riverpod

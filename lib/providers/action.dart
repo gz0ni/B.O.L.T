@@ -3,15 +3,15 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:fl_clash/common/common.dart';
-import 'package:fl_clash/core/core.dart';
-import 'package:fl_clash/database/database.dart';
-import 'package:fl_clash/enum/enum.dart';
-import 'package:fl_clash/models/models.dart';
-import 'package:fl_clash/plugins/app.dart';
-import 'package:fl_clash/plugins/service.dart';
-import 'package:fl_clash/providers/providers.dart';
-import 'package:fl_clash/state.dart';
+import 'package:bolt/common/common.dart';
+import 'package:bolt/core/core.dart';
+import 'package:bolt/database/database.dart';
+import 'package:bolt/enum/enum.dart';
+import 'package:bolt/models/models.dart';
+import 'package:bolt/plugins/app.dart';
+import 'package:bolt/plugins/service.dart';
+import 'package:bolt/providers/providers.dart';
+import 'package:bolt/state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -320,12 +320,14 @@ class SetupAction extends _$SetupAction {
           ? group.testUrl!
           : ref.read(appSettingProvider).testUrl;
       final proxiesAction = ref.read(proxiesActionProvider.notifier);
-      await Future.wait(nodes.map((node) async {
-        try {
-          final delay = await coreController.getDelay(testUrl, node.name);
-          proxiesAction.setDelay(delay);
-        } catch (_) {}
-      }));
+      await Future.wait(
+        nodes.map((node) async {
+          try {
+            final delay = await coreController.getDelay(testUrl, node.name);
+            proxiesAction.setDelay(delay);
+          } catch (_) {}
+        }),
+      );
     } finally {
       _autoPinging = false;
       ref.read(proxiesActionProvider.notifier).updateGroupsDebounce();
@@ -406,8 +408,9 @@ class SetupAction extends _$SetupAction {
       final code = await system.authorizeCore();
       switch (code) {
         case AuthorizeCode.success:
+          ref.read(realTunEnableProvider.notifier).value = enableTun;
           await ref.read(coreActionProvider.notifier).restartCore();
-          return Result.error('');
+          break;
         case AuthorizeCode.none:
           break;
         case AuthorizeCode.error:
@@ -579,8 +582,9 @@ class CoreAction extends _$CoreAction {
       final code = await system.authorizeCore();
       switch (code) {
         case AuthorizeCode.success:
+          ref.read(realTunEnableProvider.notifier).value = enableTun;
           await restartCore();
-          return Result.error('');
+          break;
         case AuthorizeCode.none:
           break;
         case AuthorizeCode.error:
@@ -923,6 +927,7 @@ class ProfilesAction extends _$ProfilesAction {
   }
 
   Future<void> deleteProfile(int id) async {
+    await database.profileKeysDao.deleteForProfile(id);
     ref.read(profilesProvider.notifier).del(id);
     clearEffect(id);
     final currentProfileId = ref.read(currentProfileIdProvider);
@@ -969,6 +974,20 @@ class ProfilesAction extends _$ProfilesAction {
     final trimmed = label.trim();
     if (trimmed.isEmpty || trimmed == profile.label) return;
     ref.read(profilesProvider.notifier).put(profile.copyWith(label: trimmed));
+  }
+
+  void setProfileAutoUpdate(Profile profile, bool value) {
+    if (profile.autoUpdate == value) return;
+    ref
+        .read(profilesProvider.notifier)
+        .updateProfile(profile.id, (p) => p.copyWith(autoUpdate: value));
+  }
+
+  void setProfileAutoUpdateDuration(Profile profile, Duration duration) {
+    if (profile.autoUpdateDuration == duration) return;
+    ref
+        .read(profilesProvider.notifier)
+        .updateProfile(profile.id, (p) => p.copyWith(autoUpdateDuration: duration));
   }
 
   Future<void> updateProfiles() async {
@@ -1050,30 +1069,33 @@ class ProfilesAction extends _$ProfilesAction {
           Uint8List.fromList(utf8.encode(text)),
         );
         final configText = utf8.decode(config, allowMalformed: true);
-        if (!isManagedKeysConfig(configText)) {
+        if (!isRawKeysText(text)) {
           if (configText == text && text.contains('://')) {
             throw 'Ключи не распознаны. Поддерживаются: '
                 'vless://, vmess://, trojan://, ss://, hysteria2://';
           }
           return Profile.normal(label: 'Ручная подписка').saveFile(config);
         }
-        final newKeys = extractManagedKeys(configText) ?? [];
+        final newKeys = text
+            .split(RegExp(r'\r?\n'))
+            .map((line) => line.trim())
+            .where((line) => line.isNotEmpty)
+            .toList();
         final managedProfile = await _findManagedKeysProfile();
         if (managedProfile == null) {
-          return Profile.normal(label: 'Ручная подписка').saveFile(config);
+          final created = await Profile.normal(
+            label: 'Ручная подписка',
+          ).saveFile(config);
+          await database.profileKeysDao.setKeys(created.id, newKeys);
+          return created;
         }
         final existingKeys = await _readManagedKeys(managedProfile);
         if (existingKeys == null) {
           throw 'Профиль ключей не удалось прочитать';
         }
         final merged = <String>{...existingKeys, ...newKeys}.toList();
-        final rebuilt = buildConfigFromKeys(merged);
-        if (rebuilt == null) {
-          throw 'Ни один ключ не распознан';
-        }
-        return managedProfile.saveFile(
-          Uint8List.fromList(utf8.encode(rebuilt)),
-        );
+        await _saveManagedKeys(managedProfile, merged);
+        return managedProfile;
       },
       title: currentAppLocalizations.addProfile,
     );
@@ -1121,6 +1143,7 @@ class ProfilesAction extends _$ProfilesAction {
     final updated = await profile.saveFile(
       Uint8List.fromList(utf8.encode(rebuilt)),
     );
+    await database.profileKeysDao.setKeys(profile.id, keys);
     setProfileAndAutoApply(updated);
   }
 
@@ -1128,21 +1151,14 @@ class ProfilesAction extends _$ProfilesAction {
     final profiles = ref.read(profilesProvider);
     for (final profile in profiles) {
       if (profile.url.isNotEmpty) continue;
-      final keys = await _readManagedKeys(profile);
-      if (keys != null) return profile;
+      if (await database.profileKeysDao.hasKeys(profile.id)) return profile;
     }
     return null;
   }
 
   Future<List<String>?> _readManagedKeys(Profile profile) async {
-    try {
-      final file = File(await appPath.getProfilePath(profile.id.toString()));
-      if (!await file.exists()) return null;
-      return extractManagedKeys(await file.readAsString());
-    } catch (e) {
-      commonPrint.log('readManagedKeys error: $e', logLevel: LogLevel.warning);
-      return null;
-    }
+    final keys = await database.profileKeysDao.keysFor(profile.id);
+    return keys.isEmpty ? null : keys;
   }
 
   void setProfileAndAutoApply(Profile profile) {

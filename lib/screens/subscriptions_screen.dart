@@ -1,26 +1,29 @@
-import 'dart:convert';
-import 'dart:io';
-
 import 'config_editor_screen.dart';
-import 'package:fl_clash/common/common.dart';
-import 'package:fl_clash/common/format.dart';
-import 'package:fl_clash/enum/enum.dart';
-import 'package:fl_clash/models/models.dart';
-import 'package:fl_clash/providers/providers.dart';
-import 'package:fl_clash/theme/app_theme.dart';
-import 'package:fl_clash/theme/app_tokens.dart';
+import 'package:bolt/common/format.dart';
+import 'package:bolt/database/database.dart';
+import 'package:bolt/enum/enum.dart';
+import 'package:bolt/models/models.dart';
+import 'package:bolt/providers/providers.dart';
+import 'package:bolt/theme/app_theme.dart';
+import 'package:bolt/theme/app_tokens.dart';
+import 'package:bolt/widgets/bolt_buttons.dart';
+import 'package:bolt/widgets/bolt_controls.dart';
+import 'package:bolt/widgets/bolt_icon_button.dart';
+import 'package:bolt/widgets/bolt_list.dart';
+import 'package:bolt/widgets/bolt_surfaces.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// Ключи managed-профиля (конфиг с маркером bolt-managed: keys);
+/// Ключи managed-профиля из БД (profile_keys);
 /// null — профиль не хранит сырые ключи.
-final managedKeysProvider =
-    FutureProvider.family<List<String>?, int>((ref, profileId) async {
-      final file = File(await appPath.getProfilePath(profileId.toString()));
-      if (!await file.exists()) return null;
-      return extractManagedKeys(await file.readAsString());
-    });
+final managedKeysProvider = FutureProvider.family<List<String>?, int>((
+  ref,
+  profileId,
+) async {
+  final keys = await database.profileKeysDao.keysFor(profileId);
+  return keys.isEmpty ? null : keys;
+});
 
 class SubscriptionsScreen extends ConsumerStatefulWidget {
   const SubscriptionsScreen({super.key, this.onClose});
@@ -42,52 +45,24 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
       await ref.read(profilesActionProvider.notifier).updateProfiles();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Не удалось обновить: $e')),
-      );
+      showBoltToast(context, 'Не удалось обновить: $e');
     } finally {
       if (mounted) setState(() => _updatingAll = false);
     }
   }
 
   void _openEditor(Profile profile) {
-    final surfaces = context.surfaces;
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: surfaces.card,
-      elevation: 0,
-      clipBehavior: Clip.antiAlias,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
-      ),
-      barrierColor: Colors.black54,
-      constraints: const BoxConstraints(maxWidth: double.infinity),
-      builder: (context) => FractionallySizedBox(
-        heightFactor: 0.8,
-        widthFactor: 1,
-        child: Column(
-          children: [
-            const SizedBox(height: 12),
-            Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: surfaces.border,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            Expanded(
-              child: ConfigEditorScreen(
-                profileId: profile.id,
-                onClose: () => Navigator.of(context).pop(),
-              ),
-            ),
-          ],
-        ),
+    showBoltSheet<void>(
+      context,
+      title: 'Конфигурация',
+      heightFactor: 0.9,
+      builder: (sheetContext) => ConfigEditorScreen(
+        profileId: profile.id,
+        onClose: () => Navigator.of(sheetContext).pop(),
       ),
     );
   }
+
   Future<void> _activate(Profile profile) async {
     ref.read(currentProfileIdProvider.notifier).value = profile.id;
   }
@@ -99,9 +74,7 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
           .updateProfile(profile, showLoading: true);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Не удалось обновить: $e')),
-      );
+      showBoltToast(context, 'Не удалось обновить: $e');
     }
   }
 
@@ -110,101 +83,160 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
   }
 
   void _showProfileMenu(Profile profile) {
-    final surfaces = context.surfaces;
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          backgroundColor: surfaces.card,
-          title: Text(
-            profile.realLabel,
-            style: TextStyle(color: surfaces.text1),
-          ),
-          content: Column(
+    showBoltDialog<void>(
+      context,
+      title: profile.realLabel,
+      content: Consumer(
+        builder: (context, consumerRef, _) {
+          final profiles = consumerRef.watch(profilesProvider);
+          final index = profiles.indexWhere((p) => p.id == profile.id);
+          if (index == -1) return const SizedBox.shrink();
+          final current = profiles[index];
+          final profilesAction =
+              consumerRef.read(profilesActionProvider.notifier);
+          return Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              ListTile(
-                leading: Icon(Icons.edit_outlined, color: surfaces.text2),
-                title: Text(
-                  'Переименовать',
-                  style: TextStyle(color: surfaces.text1),
+              if (current.type == ProfileType.url) ...[
+                _MethodRow(
+                  icon: Icons.autorenew,
+                  label: 'Автообновление',
+                  description: current.autoUpdate
+                      ? 'Обновлять в фоне, каждые ${_intervalLabel(current.autoUpdateDuration)}'
+                      : 'Обновлять вручную',
+                  onTap: () {},
+                  trailing: BoltSwitch(
+                    value: current.autoUpdate,
+                    onChanged: (value) =>
+                        profilesAction.setProfileAutoUpdate(current, value),
+                  ),
                 ),
+                _MethodRow(
+                  icon: Icons.schedule,
+                  label: 'Интервал обновления',
+                  description: _intervalLabel(current.autoUpdateDuration),
+                  onTap: () => _showIntervalDialog(current),
+                ),
+              ],
+              _MethodRow(
+                icon: Icons.edit_outlined,
+                label: 'Переименовать',
+                description: 'Изменить отображаемое имя',
                 onTap: () {
-                  Navigator.of(dialogContext).pop();
+                  Navigator.of(context).pop();
                   _showRenameDialog(profile);
                 },
               ),
-              ListTile(
-                leading: Icon(Icons.delete_outline, color: context.semanticColors.danger),
-                title: Text(
-                  'Удалить',
-                  style: TextStyle(color: context.semanticColors.danger),
-                ),
+              _MethodRow(
+                icon: Icons.delete_outline,
+                label: 'Удалить',
+                description: 'Удалить подписку с устройства',
+                danger: true,
                 onTap: () {
-                  Navigator.of(dialogContext).pop();
+                  Navigator.of(context).pop();
                   _remove(profile);
                 },
               ),
             ],
-          ),
-        );
-      },
+          );
+        },
+      ),
+    );
+  }
+
+  String _intervalLabel(Duration duration) {
+    if (duration.inMinutes == 30) return '30 минут';
+    if (duration.inHours == 1) return '1 час';
+    if (duration.inHours == 6) return '6 часов';
+    if (duration.inHours == 12) return '12 часов';
+    if (duration.inDays == 1) return '1 день';
+    if (duration.inDays == 3) return '3 дня';
+    if (duration.inDays == 7) return '7 дней';
+    if (duration.inDays > 1) return '${duration.inDays} дней';
+    if (duration.inHours > 1) return '${duration.inHours} часов';
+    return '${duration.inMinutes} минут';
+  }
+
+  void _showIntervalDialog(Profile profile) {
+    Navigator.of(context).pop();
+    const presets = <(Duration, String)>[
+      (Duration(minutes: 30), '30 минут'),
+      (Duration(hours: 1), '1 час'),
+      (Duration(hours: 6), '6 часов'),
+      (Duration(hours: 12), '12 часов'),
+      (Duration(days: 1), '1 день'),
+      (Duration(days: 3), '3 дня'),
+      (Duration(days: 7), '7 дней'),
+    ];
+    showBoltDialog<void>(
+      context,
+      title: 'Интервал обновления',
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (final (duration, label) in presets)
+            _MethodRow(
+              icon: duration == profile.autoUpdateDuration
+                  ? Icons.check_circle
+                  : Icons.schedule,
+              label: label,
+              description: duration == profile.autoUpdateDuration
+                  ? 'Текущий интервал'
+                  : 'Автообновление каждые $label',
+              onTap: () {
+                Navigator.of(context).pop();
+                ref
+                    .read(profilesActionProvider.notifier)
+                    .setProfileAutoUpdateDuration(profile, duration);
+              },
+            ),
+        ],
+      ),
     );
   }
 
   void _showRenameDialog(Profile profile) {
-    final surfaces = context.surfaces;
     final controller = TextEditingController(text: profile.realLabel);
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          backgroundColor: surfaces.card,
-          title: Text(
-            'Переименовать подписку',
-            style: TextStyle(color: surfaces.text1),
-          ),
-          content: TextField(
+    showBoltDialog<void>(
+      context,
+      title: 'Переименовать подписку',
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          BoltTextField(
             controller: controller,
             autofocus: true,
-            style: TextStyle(color: surfaces.text1),
-            decoration: InputDecoration(
-              hintText: 'Название',
-              hintStyle: TextStyle(color: surfaces.text3),
-              filled: true,
-              fillColor: surfaces.card2,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppRadius.sm),
-                borderSide: BorderSide.none,
-              ),
-            ),
+            hint: 'Название',
             onSubmitted: (value) {
               if (value.trim().isEmpty) return;
-              Navigator.of(dialogContext).pop();
+              Navigator.of(context).pop();
               ref
                   .read(profilesActionProvider.notifier)
                   .renameProfile(profile, value.trim());
             },
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Отмена'),
-            ),
-            FilledButton(
-              onPressed: () {
-                final label = controller.text.trim();
-                if (label.isEmpty) return;
-                Navigator.of(dialogContext).pop();
-                ref
-                    .read(profilesActionProvider.notifier)
-                    .renameProfile(profile, label);
-              },
-              child: const Text('Переименовать'),
-            ),
-          ],
-        );
-      },
+        ],
+      ),
+      actions: [
+        BoltSecondaryButton(
+          label: 'Отмена',
+          onTap: () => Navigator.of(context).pop(),
+        ),
+        BoltPrimaryButton(
+          label: 'Переименовать',
+          onTap: () {
+            final label = controller.text.trim();
+            if (label.isEmpty) return;
+            Navigator.of(context).pop();
+            ref
+                .read(profilesActionProvider.notifier)
+                .renameProfile(profile, label);
+          },
+        ),
+      ],
     );
   }
 
@@ -213,9 +245,7 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
     final text = data?.text?.trim();
     if (text == null || text.isEmpty) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Буфер обмена пуст')),
-      );
+      showBoltToast(context, 'Буфер обмена пуст');
       return;
     }
     final profilesAction = ref.read(profilesActionProvider.notifier);
@@ -223,401 +253,314 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
       await profilesAction.addProfileFormURL(text);
     } else {
       try {
-        final profile = await Profile.normal(
-          label: 'Буфер обмена',
-        ).saveFile(Uint8List.fromList(utf8.encode(text)));
-        profilesAction.putProfile(profile);
+        await profilesAction.addProfileFromText(text);
       } catch (e) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Не удалось добавить: $e')),
-        );
+        showBoltToast(context, 'Не удалось добавить: $e');
       }
     }
   }
 
   void _showAddMenu() {
-    final surfaces = context.surfaces;
     final profilesAction = ref.read(profilesActionProvider.notifier);
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        Widget method({
-          required IconData icon,
-          required String title,
-          required String subtitle,
-          required VoidCallback onTap,
-        }) {
-          return ListTile(
-            leading: Container(
-              width: 38,
-              height: 38,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: surfaces.card2,
-                borderRadius: BorderRadius.circular(AppRadius.xs),
-              ),
-              child: Icon(icon, size: 18, color: surfaces.text2),
-            ),
-            title: Text(title, style: TextStyle(color: surfaces.text1)),
-            subtitle: Text(
-              subtitle,
-              style: TextStyle(color: surfaces.text3, fontSize: AppFontSize.xs),
-            ),
+    showBoltDialog<void>(
+      context,
+      title: 'Добавить подписку',
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _MethodRow(
+            icon: Icons.link,
+            label: 'Ввести URL вручную',
+            description: 'Ссылка на подписку Remnawave',
             onTap: () {
-              Navigator.of(dialogContext).pop();
-              onTap();
+              Navigator.of(context).pop();
+              _showUrlDialog();
             },
-          );
-        }
-
-        return AlertDialog(
-          backgroundColor: surfaces.card,
-          title: Text(
-            'Добавить подписку',
-            style: TextStyle(color: surfaces.text1),
           ),
-          contentPadding: const EdgeInsets.symmetric(vertical: AppSpace.s2),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                method(
-                  icon: Icons.link,
-                  title: 'Ввести URL вручную',
-                  subtitle: 'Ссылка на подписку Remnawave',
-                  onTap: () => _showUrlDialog(),
-                ),
-                method(
-                  icon: Icons.key,
-                  title: 'Сырой ключ',
-                  subtitle: 'vless:// trojan:// ss:// — свои ключи',
-                  onTap: () => _showRawKeyDialog(),
-                ),
-                method(
-                  icon: Icons.content_paste,
-                  title: 'Из буфера обмена',
-                  subtitle: 'Вставить скопированную ссылку или конфиг',
-                  onTap: _addFromClipboard,
-                ),
-                method(
-                  icon: Icons.insert_drive_file_outlined,
-                  title: 'Из файла',
-                  subtitle: 'Импорт .yaml / .yml / .json',
-                  onTap: profilesAction.addProfileFormFile,
-                ),
-                method(
-                  icon: Icons.qr_code_2,
-                  title: 'QR-код',
-                  subtitle: 'Сканировать камерой',
-                  onTap: profilesAction.addProfileFormQrCode,
-                ),
-              ],
-            ),
+          _MethodRow(
+            icon: Icons.key,
+            label: 'Сырой ключ',
+            description: 'vless:// trojan:// ss:// — свои ключи',
+            onTap: () {
+              Navigator.of(context).pop();
+              _showRawKeyDialog();
+            },
           ),
-        );
-      },
+          _MethodRow(
+            icon: Icons.content_paste,
+            label: 'Из буфера обмена',
+            description: 'Вставить скопированную ссылку или конфиг',
+            onTap: () {
+              Navigator.of(context).pop();
+              _addFromClipboard();
+            },
+          ),
+          _MethodRow(
+            icon: Icons.insert_drive_file_outlined,
+            label: 'Из файла',
+            description: 'Импорт .yaml / .yml / .json',
+            onTap: () {
+              Navigator.of(context).pop();
+              profilesAction.addProfileFormFile();
+            },
+          ),
+          _MethodRow(
+            icon: Icons.qr_code_2,
+            label: 'QR-код',
+            description: 'Сканировать камерой',
+            onTap: () {
+              Navigator.of(context).pop();
+              profilesAction.addProfileFormQrCode();
+            },
+          ),
+        ],
+      ),
     );
   }
 
   void _showUrlDialog() {
-    final surfaces = context.surfaces;
     final controller = TextEditingController();
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          backgroundColor: surfaces.card,
-          title: Text(
-            'Ссылка на подписку',
-            style: TextStyle(color: surfaces.text1),
-          ),
-          content: TextField(
+    showBoltDialog<void>(
+      context,
+      title: 'Ссылка на подписку',
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          BoltTextField(
             controller: controller,
             autofocus: true,
-            style: TextStyle(color: surfaces.text1),
-            decoration: InputDecoration(
-              hintText: 'https://sub.remnawave.example.com/...',
-              hintStyle: TextStyle(color: surfaces.text3),
-              filled: true,
-              fillColor: surfaces.card2,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppRadius.sm),
-                borderSide: BorderSide.none,
-              ),
-            ),
+            hint: 'https://sub.remnawave.example.com/...',
             onSubmitted: (value) {
               if (value.trim().isEmpty) return;
-              Navigator.of(dialogContext).pop();
+              Navigator.of(context).pop();
               ref
                   .read(profilesActionProvider.notifier)
                   .addProfileFormURL(value.trim());
             },
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Отмена'),
-            ),
-            FilledButton(
-              onPressed: () {
-                final url = controller.text.trim();
-                if (url.isEmpty) return;
-                Navigator.of(dialogContext).pop();
-                ref.read(profilesActionProvider.notifier).addProfileFormURL(url);
-              },
-              child: const Text('Добавить'),
-            ),
-          ],
-        );
-      },
+        ],
+      ),
+      actions: [
+        BoltSecondaryButton(
+          label: 'Отмена',
+          onTap: () => Navigator.of(context).pop(),
+        ),
+        BoltPrimaryButton(
+          label: 'Добавить',
+          onTap: () {
+            final url = controller.text.trim();
+            if (url.isEmpty) return;
+            Navigator.of(context).pop();
+            ref.read(profilesActionProvider.notifier).addProfileFormURL(url);
+          },
+        ),
+      ],
     );
   }
 
   void _showRawKeyDialog() {
-    final surfaces = context.surfaces;
     final controller = TextEditingController();
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        void submit() {
-          final text = controller.text.trim();
-          if (text.isEmpty) return;
-          Navigator.of(dialogContext).pop();
-          ref
-              .read(profilesActionProvider.notifier)
-              .addProfileFromText(text);
-        }
-
-        return AlertDialog(
-          backgroundColor: surfaces.card,
-          title: Text(
-            'Сырой ключ',
-            style: TextStyle(color: surfaces.text1),
+    showBoltDialog<void>(
+      context,
+      title: 'Сырой ключ',
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          BoltTextField(
+            controller: controller,
+            autofocus: true,
+            maxLines: 5,
+            hint: 'hysteria2://...\nvless://...\ntrojan://...',
+            fontFamily: AppTheme.monoFontFamily,
+            onSubmitted: (_) {
+              final text = controller.text.trim();
+              if (text.isEmpty) return;
+              Navigator.of(context).pop();
+              ref
+                  .read(profilesActionProvider.notifier)
+                  .addProfileFromText(text);
+            },
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              TextField(
-                controller: controller,
-                autofocus: true,
-                maxLines: 5,
-                style: TextStyle(color: surfaces.text1),
-                decoration: InputDecoration(
-                  hintText: 'hysteria2://...\nvless://...\ntrojan://...',
-                  hintStyle: TextStyle(color: surfaces.text3),
-                  filled: true,
-                  fillColor: surfaces.card2,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.sm),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-                onSubmitted: (_) => submit(),
-              ),
-              const SizedBox(height: AppSpace.s2),
-              Text(
-                'vless:// trojan:// ss:// — свои ключи',
-                style: TextStyle(
-                  color: surfaces.text3,
-                  fontSize: AppFontSize.xs,
-                ),
-              ),
-            ],
+          Text(
+            'vless:// trojan:// ss:// — свои ключи',
+            style: TextStyle(
+              color: context.surfaces.text3,
+              fontSize: AppFontSize.xs,
+            ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Отмена'),
-            ),
-            FilledButton(
-              onPressed: submit,
-              child: const Text('Добавить'),
-            ),
-          ],
-        );
-      },
+        ],
+      ),
+      actions: [
+        BoltSecondaryButton(
+          label: 'Отмена',
+          onTap: () => Navigator.of(context).pop(),
+        ),
+        BoltPrimaryButton(
+          label: 'Добавить',
+          onTap: () {
+            final text = controller.text.trim();
+            if (text.isEmpty) return;
+            Navigator.of(context).pop();
+            ref.read(profilesActionProvider.notifier).addProfileFromText(text);
+          },
+        ),
+      ],
     );
   }
 
   Future<void> _showKeysDialog(Profile profile) async {
-    final surfaces = context.surfaces;
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        final controller = TextEditingController();
-        final listController = ScrollController();
-        Future<void> addKeys() async {
-          final links = controller.text
-              .split(RegExp(r'\r?\n'))
-              .map((link) => link.trim())
-              .where((link) => link.isNotEmpty)
-              .toList();
-          if (links.isEmpty) {
-            if (!dialogContext.mounted) return;
-            ScaffoldMessenger.of(dialogContext).showSnackBar(
-              const SnackBar(content: Text('Введите ключ')),
-            );
-            return;
-          }
-          try {
-            await ref
-                .read(profilesActionProvider.notifier)
-                .addKeysToProfile(profile, links);
-            if (!dialogContext.mounted) return;
-            controller.clear();
-            ScaffoldMessenger.of(dialogContext).showSnackBar(
-              SnackBar(content: Text('Добавлено ключей: ${links.length}')),
-            );
-            ref.invalidate(managedKeysProvider(profile.id));
-            await ref.read(managedKeysProvider(profile.id).future);
-            if (!dialogContext.mounted) return;
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (!listController.hasClients) return;
-              listController.animateTo(
-                listController.position.maxScrollExtent,
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeOut,
-              );
-            });
-          } catch (e) {
-            if (!dialogContext.mounted) return;
-            ScaffoldMessenger.of(dialogContext).showSnackBar(
-              SnackBar(content: Text('Не удалось добавить: $e')),
-            );
-          }
-        }
+    final controller = TextEditingController();
+    final listController = ScrollController();
+    Future<void> addKeys(BuildContext dialogContext) async {
+      final links = controller.text
+          .split(RegExp(r'\r?\n'))
+          .map((link) => link.trim())
+          .where((link) => link.isNotEmpty)
+          .toList();
+      if (links.isEmpty) {
+        if (!dialogContext.mounted) return;
+        showBoltToast(dialogContext, 'Введите ключ');
+        return;
+      }
+      try {
+        await ref
+            .read(profilesActionProvider.notifier)
+            .addKeysToProfile(profile, links);
+        if (!dialogContext.mounted) return;
+        controller.clear();
+        showBoltToast(dialogContext, 'Добавлено ключей: ${links.length}');
+        ref.invalidate(managedKeysProvider(profile.id));
+        await ref.read(managedKeysProvider(profile.id).future);
+        if (!dialogContext.mounted) return;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!listController.hasClients) return;
+          listController.animateTo(
+            listController.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOut,
+          );
+        });
+      } catch (e) {
+        if (!dialogContext.mounted) return;
+        showBoltToast(dialogContext, 'Не удалось добавить: $e');
+      }
+    }
 
-        Future<void> removeKey(String link) async {
-          try {
-            final deleted = await ref
-                .read(profilesActionProvider.notifier)
-                .deleteKeyFromProfile(profile, link);
-            if (!dialogContext.mounted) return;
-            if (deleted) {
-              Navigator.of(dialogContext).pop();
-              return;
-            }
-            ref.invalidate(managedKeysProvider(profile.id));
-          } catch (e) {
-            if (!dialogContext.mounted) return;
-            ScaffoldMessenger.of(dialogContext).showSnackBar(
-              SnackBar(content: Text('Не удалось удалить: $e')),
-            );
-          }
+    Future<void> removeKey(BuildContext dialogContext, String link) async {
+      try {
+        final deleted = await ref
+            .read(profilesActionProvider.notifier)
+            .deleteKeyFromProfile(profile, link);
+        if (!dialogContext.mounted) return;
+        if (deleted) {
+          Navigator.of(dialogContext).pop();
+          return;
         }
+        ref.invalidate(managedKeysProvider(profile.id));
+      } catch (e) {
+        if (!dialogContext.mounted) return;
+        showBoltToast(dialogContext, 'Не удалось удалить: $e');
+      }
+    }
 
-        return AlertDialog(
-          backgroundColor: surfaces.card,
-          title: Text(
-            'Ключи — ${profile.realLabel}',
-            style: TextStyle(color: surfaces.text1),
-          ),
-          content: SizedBox(
-            width: 440,
-            child: SingleChildScrollView(
-              child: Consumer(
-                builder: (context, consumerRef, _) {
-                  final keysAsync = consumerRef.watch(
-                    managedKeysProvider(profile.id),
-                  );
-                  final keys = keysAsync.value ?? const <String>[];
-                  return Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      if (keysAsync.isLoading)
-                        const Padding(
-                          padding: EdgeInsets.all(AppSpace.s3),
-                          child: Center(child: CircularProgressIndicator()),
-                        )
-                      else if (keys.isEmpty)
-                        Padding(
-                          padding: const EdgeInsets.all(AppSpace.s3),
-                          child: Text(
-                            'Ключей нет',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: surfaces.text3),
-                          ),
-                        )
-                      else
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(maxHeight: 260),
-                          child: ListView(
-                            controller: listController,
-                            shrinkWrap: true,
-                            children: [
-                              for (final key in keys)
-                                ListTile(
-                                  dense: true,
-                                  contentPadding: EdgeInsets.zero,
-                                  leading: Icon(
-                                    Icons.key,
-                                    size: 16,
-                                    color: surfaces.text2,
-                                  ),
-                                  title: Text(
+    showBoltDialog<void>(
+      context,
+      title: 'Ключи — ${profile.realLabel}',
+      content: SizedBox(
+        width: 440,
+        child: Consumer(
+          builder: (context, consumerRef, _) {
+            final keysAsync = consumerRef.watch(
+              managedKeysProvider(profile.id),
+            );
+            final keys = keysAsync.value ?? const <String>[];
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (keysAsync.isLoading)
+                  const Padding(
+                    padding: EdgeInsets.all(AppSpace.s3),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else if (keys.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.all(AppSpace.s3),
+                    child: Text(
+                      'Ключей нет',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: context.surfaces.text3),
+                    ),
+                  )
+                else
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 260),
+                    child: ListView(
+                      controller: listController,
+                      shrinkWrap: true,
+                      children: [
+                        for (final key in keys)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: Row(
+                              children: [
+                                const BoltPillIcon(icon: Icons.key),
+                                const SizedBox(width: AppSpace.s3),
+                                Expanded(
+                                  child: Text(
                                     key,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
-                                      color: surfaces.text1,
-                                      fontFamily: 'monospace',
+                                      color: context.surfaces.text1,
+                                      fontFamily: AppTheme.monoFontFamily,
                                       fontSize: AppFontSize.xs,
                                     ),
                                   ),
-                                  trailing: _SquareIconButton(
-                                    tooltip: 'Удалить ключ',
-                                    size: 28,
-                                    danger: true,
-                                    onPressed: () => removeKey(key),
-                                    child: Icon(
-                                      Icons.delete_outline,
-                                      size: 15,
-                                      color: context.semanticColors.danger,
-                                    ),
-                                  ),
                                 ),
-                            ],
+                                const SizedBox(width: AppSpace.s2),
+                                BoltIconButton(
+                                  tooltip: 'Удалить ключ',
+                                  compact: true,
+                                  color: context.semanticColors.danger,
+                                  danger: true,
+                                  onTap: () => removeKey(context, key),
+                                  icon: Icons.delete_outline,
+                                  size: 15,
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      const SizedBox(height: AppSpace.s2),
-                      TextField(
-                        controller: controller,
-                        maxLines: 3,
-                        style: TextStyle(color: surfaces.text1),
-                        decoration: InputDecoration(
-                          hintText:
-                              'hysteria2://... vless://... trojan://...',
-                          hintStyle: TextStyle(color: surfaces.text3),
-                          filled: true,
-                          fillColor: surfaces.card2,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(AppRadius.sm),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
-                        onSubmitted: (_) => addKeys(),
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Закрыть'),
-            ),
-            FilledButton(
-              onPressed: addKeys,
-              child: const Text('Добавить ключ'),
-            ),
-          ],
-        );
-      },
+                      ],
+                    ),
+                  ),
+                const SizedBox(height: AppSpace.s3),
+                BoltTextField(
+                  controller: controller,
+                  maxLines: 3,
+                  hint: 'hysteria2://... vless://... trojan://...',
+                  fontFamily: AppTheme.monoFontFamily,
+                  onSubmitted: (_) => addKeys(context),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+      actions: [
+        BoltSecondaryButton(
+          label: 'Закрыть',
+          onTap: () => Navigator.of(context).pop(),
+        ),
+        BoltPrimaryButton(
+          label: 'Добавить ключ',
+          onTap: () => addKeys(context),
+        ),
+      ],
     );
   }
 
@@ -626,48 +569,66 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
     final surfaces = context.surfaces;
     final profiles = ref.watch(profilesProvider);
     final currentProfileId = ref.watch(currentProfileIdProvider);
+    final hasUpdatable = profiles.any((p) => p.type == ProfileType.url);
 
     return Container(
-      color: surfaces.bg,
+      color: surfaces.bgSoft,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: const EdgeInsets.all(AppSpace.s4),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpace.s4,
+              AppSpace.s3,
+              AppSpace.s4,
+              AppSpace.s3,
+            ),
             child: Row(
               children: [
                 Text(
                   'Подписки',
                   style: TextStyle(
-                    fontSize: AppFontSize.lg,
+                    fontSize: AppFontSize.xl,
                     fontWeight: FontWeight.w600,
                     color: surfaces.text1,
+                    fontFamily: AppFontFamily.display,
                   ),
                 ),
                 const Spacer(),
-                _SquareIconButton(
-                  tooltip: 'Обновить все подписки',
-                  onPressed: _updatingAll ? null : _updateAll,
-                  child: _updatingAll
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.refresh, size: 18),
-                ),
+                if (_updatingAll)
+                  Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: surfaces.card,
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
+                      border: Border.all(color: surfaces.border),
+                    ),
+                    alignment: Alignment.center,
+                    child: const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  )
+                else if (hasUpdatable)
+                  BoltIconButton(
+                    tooltip: 'Обновить все подписки',
+                    onTap: _updateAll,
+                    icon: Icons.refresh,
+                  ),
                 const SizedBox(width: AppSpace.s2),
-                _SquareIconButton(
+                BoltIconButton(
                   tooltip: 'Добавить',
-                  onPressed: _showAddMenu,
-                  child: const Icon(Icons.add, size: 18),
+                  onTap: _showAddMenu,
+                  icon: Icons.add,
                 ),
                 if (widget.onClose != null) ...[
                   const SizedBox(width: AppSpace.s2),
-                  _SquareIconButton(
+                  BoltIconButton(
                     tooltip: 'Закрыть',
-                    onPressed: widget.onClose,
-                    child: const Icon(Icons.close, size: 18),
+                    onTap: widget.onClose,
+                    icon: Icons.close,
                   ),
                 ],
               ],
@@ -693,7 +654,7 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
                             profile: profile,
                             isActive: currentProfileId == profile.id,
                             onTap: () => _activate(profile),
-                            onLongPress: () => _showProfileMenu(profile),
+                            onSecondaryTap: () => _showProfileMenu(profile),
                             onRefresh: profile.type == ProfileType.url
                                 ? () => _refresh(profile)
                                 : null,
@@ -718,7 +679,7 @@ class _SubscriptionTile extends ConsumerWidget {
     required this.profile,
     required this.isActive,
     required this.onTap,
-    this.onLongPress,
+    this.onSecondaryTap,
     this.onRefresh,
     this.onEdit,
     this.onDelete,
@@ -728,7 +689,7 @@ class _SubscriptionTile extends ConsumerWidget {
   final Profile profile;
   final bool isActive;
   final VoidCallback onTap;
-  final VoidCallback? onLongPress;
+  final VoidCallback? onSecondaryTap;
   final VoidCallback? onRefresh;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
@@ -743,44 +704,26 @@ class _SubscriptionTile extends ConsumerWidget {
     final subtitle = profile.type == ProfileType.url
         ? profile.url
         : (keys.value != null
-            ? 'Ключи: ${keys.value!.length}'
-            : 'Локальный источник');
+              ? 'Ключи: ${keys.value!.length}'
+              : 'Локальный источник');
     final usage = usageSummary(profile.subscriptionInfo);
 
     return Material(
-      color: isActive ? surfaces.card2 : surfaces.card,
+      color: surfaces.card,
       borderRadius: BorderRadius.circular(AppRadius.sm),
       child: InkWell(
         borderRadius: BorderRadius.circular(AppRadius.sm),
         onTap: updating ? null : onTap,
-        onLongPress: updating ? null : onLongPress,
+        onSecondaryTap: updating ? null : onSecondaryTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpace.s4,
-            vertical: AppSpace.s3,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppRadius.sm),
-            border: Border.all(
-              color: isActive ? semantic.on : surfaces.border,
-            ),
+            border: Border.all(color: surfaces.border),
           ),
           child: Row(
             children: [
-              Container(
-                width: 34,
-                height: 34,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: surfaces.card2,
-                  borderRadius: BorderRadius.circular(AppRadius.xs),
-                ),
-                child: Icon(
-                  Icons.dns_outlined,
-                  size: 16,
-                  color: surfaces.text2,
-                ),
-              ),
+              const BoltPillIcon(icon: Icons.dns_outlined),
               const SizedBox(width: AppSpace.s3),
               Expanded(
                 child: Column(
@@ -791,6 +734,7 @@ class _SubscriptionTile extends ConsumerWidget {
                       style: TextStyle(
                         color: surfaces.text1,
                         fontSize: AppFontSize.md,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -799,8 +743,8 @@ class _SubscriptionTile extends ConsumerWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: surfaces.text3,
-                        fontSize: AppFontSize.xs,
+                        color: surfaces.text2,
+                        fontSize: AppFontSize.sm,
                       ),
                     ),
                     if (usage != null) ...[
@@ -810,8 +754,9 @@ class _SubscriptionTile extends ConsumerWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: semantic.on,
-                          fontSize: AppFontSize.xs,
+                          color: isActive ? semantic.on : surfaces.text3,
+                          fontFamily: AppTheme.monoFontFamily,
+                          fontSize: 11.5,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -826,56 +771,51 @@ class _SubscriptionTile extends ConsumerWidget {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               else ...[
-                _SquareIconButton(
-                  tooltip: 'Обновить',
-                  size: 28,
-                  onPressed: onRefresh,
-                  child: const Icon(Icons.refresh, size: 15),
-                ),
-                const SizedBox(width: AppSpace.s1),
-                if (onEdit != null)
-                  _SquareIconButton(
+                if (onRefresh != null)
+                  BoltIconButton(
+                    tooltip: 'Обновить',
+                    compact: true,
+                    onTap: onRefresh,
+                    icon: Icons.refresh,
+                    size: 14,
+                  ),
+                if (onEdit != null) ...[
+                  const SizedBox(width: 4),
+                  BoltIconButton(
                     tooltip: 'Редактировать конфиг',
-                    size: 28,
-                    onPressed: onEdit,
-                    child: const Icon(Icons.edit, size: 15),
+                    compact: true,
+                    onTap: onEdit,
+                    icon: Icons.edit,
+                    size: 14,
                   ),
-                const SizedBox(width: AppSpace.s1),
-                if (keys.value != null && onManageKeys != null) ...[
-                  _SquareIconButton(
-                    tooltip: 'Ключи',
-                    size: 28,
-                    onPressed: onManageKeys,
-                    child: const Icon(Icons.key, size: 15),
-                  ),
-                  const SizedBox(width: AppSpace.s1),
                 ],
-                if (onDelete != null)
-                  _SquareIconButton(
-                    tooltip: 'Удалить',
-                    size: 28,
-                    danger: true,
-                    onPressed: onDelete,
-                    child: Icon(
-                      Icons.delete_outline,
-                      size: 15,
-                      color: semantic.danger,
-                    ),
+                if (profile.type == ProfileType.file &&
+                    keys.value != null &&
+                    onManageKeys != null) ...[
+                  const SizedBox(width: 4),
+                  BoltIconButton(
+                    tooltip: 'Ключи',
+                    compact: true,
+                    onTap: onManageKeys,
+                    icon: Icons.key,
+                    size: 14,
                   ),
+                ],
+                if (onDelete != null) ...[
+                  const SizedBox(width: 4),
+                  BoltIconButton(
+                    tooltip: 'Удалить',
+                    compact: true,
+                    color: semantic.danger,
+                    danger: true,
+                    onTap: onDelete,
+                    icon: Icons.delete_outline,
+                    size: 14,
+                  ),
+                ],
               ],
               const SizedBox(width: AppSpace.s2),
-              Container(
-                width: 10,
-                height: 10,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: isActive ? semantic.on : Colors.transparent,
-                  border: Border.all(
-                    color: isActive ? semantic.on : surfaces.border,
-                    width: 1.5,
-                  ),
-                ),
-              ),
+              BoltCheck(active: isActive),
             ],
           ),
         ),
@@ -884,58 +824,63 @@ class _SubscriptionTile extends ConsumerWidget {
   }
 }
 
-class _SquareIconButton extends StatefulWidget {
-  const _SquareIconButton({
-    required this.onPressed,
-    required this.tooltip,
-    required this.child,
-    this.size = 32,
+class _MethodRow extends StatelessWidget {
+  const _MethodRow({
+    required this.icon,
+    required this.label,
+    required this.description,
+    required this.onTap,
     this.danger = false,
+    this.trailing,
   });
 
-  final VoidCallback? onPressed;
-  final String tooltip;
-  final Widget child;
-  final double size;
+  final IconData icon;
+  final String label;
+  final String description;
+  final VoidCallback onTap;
   final bool danger;
-
-  @override
-  State<_SquareIconButton> createState() => _SquareIconButtonState();
-}
-
-class _SquareIconButtonState extends State<_SquareIconButton> {
-  bool _hovered = false;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
+    final surfaces = context.surfaces;
     final semantic = context.semanticColors;
-    final enabled = widget.onPressed != null;
-    final fill = widget.danger ? semantic.danger : semantic.on;
-    return Tooltip(
-      message: widget.tooltip,
-      child: MouseRegion(
-        cursor: enabled ? SystemMouseCursors.click : MouseCursor.defer,
-        onEnter: enabled ? (_) => setState(() => _hovered = true) : null,
-        onExit: (_) => setState(() => _hovered = false),
-        child: Material(
-          color: _hovered && enabled
-              ? fill.withValues(alpha: 0.12)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(AppRadius.xs),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(AppRadius.xs),
-            onTap: widget.onPressed,
-            child: SizedBox(
-              width: widget.size,
-              height: widget.size,
-              child: Center(
-                child: Opacity(
-                  opacity: enabled ? 1 : 0.4,
-                  child: widget.child,
-                ),
+    final color = danger ? semantic.danger : surfaces.text1;
+    return InkWell(
+      borderRadius: BorderRadius.circular(AppRadius.sm),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          border: Border.all(color: surfaces.border),
+        ),
+        child: Row(
+          children: [
+            BoltPillIcon(icon: icon, size: 34),
+            const SizedBox(width: AppSpace.s3),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: color,
+                      fontSize: AppFontSize.md,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 1),
+                  Text(
+                    description,
+                    style: TextStyle(color: surfaces.text3, fontSize: 11.5),
+                  ),
+                ],
               ),
             ),
-          ),
+            trailing ?? Icon(Icons.chevron_right, size: 16, color: surfaces.text3),
+          ],
         ),
       ),
     );

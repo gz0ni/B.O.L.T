@@ -2,14 +2,14 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:fl_clash/common/common.dart';
-import 'package:fl_clash/core/core.dart';
-import 'package:fl_clash/l10n/l10n.dart';
-import 'package:fl_clash/manager/hotkey_manager.dart';
-import 'package:fl_clash/manager/manager.dart';
-import 'package:fl_clash/plugins/app.dart';
-import 'package:fl_clash/providers/providers.dart';
-import 'package:fl_clash/state.dart';
+import 'package:bolt/common/common.dart';
+import 'package:bolt/core/core.dart';
+import 'package:bolt/l10n/l10n.dart';
+import 'package:bolt/manager/hotkey_manager.dart';
+import 'package:bolt/manager/manager.dart';
+import 'package:bolt/plugins/app.dart';
+import 'package:bolt/providers/providers.dart';
+import 'package:bolt/state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -158,6 +158,7 @@ class ApplicationState extends ConsumerState<Application> {
           locale: utils.getLocaleForString(locale),
           supportedLocales: AppLocalizations.delegate.supportedLocales,
           themeMode: themeProps.themeMode,
+          themeAnimationDuration: Duration.zero,
           theme: AppTheme.light().copyWith(
             pageTransitionsTheme: _pageTransitionsTheme,
           ),

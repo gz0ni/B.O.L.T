@@ -1,14 +1,14 @@
-display_name: FlClash
+display_name: B.O.L.T
 
 icon: ./assets/images/icon.png
 
 keywords:
-  - FlClash
+  - B.O.L.T
   - Clash
   - ClashMeta
   - Proxy
 
-generic_name: FlClash
+generic_name: B.O.L.T
 
 categories:
   - Network

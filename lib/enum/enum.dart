@@ -2,8 +2,10 @@
 
 import 'dart:io';
 
-import 'package:fl_clash/common/context.dart';
-import 'package:fl_clash/common/system.dart';
+import 'package:bolt/common/context.dart';
+import 'package:bolt/common/system.dart';
+import 'package:bolt/theme/app_theme.dart';
+import 'package:bolt/theme/app_tokens.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -97,13 +99,14 @@ enum LogLevel { debug, info, warning, error, silent }
 
 extension LogLevelExt on LogLevel {
   Color? color(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final surfaces = context.surfaces;
+    final semantic = context.semanticColors;
     return switch (this) {
-      LogLevel.silent => colorScheme.outline,
-      LogLevel.debug => colorScheme.onSurfaceVariant,
-      LogLevel.info => null,
-      LogLevel.warning => colorScheme.tertiary,
-      LogLevel.error => colorScheme.error,
+      LogLevel.silent => surfaces.text3,
+      LogLevel.debug => surfaces.text3,
+      LogLevel.info => semantic.info,
+      LogLevel.warning => semantic.connecting,
+      LogLevel.error => semantic.danger,
     };
   }
 }

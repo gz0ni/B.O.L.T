@@ -1,5 +1,5 @@
-import 'package:fl_clash/common/format.dart';
-import 'package:fl_clash/models/profile.dart';
+import 'package:bolt/common/format.dart';
+import 'package:bolt/models/profile.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

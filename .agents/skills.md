@@ -8,6 +8,7 @@ Repo-scoped Codex skills live under `.agents/skills/*/SKILL.md`. Codex can disco
 - `provider-tests`: Riverpod provider, notifier, and state-management tests.
 - `ui-work`: Flutter UI, widgets, Material You styling, navigation surfaces, and user-facing interactions.
 - `core-platform`: core integration, platform managers, Go core communication, desktop/mobile behavior, and Windows helper flow.
+- `ui-ux-pro-max`: advanced UI/UX, animations, transitions and design patterns.
 
 ## Authoring Notes
 

@@ -1,9 +1,9 @@
 Pod::Spec.new do |s|
   s.name             = 'setup'
   s.version          = '0.0.1'
-  s.summary          = 'FlClash Go core build harness'
+  s.summary          = 'B.O.L.T Go core build harness'
   s.description      = <<-DESC
-FlClash Go core build harness (FFI plugin).
+B.O.L.T Go core build harness (FFI plugin).
                        DESC
   s.homepage         = 'http://example.com'
   s.license          = { :file => '../LICENSE' }

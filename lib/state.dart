@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:dynamic_color/dynamic_color.dart';
-import 'package:fl_clash/common/theme.dart';
+import 'package:bolt/common/theme.dart';
+import 'package:bolt/theme/app_theme.dart';
+import 'package:bolt/theme/app_tokens.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:material_color_utilities/palettes/core_palette.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -27,12 +27,9 @@ class GlobalState {
   Function? updateCurrentDelayDebounce;
   late Measure measure;
   late CommonTheme theme;
-  late Color accentColor;
   late ProviderContainer container;
   bool needInitStatus = true;
 
-  // ignore: deprecated_member_use
-  CorePalette? corePalette;
   String? lastConfigMd5;
   VpnState? lastVpnState;
   bool isAttach = false;
@@ -47,24 +44,12 @@ class GlobalState {
   Future<ProviderContainer> init(int version) async {
     coreSHA256 = const String.fromEnvironment('CORE_SHA256');
     isPre = const String.fromEnvironment('APP_ENV') != 'stable';
-    await _initDynamicColor();
     return _initData(version);
-  }
-
-  Future<void> _initDynamicColor() async {
-    try {
-      corePalette = await DynamicColorPlugin.getCorePalette();
-      accentColor =
-          await DynamicColorPlugin.getAccentColor() ??
-          const Color(defaultPrimaryColor);
-    } catch (_) {}
   }
 
   String get ua => container
       .read(patchClashConfigProvider.select((state) => state.globalUa))
       .takeFirstValid([packageInfo.ua]);
-
-  BuildContext get _context => navigatorKey.currentContext!;
 
   Future<ProviderContainer> _initData(int version) async {
     final appState = AppState(
@@ -173,111 +158,102 @@ class GlobalState {
     bool cancelable = true,
     bool? dismissible,
   }) async {
-    return showCommonDialog<bool>(
-      context: context,
-      dismissible: dismissible,
-      child: Builder(
-        builder: (context) {
-          final appLocalizations = context.appLocalizations;
-          return AlertDialog(
-            title: Text(title ?? appLocalizations.tip),
-            actions: [
-              if (cancelable)
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop(false);
-                  },
-                  child: Text(cancelText ?? appLocalizations.cancel),
-                ),
+    final dialogContext = context ?? navigatorKey.currentContext!;
+    return showDialog<bool>(
+      context: dialogContext,
+      barrierDismissible: dismissible ?? true,
+      builder: (dialogContext) {
+        final appLocalizations = dialogContext.appLocalizations;
+        return AlertDialog(
+          title: Text(title ?? appLocalizations.tip),
+          actions: [
+            if (cancelable)
               TextButton(
                 onPressed: () {
-                  Navigator.of(context).pop(true);
+                  Navigator.of(dialogContext).pop(false);
                 },
-                child: Text(confirmText ?? appLocalizations.confirm),
+                child: Text(cancelText ?? appLocalizations.cancel),
               ),
-            ],
-            content: SizedBox(
-              width: 300,
-              child: SingleChildScrollView(
-                child: SelectableText.rich(
-                  TextSpan(
-                    style: Theme.of(context).textTheme.labelLarge,
-                    children: [message],
-                  ),
-                  style: const TextStyle(overflow: TextOverflow.visible),
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(true);
+              },
+              child: Text(confirmText ?? appLocalizations.confirm),
+            ),
+          ],
+          content: SizedBox(
+            width: 300,
+            child: SingleChildScrollView(
+              child: SelectableText.rich(
+                TextSpan(
+                  style: Theme.of(dialogContext).textTheme.labelLarge,
+                  children: [message],
                 ),
+                style: const TextStyle(overflow: TextOverflow.visible),
               ),
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 
   Future<bool?> showAllUpdatingMessagesDialog(
     List<UpdatingMessage> messages,
   ) async {
-    return showCommonDialog<bool>(
-      child: Builder(
-        builder: (context) {
-          final appLocalizations = currentAppLocalizations;
-          return AlertDialog(
-            title: Text(appLocalizations.tip),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop(true);
-                },
-                child: Text(appLocalizations.confirm),
-              ),
-            ],
-            content: SizedBox(
-              width: 300,
-              child: ListView.separated(
-                shrinkWrap: true,
-                itemBuilder: (_, index) {
-                  final message = messages[index];
-                  return ListTile(
-                    title: Text(message.label),
-                    subtitle: Text(message.message),
-                  );
-                },
-                itemCount: messages.length,
-                separatorBuilder: (_, _) => const Divider(height: 0),
-              ),
+    return showDialog<bool>(
+      context: navigatorKey.currentContext!,
+      builder: (dialogContext) {
+        final appLocalizations = currentAppLocalizations;
+        final surfaces = dialogContext.surfaces;
+        return AlertDialog(
+          title: Text(appLocalizations.tip),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(true);
+              },
+              child: Text(appLocalizations.confirm),
             ),
-          );
-        },
-      ),
-    );
-  }
-
-  Future<T?> showCommonDialog<T>({
-    required Widget child,
-    BuildContext? context,
-    bool? dismissible,
-    bool filter = true,
-  }) async {
-    final navigatorContext =
-        context ?? globalState.navigatorKey.currentContext!;
-    return showGeneralDialog<T>(
-      useRootNavigator: false,
-      context: navigatorContext,
-      barrierDismissible: dismissible ?? true,
-      barrierLabel: MaterialLocalizations.of(
-        navigatorContext,
-      ).modalBarrierDismissLabel,
-      barrierColor: Colors.black38,
-      transitionDuration: const Duration(milliseconds: 200),
-      pageBuilder: (_, _, _) => child,
-      transitionBuilder: (_, animation, _, child) {
-        return FadeTransition(
-          opacity: animation,
-          child: ScaleTransition(
-            scale: Tween<double>(begin: 0.92, end: 1).animate(
-              CurvedAnimation(parent: animation, curve: Curves.easeOut),
+          ],
+          content: SizedBox(
+            width: 300,
+            child: ListView.separated(
+              shrinkWrap: true,
+              itemBuilder: (_, index) {
+                final message = messages[index];
+                return Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpace.s2,
+                    vertical: AppSpace.s2,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        message.label,
+                        style: TextStyle(
+                          color: surfaces.text1,
+                          fontSize: AppFontSize.md,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        message.message,
+                        style: TextStyle(
+                          color: surfaces.text2,
+                          fontSize: AppFontSize.sm,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+              itemCount: messages.length,
+              separatorBuilder: (_, _) =>
+                  const Divider(height: 1, thickness: 1),
             ),
-            child: child,
           ),
         );
       },
@@ -353,26 +329,29 @@ class GlobalState {
   }
 
   Future<bool> showDisclaimer() async {
-    return await showCommonDialog<bool>(
-          dismissible: false,
-          child: AlertDialog(
-            title: Text(currentAppLocalizations.disclaimer),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(_context).pop<bool>(false);
-                },
-                child: Text(currentAppLocalizations.exit),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.of(_context).pop<bool>(true);
-                },
-                child: Text(currentAppLocalizations.agree),
-              ),
-            ],
-            content: Text(currentAppLocalizations.disclaimerDesc),
-          ),
+    return await showDialog<bool>(
+          context: navigatorKey.currentContext!,
+          barrierDismissible: false,
+          builder: (dialogContext) {
+            return AlertDialog(
+              title: Text(currentAppLocalizations.disclaimer),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop<bool>(false);
+                  },
+                  child: Text(currentAppLocalizations.exit),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop<bool>(true);
+                  },
+                  child: Text(currentAppLocalizations.agree),
+                ),
+              ],
+              content: Text(currentAppLocalizations.disclaimerDesc),
+            );
+          },
         ) ??
         false;
   }

@@ -5,15 +5,16 @@ import 'dart:io';
 import 'package:collection/collection.dart';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
-import 'package:fl_clash/common/common.dart';
-import 'package:fl_clash/enum/enum.dart';
-import 'package:fl_clash/models/models.dart';
+import 'package:bolt/common/common.dart';
+import 'package:bolt/enum/enum.dart';
+import 'package:bolt/models/models.dart';
 
 part 'converter.dart';
 part 'generated/database.g.dart';
 part 'groups.dart';
 part 'icons.dart';
 part 'links.dart';
+part 'profile_keys.dart';
 part 'profiles.dart';
 part 'rules.dart';
 part 'scripts.dart';
@@ -26,14 +27,22 @@ part 'scripts.dart';
     ProfileRuleLinks,
     ProxyGroups,
     IconRecords,
+    ProfileKeys,
   ],
-  daos: [ProfilesDao, ScriptsDao, RulesDao, ProxyGroupsDao, IconRecordsDao],
+  daos: [
+    ProfilesDao,
+    ScriptsDao,
+    RulesDao,
+    ProxyGroupsDao,
+    IconRecordsDao,
+    ProfileKeysDao,
+  ],
 )
 class Database extends _$Database {
   Database([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   static LazyDatabase _openConnection() {
     return LazyDatabase(() async {
@@ -51,6 +60,10 @@ class Database extends _$Database {
           await m.createTable(iconRecords);
           await _resetOrders();
           await _migrateRules(m);
+        }
+        if (from < 3) {
+          await m.createTable(profileKeys);
+          await _migrateManagedKeys();
         }
       },
       beforeOpen: (details) async {
@@ -112,6 +125,29 @@ class Database extends _$Database {
 
   Future<void> _resetOrders() async {
     await rulesDao.resetOrders();
+  }
+
+  /// Переносит ключи старых managed-конфигов (маркер `bolt-managed: keys`
+  /// в начале YAML) в таблицу profile_keys и пересохраняет конфиг чистым.
+  Future<void> _migrateManagedKeys() async {
+    final rows = await customSelect('SELECT id FROM profiles').get();
+    for (final row in rows) {
+      final id = row.read<int>('id');
+      final file = File(await appPath.getProfilePath(id.toString()));
+      if (!await file.exists()) continue;
+      final keys = extractManagedKeys(await file.readAsString());
+      if (keys == null) continue;
+      await batch((b) {
+        b.insertAll(profileKeys, [
+          for (final link in keys)
+            ProfileKeysCompanion.insert(profileId: id, link: link),
+        ]);
+      });
+      final rebuilt = buildConfigFromKeys(keys);
+      if (rebuilt != null) {
+        await file.writeAsString(rebuilt);
+      }
+    }
   }
 
   Future<void> restore(

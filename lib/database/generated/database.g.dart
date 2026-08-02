@@ -3391,6 +3391,257 @@ class IconRecordsCompanion extends UpdateCompanion<IconRecord> {
   }
 }
 
+class $ProfileKeysTable extends ProfileKeys
+    with TableInfo<$ProfileKeysTable, ProfileKey> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ProfileKeysTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _profileIdMeta = const VerificationMeta(
+    'profileId',
+  );
+  @override
+  late final GeneratedColumn<int> profileId = GeneratedColumn<int>(
+    'profile_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES profiles (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _linkMeta = const VerificationMeta('link');
+  @override
+  late final GeneratedColumn<String> link = GeneratedColumn<String>(
+    'link',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, profileId, link];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'profile_keys';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ProfileKey> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('profile_id')) {
+      context.handle(
+        _profileIdMeta,
+        profileId.isAcceptableOrUnknown(data['profile_id']!, _profileIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_profileIdMeta);
+    }
+    if (data.containsKey('link')) {
+      context.handle(
+        _linkMeta,
+        link.isAcceptableOrUnknown(data['link']!, _linkMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_linkMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ProfileKey map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ProfileKey(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      profileId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}profile_id'],
+      )!,
+      link: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}link'],
+      )!,
+    );
+  }
+
+  @override
+  $ProfileKeysTable createAlias(String alias) {
+    return $ProfileKeysTable(attachedDatabase, alias);
+  }
+}
+
+class ProfileKey extends DataClass implements Insertable<ProfileKey> {
+  final int id;
+  final int profileId;
+  final String link;
+  const ProfileKey({
+    required this.id,
+    required this.profileId,
+    required this.link,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['profile_id'] = Variable<int>(profileId);
+    map['link'] = Variable<String>(link);
+    return map;
+  }
+
+  ProfileKeysCompanion toCompanion(bool nullToAbsent) {
+    return ProfileKeysCompanion(
+      id: Value(id),
+      profileId: Value(profileId),
+      link: Value(link),
+    );
+  }
+
+  factory ProfileKey.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ProfileKey(
+      id: serializer.fromJson<int>(json['id']),
+      profileId: serializer.fromJson<int>(json['profileId']),
+      link: serializer.fromJson<String>(json['link']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'profileId': serializer.toJson<int>(profileId),
+      'link': serializer.toJson<String>(link),
+    };
+  }
+
+  ProfileKey copyWith({int? id, int? profileId, String? link}) => ProfileKey(
+    id: id ?? this.id,
+    profileId: profileId ?? this.profileId,
+    link: link ?? this.link,
+  );
+  ProfileKey copyWithCompanion(ProfileKeysCompanion data) {
+    return ProfileKey(
+      id: data.id.present ? data.id.value : this.id,
+      profileId: data.profileId.present ? data.profileId.value : this.profileId,
+      link: data.link.present ? data.link.value : this.link,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProfileKey(')
+          ..write('id: $id, ')
+          ..write('profileId: $profileId, ')
+          ..write('link: $link')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, profileId, link);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ProfileKey &&
+          other.id == this.id &&
+          other.profileId == this.profileId &&
+          other.link == this.link);
+}
+
+class ProfileKeysCompanion extends UpdateCompanion<ProfileKey> {
+  final Value<int> id;
+  final Value<int> profileId;
+  final Value<String> link;
+  const ProfileKeysCompanion({
+    this.id = const Value.absent(),
+    this.profileId = const Value.absent(),
+    this.link = const Value.absent(),
+  });
+  ProfileKeysCompanion.insert({
+    this.id = const Value.absent(),
+    required int profileId,
+    required String link,
+  }) : profileId = Value(profileId),
+       link = Value(link);
+  static Insertable<ProfileKey> custom({
+    Expression<int>? id,
+    Expression<int>? profileId,
+    Expression<String>? link,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (profileId != null) 'profile_id': profileId,
+      if (link != null) 'link': link,
+    });
+  }
+
+  ProfileKeysCompanion copyWith({
+    Value<int>? id,
+    Value<int>? profileId,
+    Value<String>? link,
+  }) {
+    return ProfileKeysCompanion(
+      id: id ?? this.id,
+      profileId: profileId ?? this.profileId,
+      link: link ?? this.link,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (profileId.present) {
+      map['profile_id'] = Variable<int>(profileId.value);
+    }
+    if (link.present) {
+      map['link'] = Variable<String>(link.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProfileKeysCompanion(')
+          ..write('id: $id, ')
+          ..write('profileId: $profileId, ')
+          ..write('link: $link')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$Database extends GeneratedDatabase {
   _$Database(QueryExecutor e) : super(e);
   $DatabaseManager get managers => $DatabaseManager(this);
@@ -3402,6 +3653,7 @@ abstract class _$Database extends GeneratedDatabase {
   );
   late final $ProxyGroupsTable proxyGroups = $ProxyGroupsTable(this);
   late final $IconRecordsTable iconRecords = $IconRecordsTable(this);
+  late final $ProfileKeysTable profileKeys = $ProfileKeysTable(this);
   late final Index idxRuleTarget = Index(
     'idx_rule_target',
     'CREATE INDEX idx_rule_target ON rules (rule_target)',
@@ -3423,6 +3675,7 @@ abstract class _$Database extends GeneratedDatabase {
   late final RulesDao rulesDao = RulesDao(this as Database);
   late final ProxyGroupsDao proxyGroupsDao = ProxyGroupsDao(this as Database);
   late final IconRecordsDao iconRecordsDao = IconRecordsDao(this as Database);
+  late final ProfileKeysDao profileKeysDao = ProfileKeysDao(this as Database);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3434,6 +3687,7 @@ abstract class _$Database extends GeneratedDatabase {
     profileRuleLinks,
     proxyGroups,
     iconRecords,
+    profileKeys,
     idxRuleTarget,
     idxProfileSceneOrder,
     idxProfileNameOrder,
@@ -3461,6 +3715,13 @@ abstract class _$Database extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('proxy_groups', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'profiles',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('profile_keys', kind: UpdateKind.delete)],
     ),
   ]);
 }
@@ -3538,6 +3799,24 @@ final class $$ProfilesTableReferences
     ).filter((f) => f.profileId.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_proxyGroupsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$ProfileKeysTable, List<ProfileKey>>
+  _profileKeysRefsTable(_$Database db) => MultiTypedResultKey.fromTable(
+    db.profileKeys,
+    aliasName: $_aliasNameGenerator(db.profiles.id, db.profileKeys.profileId),
+  );
+
+  $$ProfileKeysTableProcessedTableManager get profileKeysRefs {
+    final manager = $$ProfileKeysTableTableManager(
+      $_db,
+      $_db.profileKeys,
+    ).filter((f) => f.profileId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_profileKeysRefsTable($_db));
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -3667,6 +3946,31 @@ class $$ProfilesTableFilterComposer
           }) => $$ProxyGroupsTableFilterComposer(
             $db: $db,
             $table: $db.proxyGroups,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> profileKeysRefs(
+    Expression<bool> Function($$ProfileKeysTableFilterComposer f) f,
+  ) {
+    final $$ProfileKeysTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.profileKeys,
+      getReferencedColumn: (t) => t.profileId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProfileKeysTableFilterComposer(
+            $db: $db,
+            $table: $db.profileKeys,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -3866,6 +4170,31 @@ class $$ProfilesTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> profileKeysRefs<T extends Object>(
+    Expression<T> Function($$ProfileKeysTableAnnotationComposer a) f,
+  ) {
+    final $$ProfileKeysTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.profileKeys,
+      getReferencedColumn: (t) => t.profileId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProfileKeysTableAnnotationComposer(
+            $db: $db,
+            $table: $db.profileKeys,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$ProfilesTableTableManager
@@ -3884,6 +4213,7 @@ class $$ProfilesTableTableManager
           PrefetchHooks Function({
             bool profileRuleLinksRefs,
             bool proxyGroupsRefs,
+            bool profileKeysRefs,
           })
         > {
   $$ProfilesTableTableManager(_$Database db, $ProfilesTable table)
@@ -3968,12 +4298,17 @@ class $$ProfilesTableTableManager
               )
               .toList(),
           prefetchHooksCallback:
-              ({profileRuleLinksRefs = false, proxyGroupsRefs = false}) {
+              ({
+                profileRuleLinksRefs = false,
+                proxyGroupsRefs = false,
+                profileKeysRefs = false,
+              }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
                     if (profileRuleLinksRefs) db.profileRuleLinks,
                     if (proxyGroupsRefs) db.proxyGroups,
+                    if (profileKeysRefs) db.profileKeys,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
@@ -4020,6 +4355,27 @@ class $$ProfilesTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (profileKeysRefs)
+                        await $_getPrefetchedData<
+                          RawProfile,
+                          $ProfilesTable,
+                          ProfileKey
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ProfilesTableReferences
+                              ._profileKeysRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ProfilesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).profileKeysRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.profileId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -4040,7 +4396,11 @@ typedef $$ProfilesTableProcessedTableManager =
       $$ProfilesTableUpdateCompanionBuilder,
       (RawProfile, $$ProfilesTableReferences),
       RawProfile,
-      PrefetchHooks Function({bool profileRuleLinksRefs, bool proxyGroupsRefs})
+      PrefetchHooks Function({
+        bool profileRuleLinksRefs,
+        bool proxyGroupsRefs,
+        bool profileKeysRefs,
+      })
     >;
 typedef $$ScriptsTableCreateCompanionBuilder =
     ScriptsCompanion Function({
@@ -5765,6 +6125,281 @@ typedef $$IconRecordsTableProcessedTableManager =
       IconRecord,
       PrefetchHooks Function()
     >;
+typedef $$ProfileKeysTableCreateCompanionBuilder =
+    ProfileKeysCompanion Function({
+      Value<int> id,
+      required int profileId,
+      required String link,
+    });
+typedef $$ProfileKeysTableUpdateCompanionBuilder =
+    ProfileKeysCompanion Function({
+      Value<int> id,
+      Value<int> profileId,
+      Value<String> link,
+    });
+
+final class $$ProfileKeysTableReferences
+    extends BaseReferences<_$Database, $ProfileKeysTable, ProfileKey> {
+  $$ProfileKeysTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $ProfilesTable _profileIdTable(_$Database db) =>
+      db.profiles.createAlias(
+        $_aliasNameGenerator(db.profileKeys.profileId, db.profiles.id),
+      );
+
+  $$ProfilesTableProcessedTableManager get profileId {
+    final $_column = $_itemColumn<int>('profile_id')!;
+
+    final manager = $$ProfilesTableTableManager(
+      $_db,
+      $_db.profiles,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_profileIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$ProfileKeysTableFilterComposer
+    extends Composer<_$Database, $ProfileKeysTable> {
+  $$ProfileKeysTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get link => $composableBuilder(
+    column: $table.link,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$ProfilesTableFilterComposer get profileId {
+    final $$ProfilesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.profileId,
+      referencedTable: $db.profiles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProfilesTableFilterComposer(
+            $db: $db,
+            $table: $db.profiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ProfileKeysTableOrderingComposer
+    extends Composer<_$Database, $ProfileKeysTable> {
+  $$ProfileKeysTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get link => $composableBuilder(
+    column: $table.link,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$ProfilesTableOrderingComposer get profileId {
+    final $$ProfilesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.profileId,
+      referencedTable: $db.profiles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProfilesTableOrderingComposer(
+            $db: $db,
+            $table: $db.profiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ProfileKeysTableAnnotationComposer
+    extends Composer<_$Database, $ProfileKeysTable> {
+  $$ProfileKeysTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get link =>
+      $composableBuilder(column: $table.link, builder: (column) => column);
+
+  $$ProfilesTableAnnotationComposer get profileId {
+    final $$ProfilesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.profileId,
+      referencedTable: $db.profiles,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProfilesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.profiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ProfileKeysTableTableManager
+    extends
+        RootTableManager<
+          _$Database,
+          $ProfileKeysTable,
+          ProfileKey,
+          $$ProfileKeysTableFilterComposer,
+          $$ProfileKeysTableOrderingComposer,
+          $$ProfileKeysTableAnnotationComposer,
+          $$ProfileKeysTableCreateCompanionBuilder,
+          $$ProfileKeysTableUpdateCompanionBuilder,
+          (ProfileKey, $$ProfileKeysTableReferences),
+          ProfileKey,
+          PrefetchHooks Function({bool profileId})
+        > {
+  $$ProfileKeysTableTableManager(_$Database db, $ProfileKeysTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ProfileKeysTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ProfileKeysTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ProfileKeysTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> profileId = const Value.absent(),
+                Value<String> link = const Value.absent(),
+              }) => ProfileKeysCompanion(
+                id: id,
+                profileId: profileId,
+                link: link,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int profileId,
+                required String link,
+              }) => ProfileKeysCompanion.insert(
+                id: id,
+                profileId: profileId,
+                link: link,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$ProfileKeysTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({profileId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (profileId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.profileId,
+                                referencedTable: $$ProfileKeysTableReferences
+                                    ._profileIdTable(db),
+                                referencedColumn: $$ProfileKeysTableReferences
+                                    ._profileIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$ProfileKeysTableProcessedTableManager =
+    ProcessedTableManager<
+      _$Database,
+      $ProfileKeysTable,
+      ProfileKey,
+      $$ProfileKeysTableFilterComposer,
+      $$ProfileKeysTableOrderingComposer,
+      $$ProfileKeysTableAnnotationComposer,
+      $$ProfileKeysTableCreateCompanionBuilder,
+      $$ProfileKeysTableUpdateCompanionBuilder,
+      (ProfileKey, $$ProfileKeysTableReferences),
+      ProfileKey,
+      PrefetchHooks Function({bool profileId})
+    >;
 
 class $DatabaseManager {
   final _$Database _db;
@@ -5781,6 +6416,8 @@ class $DatabaseManager {
       $$ProxyGroupsTableTableManager(_db, _db.proxyGroups);
   $$IconRecordsTableTableManager get iconRecords =>
       $$IconRecordsTableTableManager(_db, _db.iconRecords);
+  $$ProfileKeysTableTableManager get profileKeys =>
+      $$ProfileKeysTableTableManager(_db, _db.profileKeys);
 }
 
 mixin _$ProfilesDaoMixin on DatabaseAccessor<Database> {
@@ -5854,4 +6491,19 @@ class IconRecordsDaoManager {
   IconRecordsDaoManager(this._db);
   $$IconRecordsTableTableManager get iconRecords =>
       $$IconRecordsTableTableManager(_db.attachedDatabase, _db.iconRecords);
+}
+
+mixin _$ProfileKeysDaoMixin on DatabaseAccessor<Database> {
+  $ProfilesTable get profiles => attachedDatabase.profiles;
+  $ProfileKeysTable get profileKeys => attachedDatabase.profileKeys;
+  ProfileKeysDaoManager get managers => ProfileKeysDaoManager(this);
+}
+
+class ProfileKeysDaoManager {
+  final _$ProfileKeysDaoMixin _db;
+  ProfileKeysDaoManager(this._db);
+  $$ProfilesTableTableManager get profiles =>
+      $$ProfilesTableTableManager(_db.attachedDatabase, _db.profiles);
+  $$ProfileKeysTableTableManager get profileKeys =>
+      $$ProfileKeysTableTableManager(_db.attachedDatabase, _db.profileKeys);
 }

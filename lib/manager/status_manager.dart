@@ -2,9 +2,11 @@ import 'dart:async';
 import 'dart:collection';
 import 'dart:math';
 
-import 'package:fl_clash/common/common.dart';
-import 'package:fl_clash/models/models.dart';
-import 'package:fl_clash/providers/providers.dart';
+import 'package:bolt/common/common.dart';
+import 'package:bolt/models/models.dart';
+import 'package:bolt/providers/providers.dart';
+import 'package:bolt/theme/app_theme.dart';
+import 'package:bolt/widgets/bolt_icon_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -118,24 +120,24 @@ class StatusManagerState extends State<StatusManager> {
                                     onDismissed: (_) {
                                       _cancelMessage(messages.last.id);
                                     },
-                                    child: Card(
-                                      shape: const RoundedSuperellipseBorder(
-                                        borderRadius: BorderRadius.all(
-                                          Radius.circular(14),
+                                    child: Material(
+                                      color: context.surfaces.bgSoft,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(
+                                          12,
+                                        ),
+                                        side: BorderSide(
+                                          color: context.surfaces.border,
                                         ),
                                       ),
-                                      elevation: 10,
-                                      color: context
-                                          .colorScheme
-                                          .surfaceContainerHigh,
                                       child: Container(
                                         width: min(constraints.maxWidth, 500),
                                         constraints: const BoxConstraints(
-                                          minHeight: 54,
+                                          minHeight: 46,
                                         ),
                                         padding: const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                          vertical: 8,
+                                          horizontal: 14,
+                                          vertical: 7,
                                         ),
                                         child: Row(
                                           mainAxisAlignment:
@@ -145,34 +147,30 @@ class StatusManagerState extends State<StatusManager> {
                                               child: Text(
                                                 messages.last.text,
                                                 maxLines: 3,
-                                                style: context
-                                                    .textTheme
-                                                    .labelLarge
-                                                    ?.copyWith(
-                                                      color: context
-                                                          .colorScheme
-                                                          .onSurfaceVariant,
-                                                    ),
+                                                style: TextStyle(
+                                                  color: context
+                                                      .surfaces
+                                                      .text1,
+                                                  fontSize: 12.5,
+                                                ),
                                                 overflow: TextOverflow.ellipsis,
                                               ),
                                             ),
-                                            const SizedBox(width: 16),
+                                            const SizedBox(width: 12),
                                             if (messages.last.actionState !=
                                                 null)
-                                              FilledButton.tonal(
-                                                onPressed: () async {
+                                              BoltMiniButton(
+                                                label: messages
+                                                    .last
+                                                    .actionState!
+                                                    .actionText,
+                                                onTap: () async {
                                                   _cancelMessage(
                                                     messages.last.id,
                                                   );
                                                   messages.last.actionState!
                                                       .action();
                                                 },
-                                                child: Text(
-                                                  messages
-                                                      .last
-                                                      .actionState!
-                                                      .actionText,
-                                                ),
                                               ),
                                           ],
                                         ),

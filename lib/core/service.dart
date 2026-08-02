@@ -2,10 +2,10 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:fl_clash/common/common.dart';
-import 'package:fl_clash/core/core.dart';
-import 'package:fl_clash/enum/enum.dart';
-import 'package:fl_clash/models/core.dart';
+import 'package:bolt/common/common.dart';
+import 'package:bolt/core/core.dart';
+import 'package:bolt/enum/enum.dart';
+import 'package:bolt/models/core.dart';
 
 import 'interface.dart';
 import 'transport.dart';
@@ -89,7 +89,7 @@ class CoreService extends CoreHandlerInterface {
     if (_process != null) {
       await shutdown(false);
     }
-    if (system.isWindows && await system.checkIsAdmin()) {
+    if (system.isWindows) {
       final isSuccess = await request.startCoreByHelper(_transport.address);
       if (isSuccess) {
         await _transport.connectionCompleter.future;

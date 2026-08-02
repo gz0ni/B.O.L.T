@@ -1,4 +1,4 @@
-/// FlClash Go core build harness.
+/// B.O.L.T Go core build harness.
 ///
 /// This plugin does not expose any Dart API. It exists purely to integrate
 /// the Go core build into each platform's native build system via FFI plugin

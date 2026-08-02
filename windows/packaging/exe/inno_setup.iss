@@ -25,7 +25,7 @@ var
   i: Integer;
   ResultCode: Integer;
 begin
-  Processes := ['B.O.L.T.exe', 'FlClashCore.exe', 'FlClashHelperService.exe'];
+  Processes := ['B.O.L.T.exe', 'BOLTCore.exe', 'BOLT_HelperService.exe'];
 
   for i := 0 to GetArrayLength(Processes)-1 do
   begin

@@ -1,11 +1,11 @@
 import 'dart:async';
 
-import 'package:fl_clash/common/common.dart';
-import 'package:fl_clash/common/format.dart';
-import 'package:fl_clash/core/core.dart';
-import 'package:fl_clash/enum/enum.dart';
-import 'package:fl_clash/models/models.dart';
-import 'package:fl_clash/providers/providers.dart';
+import 'package:bolt/common/common.dart';
+import 'package:bolt/common/format.dart';
+import 'package:bolt/core/core.dart';
+import 'package:bolt/enum/enum.dart';
+import 'package:bolt/models/models.dart';
+import 'package:bolt/providers/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,6 +17,9 @@ import 'settings_screen.dart';
 import 'subscriptions_screen.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_tokens.dart';
+import '../widgets/bolt_icon_button.dart';
+import '../widgets/bolt_list.dart';
+import '../widgets/bolt_surfaces.dart';
 
 /// Имя группы, которую показываем как список локаций в сайдбаре.
 /// Если такой группы нет в текущем профиле (например, у стороннего
@@ -41,37 +44,11 @@ class AppShell extends ConsumerStatefulWidget {
 }
 
 class _AppShellState extends ConsumerState<AppShell> {
-  Future<void> _openSheet(Widget child) {
-    final surfaces = context.surfaces;
-    return showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: surfaces.card,
-      elevation: 0,
-      clipBehavior: Clip.antiAlias,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
-      ),
-      barrierColor: Colors.black54,
-      constraints: const BoxConstraints(maxWidth: double.infinity),
-      builder: (context) => FractionallySizedBox(
-        heightFactor: 0.8,
-        widthFactor: 1,
-        child: Column(
-          children: [
-            const SizedBox(height: 12),
-            Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: surfaces.border,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            Expanded(child: child),
-          ],
-        ),
-      ),
+  Future<void> _openSheet(Widget child, {String? title}) {
+    return showBoltSheet<void>(
+      context,
+      title: title,
+      builder: (sheetContext) => child,
     );
   }
 
@@ -86,7 +63,7 @@ class _AppShellState extends ConsumerState<AppShell> {
   void _openConfigEditor() {
     final profile = ref.read(currentProfileProvider);
     if (profile == null) {
-      context.showSnackBar('Сначала активируйте подписку');
+      showBoltToast(context, 'Сначала активируйте подписку');
       return;
     }
     _openSheet(
@@ -94,6 +71,7 @@ class _AppShellState extends ConsumerState<AppShell> {
         profileId: profile.id,
         onClose: () => Navigator.of(context).pop(),
       ),
+      title: 'Конфигурация',
     );
   }
 
@@ -139,6 +117,7 @@ class _LocationsSidebar extends ConsumerStatefulWidget {
 class _LocationsSidebarState extends ConsumerState<_LocationsSidebar> {
   final _favorites = <String>{}; // локальный UI-стейт, не перситится
   final _searchController = TextEditingController();
+  final _scrollController = ScrollController();
   final _pingingNodes = <String>{};
   String _query = '';
   bool _pinging = false;
@@ -154,6 +133,7 @@ class _LocationsSidebarState extends ConsumerState<_LocationsSidebar> {
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -265,7 +245,7 @@ class _LocationsSidebarState extends ConsumerState<_LocationsSidebar> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         ),
                       )
-                    : _IconGhostButton(
+                    : BoltIconButton(
                         icon: Icons.bolt,
                         compact: true,
                         tooltip: 'Проверить задержку всех серверов',
@@ -303,7 +283,9 @@ class _LocationsSidebarState extends ConsumerState<_LocationsSidebar> {
                   )
                 : Scrollbar(
                     thumbVisibility: true,
+                    controller: _scrollController,
                     child: ListView.builder(
+                      controller: _scrollController,
                       padding: const EdgeInsets.fromLTRB(
                         AppSpace.s3,
                         0,
@@ -397,28 +379,12 @@ class _LocationTile extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(horizontal: AppSpace.s3, vertical: AppSpace.s2),
           child: Row(
             children: [
-              Container(
-                width: 34,
-                height: 34,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: surfaces.card2,
-                  borderRadius: BorderRadius.circular(AppRadius.xs),
-                ),
-                child: Text(
-                  node.type.length >= 2 ? node.type.substring(0, 2).toUpperCase() : node.type,
-                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: surfaces.text2),
-                ),
-              ),
-              const SizedBox(width: AppSpace.s3),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    _MarqueeText(
                       node.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: surfaces.text1,
                         fontSize: AppFontSize.sm,
@@ -466,28 +432,122 @@ class _LocationTile extends ConsumerWidget {
                   ),
                 ),
               ),
-              IconButton(
-                icon: Icon(
-                  isFavorite ? Icons.star : Icons.star_border,
-                  size: 16,
-                  color: isFavorite ? semantic.connecting : surfaces.text3,
-                ),
-                onPressed: onFavoriteTap,
-                visualDensity: VisualDensity.compact,
+              BoltIconButton(
+                icon: isFavorite ? Icons.star : Icons.star_border,
+                compact: true,
+                tooltip: isFavorite ? 'Убрать из избранного' : 'В избранное',
+                color: isFavorite ? semantic.connecting : surfaces.text3,
+                onTap: onFavoriteTap,
               ),
-              Container(
-                width: 10,
-                height: 10,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: isSelected ? semantic.on : Colors.transparent,
-                  border: Border.all(color: isSelected ? semantic.on : surfaces.border, width: 1.5),
-                ),
-              ),
+              const SizedBox(width: AppSpace.s2),
+              BoltCheck(active: isSelected),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Текст, который при наведении плавно прокручивается, если он не влезает
+/// в доступную ширину. Если текст помещается — ведёт себя как обычный Text.
+class _MarqueeText extends StatefulWidget {
+  const _MarqueeText(this.text, {required this.style});
+
+  final String text;
+  final TextStyle style;
+
+  @override
+  State<_MarqueeText> createState() => _MarqueeTextState();
+}
+
+class _MarqueeTextState extends State<_MarqueeText>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  bool _hovering = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this);
+  }
+
+  @override
+  void didUpdateWidget(covariant _MarqueeText oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.text != widget.text) {
+      _controller
+        ..stop()
+        ..value = 0;
+      _hovering = false;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final painter = TextPainter(
+          text: TextSpan(text: widget.text, style: widget.style),
+          maxLines: 1,
+          textScaler: MediaQuery.textScalerOf(context),
+          textDirection: Directionality.of(context),
+        )..layout();
+        final overflows = painter.width > constraints.maxWidth;
+        if (!overflows) {
+          return Text(
+            widget.text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: widget.style,
+          );
+        }
+        final distance =
+            painter.width + AppSpace.s4 - constraints.maxWidth;
+        _controller.duration = Duration(
+          milliseconds: (700 + painter.width / 3).clamp(1200, 3500).round(),
+        );
+        return MouseRegion(
+          onEnter: (_) {
+            _controller
+              ..value = 0
+              ..repeat(reverse: true);
+            setState(() => _hovering = true);
+          },
+          onExit: (_) {
+            _controller
+              ..stop()
+              ..value = 0;
+            setState(() => _hovering = false);
+          },
+          child: ClipRect(
+            child: SizedBox(
+              width: constraints.maxWidth,
+              child: AnimatedBuilder(
+                animation: _controller,
+                builder: (context, _) {
+                  final value = _hovering ? _controller.value : 0.0;
+                  return Transform.translate(
+                    offset: Offset(-distance * value, 0),
+                    child: Text(
+                      widget.text,
+                      maxLines: 1,
+                      softWrap: false,
+                      style: widget.style,
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -536,11 +596,11 @@ class _MainArea extends ConsumerWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                _IconGhostButton(icon: Icons.terminal, tooltip: 'Логи ядра', onTap: onOpenLogs),
+                BoltIconButton(icon: Icons.terminal, tooltip: 'Логи ядра', onTap: onOpenLogs),
                 const SizedBox(width: AppSpace.s2),
-                _IconGhostButton(icon: Icons.code, tooltip: 'Редактор конфига', onTap: onOpenConfigEditor),
+                BoltIconButton(icon: Icons.code, tooltip: 'Редактор конфига', onTap: onOpenConfigEditor),
                 const SizedBox(width: AppSpace.s2),
-                _IconGhostButton(icon: Icons.settings, tooltip: 'Настройки', onTap: onOpenSettings),
+                BoltIconButton(icon: Icons.settings, tooltip: 'Настройки', onTap: onOpenSettings),
               ],
             ),
           ),
@@ -685,39 +745,6 @@ String _formatRunTime(int? runTimeMs) {
   final d = Duration(milliseconds: runTimeMs);
   String two(int n) => n.toString().padLeft(2, '0');
   return '${two(d.inHours)}:${two(d.inMinutes % 60)}:${two(d.inSeconds % 60)}';
-}
-
-class _IconGhostButton extends StatelessWidget {
-  const _IconGhostButton({
-    required this.icon,
-    required this.tooltip,
-    required this.onTap,
-    this.compact = false,
-  });
-  final IconData icon;
-  final String tooltip;
-  final VoidCallback onTap;
-  final bool compact;
-
-  @override
-  Widget build(BuildContext context) {
-    final surfaces = context.surfaces;
-    return Material(
-      color: surfaces.card,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppRadius.xs),
-        side: BorderSide(color: surfaces.border),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppRadius.xs),
-        onTap: onTap,
-        child: Padding(
-          padding: EdgeInsets.all(compact ? AppSpace.s1 : AppSpace.s2),
-          child: Icon(icon, size: compact ? 16 : 18, color: surfaces.text2),
-        ),
-      ),
-    );
-  }
 }
 
 class _UsageCard extends StatelessWidget {

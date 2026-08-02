@@ -1,9 +1,11 @@
 import 'dart:async';
 
-import 'package:fl_clash/common/common.dart';
-import 'package:fl_clash/enum/enum.dart';
-import 'package:fl_clash/providers/providers.dart';
-import 'package:fl_clash/state.dart';
+import 'package:bolt/common/common.dart';
+import 'package:bolt/enum/enum.dart';
+import 'package:bolt/providers/providers.dart';
+import 'package:bolt/state.dart';
+import 'package:bolt/theme/app_theme.dart';
+import 'package:bolt/theme/app_tokens.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_ext/window_ext.dart';
@@ -191,58 +193,80 @@ class _WindowHeaderState extends State<WindowHeader> {
   }
 
   Widget _buildActions() {
+    final surfaces = context.surfaces;
+    final semantic = context.semanticColors;
+    Widget windowButton({
+      required Widget icon,
+      required VoidCallback onTap,
+      bool danger = false,
+    }) {
+      return IconButton(
+        onPressed: onTap,
+        icon: icon,
+        iconSize: 15,
+        color: danger ? semantic.danger : surfaces.text2,
+        hoverColor: danger
+            ? semantic.danger.withValues(alpha: 0.14)
+            : surfaces.card2,
+        splashRadius: 16,
+        padding: const EdgeInsets.all(6),
+        constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+        tooltip: '',
+      );
+    }
+
     return Row(
       children: [
-        IconButton(
-          onPressed: () async {
+        windowButton(
+          onTap: () {
             _updatePin();
           },
           icon: ValueListenableBuilder(
             valueListenable: isPinNotifier,
             builder: (_, value, _) {
               return value
-                  ? const Icon(Icons.push_pin)
-                  : const Icon(Icons.push_pin_outlined);
+                  ? const Icon(Icons.push_pin, size: 15)
+                  : const Icon(Icons.push_pin_outlined, size: 15);
             },
           ),
         ),
-        IconButton(
-          onPressed: () {
+        windowButton(
+          onTap: () {
             windowManager.minimize();
           },
-          icon: const Icon(Icons.remove),
+          icon: const Icon(Icons.remove, size: 15),
         ),
-        IconButton(
-          onPressed: () async {
+        windowButton(
+          onTap: () async {
             _updateMaximized();
           },
           icon: ValueListenableBuilder(
             valueListenable: isMaximizedNotifier,
             builder: (_, value, _) {
               return value
-                  ? const Icon(Icons.filter_none, size: 20)
-                  : const Icon(Icons.crop_square);
+                  ? const Icon(Icons.filter_none, size: 15)
+                  : const Icon(Icons.crop_square, size: 13);
             },
           ),
         ),
-        IconButton(
-          onPressed: () {
+        windowButton(
+          danger: true,
+          onTap: () {
             globalState.container
                 .read(systemActionProvider.notifier)
                 .handleClose();
           },
-          icon: const Icon(Icons.close),
+          icon: const Icon(Icons.close, size: 16),
         ),
-        // const SizedBox(
-        //   width: 8,
-        // ),
       ],
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final surfaces = context.surfaces;
     return Material(
+      color: surfaces.bgSoft,
       child: Stack(
         alignment: AlignmentDirectional.center,
         children: [
@@ -255,7 +279,11 @@ class _WindowHeaderState extends State<WindowHeader> {
                 _updateMaximized();
               },
               child: Container(
-                color: context.colorScheme.secondary.opacity15,
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(color: surfaces.borderSoft),
+                  ),
+                ),
                 alignment: Alignment.centerLeft,
                 height: kHeaderHeight,
               ),
@@ -277,12 +305,11 @@ class AppIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final surfaces = context.surfaces;
     return Container(
-      decoration: ShapeDecoration(
-        color: context.colorScheme.surfaceContainerHighest,
-        shape: RoundedSuperellipseBorder(
-          borderRadius: BorderRadius.circular(14),
-        ),
+      decoration: BoxDecoration(
+        color: surfaces.card2,
+        borderRadius: BorderRadius.circular(9),
       ),
       padding: const EdgeInsets.all(8),
       child: Transform.translate(
