@@ -86,10 +86,10 @@ class _ConfigEditorScreenState extends ConsumerState<ConfigEditorScreen> {
       final updated = await profile.saveFileWithPath(tempPath);
       ref.read(profilesActionProvider.notifier).setProfileAndAutoApply(updated);
       if (!mounted) return;
-      showBoltToast(context, 'Конфиг сохранён и применён');
+      showBoltToast(context, context.appLocalizations.configSavedApplied);
     } catch (e) {
       if (!mounted) return;
-      showBoltToast(context, 'Не удалось сохранить: $e');
+      showBoltToast(context, context.appLocalizations.saveFailed('$e'));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -118,7 +118,9 @@ class _ConfigEditorScreenState extends ConsumerState<ConfigEditorScreen> {
               children: [
                 Expanded(
                   child: Text(
-                    profile == null ? 'Профиль не найден' : profile.realLabel,
+                    profile == null
+                        ? context.appLocalizations.profileNotFound
+                        : profile.realLabel,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -128,19 +130,19 @@ class _ConfigEditorScreenState extends ConsumerState<ConfigEditorScreen> {
                   ),
                 ),
                 BoltIconButton(
-                  tooltip: 'Открыть во внешнем редакторе',
+                  tooltip: context.appLocalizations.openExternalEditor,
                   onTap: _path == null ? null : _openExternal,
                   icon: Icons.open_in_new,
                 ),
                 const SizedBox(width: AppSpace.s2),
                 BoltIconButton(
-                  tooltip: 'Сбросить изменения',
+                  tooltip: context.appLocalizations.resetChanges,
                   onTap: _loading ? null : _load,
                   icon: Icons.restart_alt,
                 ),
                 const SizedBox(width: AppSpace.s2),
                 BoltIconButton(
-                  tooltip: 'Закрыть',
+                  tooltip: context.appLocalizations.close,
                   onTap: widget.onClose,
                   icon: Icons.close,
                 ),
@@ -153,7 +155,7 @@ class _ConfigEditorScreenState extends ConsumerState<ConfigEditorScreen> {
                 : profile == null
                 ? Center(
                     child: Text(
-                      'Профиль не найден',
+                      context.appLocalizations.profileNotFound,
                       style: TextStyle(color: surfaces.text3),
                     ),
                   )
@@ -204,7 +206,7 @@ class _ConfigEditorScreenState extends ConsumerState<ConfigEditorScreen> {
               children: [
                 Expanded(
                   child: BoltSecondaryButton(
-                    label: 'Сбросить',
+                    label: context.appLocalizations.resetChanges,
                     onTap: _loading ? null : _load,
                     enabled: !_loading,
                   ),
@@ -212,7 +214,7 @@ class _ConfigEditorScreenState extends ConsumerState<ConfigEditorScreen> {
                 const SizedBox(width: AppSpace.s3),
                 Expanded(
                   child: BoltPrimaryButton(
-                    label: 'Сохранить и применить',
+                    label: context.appLocalizations.saveAndApply,
                     onTap: ready ? _save : null,
                     enabled: ready && !_saving,
                   ),

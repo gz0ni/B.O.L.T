@@ -1,4 +1,5 @@
 import 'config_editor_screen.dart';
+import 'package:bolt/common/context.dart';
 import 'package:bolt/common/format.dart';
 import 'package:bolt/database/database.dart';
 import 'package:bolt/enum/enum.dart';
@@ -26,9 +27,14 @@ final managedKeysProvider = FutureProvider.family<List<String>?, int>((
 });
 
 class SubscriptionsScreen extends ConsumerStatefulWidget {
-  const SubscriptionsScreen({super.key, this.onClose});
+  const SubscriptionsScreen({
+    super.key,
+    this.onClose,
+    this.autoOpenAdd = false,
+  });
 
   final VoidCallback? onClose;
+  final bool autoOpenAdd;
 
   @override
   ConsumerState<SubscriptionsScreen> createState() =>
@@ -38,6 +44,16 @@ class SubscriptionsScreen extends ConsumerStatefulWidget {
 class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
   bool _updatingAll = false;
 
+  @override
+  void initState() {
+    super.initState();
+    if (widget.autoOpenAdd) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _showAddMenu();
+      });
+    }
+  }
+
   Future<void> _updateAll() async {
     if (_updatingAll) return;
     setState(() => _updatingAll = true);
@@ -45,7 +61,7 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
       await ref.read(profilesActionProvider.notifier).updateProfiles();
     } catch (e) {
       if (!mounted) return;
-      showBoltToast(context, 'Не удалось обновить: $e');
+      showBoltToast(context, context.appLocalizations.updateFailed('$e'));
     } finally {
       if (mounted) setState(() => _updatingAll = false);
     }
@@ -54,7 +70,7 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
   void _openEditor(Profile profile) {
     showBoltSheet<void>(
       context,
-      title: 'Конфигурация',
+      title: context.appLocalizations.configuration,
       heightFactor: 0.9,
       builder: (sheetContext) => ConfigEditorScreen(
         profileId: profile.id,
@@ -74,7 +90,7 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
           .updateProfile(profile, showLoading: true);
     } catch (e) {
       if (!mounted) return;
-      showBoltToast(context, 'Не удалось обновить: $e');
+      showBoltToast(context, context.appLocalizations.updateFailed('$e'));
     }
   }
 
@@ -92,8 +108,9 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
           final index = profiles.indexWhere((p) => p.id == profile.id);
           if (index == -1) return const SizedBox.shrink();
           final current = profiles[index];
-          final profilesAction =
-              consumerRef.read(profilesActionProvider.notifier);
+          final profilesAction = consumerRef.read(
+            profilesActionProvider.notifier,
+          );
           return Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -101,10 +118,12 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
               if (current.type == ProfileType.url) ...[
                 _MethodRow(
                   icon: Icons.autorenew,
-                  label: 'Автообновление',
+                  label: context.appLocalizations.autoUpdate,
                   description: current.autoUpdate
-                      ? 'Обновлять в фоне, каждые ${_intervalLabel(current.autoUpdateDuration)}'
-                      : 'Обновлять вручную',
+                      ? context.appLocalizations.backgroundUpdate(
+                          _intervalLabel(current.autoUpdateDuration),
+                        )
+                      : context.appLocalizations.manualUpdate,
                   onTap: () {},
                   trailing: BoltSwitch(
                     value: current.autoUpdate,
@@ -114,15 +133,15 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
                 ),
                 _MethodRow(
                   icon: Icons.schedule,
-                  label: 'Интервал обновления',
+                  label: context.appLocalizations.updateIntervalTitle,
                   description: _intervalLabel(current.autoUpdateDuration),
                   onTap: () => _showIntervalDialog(current),
                 ),
               ],
               _MethodRow(
                 icon: Icons.edit_outlined,
-                label: 'Переименовать',
-                description: 'Изменить отображаемое имя',
+                label: context.appLocalizations.rename,
+                description: context.appLocalizations.renameDesc,
                 onTap: () {
                   Navigator.of(context).pop();
                   _showRenameDialog(profile);
@@ -130,8 +149,8 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
               ),
               _MethodRow(
                 icon: Icons.delete_outline,
-                label: 'Удалить',
-                description: 'Удалить подписку с устройства',
+                label: context.appLocalizations.delete,
+                description: context.appLocalizations.deleteSubDesc,
                 danger: true,
                 onTap: () {
                   Navigator.of(context).pop();
@@ -146,32 +165,34 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
   }
 
   String _intervalLabel(Duration duration) {
-    if (duration.inMinutes == 30) return '30 минут';
-    if (duration.inHours == 1) return '1 час';
-    if (duration.inHours == 6) return '6 часов';
-    if (duration.inHours == 12) return '12 часов';
-    if (duration.inDays == 1) return '1 день';
-    if (duration.inDays == 3) return '3 дня';
-    if (duration.inDays == 7) return '7 дней';
-    if (duration.inDays > 1) return '${duration.inDays} дней';
-    if (duration.inHours > 1) return '${duration.inHours} часов';
-    return '${duration.inMinutes} минут';
+    final l = context.appLocalizations;
+    if (duration.inMinutes == 30) return l.minutes30;
+    if (duration.inHours == 1) return l.hour1;
+    if (duration.inHours == 6) return l.hour6;
+    if (duration.inHours == 12) return l.hour12;
+    if (duration.inDays == 1) return l.days1;
+    if (duration.inDays == 3) return l.days3;
+    if (duration.inDays == 7) return l.days7;
+    if (duration.inDays > 1) return l.daysCountLs(duration.inDays);
+    if (duration.inHours > 1) return l.hoursCount(duration.inHours);
+    return l.minutesCountLs(duration.inMinutes);
   }
 
   void _showIntervalDialog(Profile profile) {
     Navigator.of(context).pop();
-    const presets = <(Duration, String)>[
-      (Duration(minutes: 30), '30 минут'),
-      (Duration(hours: 1), '1 час'),
-      (Duration(hours: 6), '6 часов'),
-      (Duration(hours: 12), '12 часов'),
-      (Duration(days: 1), '1 день'),
-      (Duration(days: 3), '3 дня'),
-      (Duration(days: 7), '7 дней'),
+    final l = context.appLocalizations;
+    final presets = <(Duration, String)>[
+      (const Duration(minutes: 30), l.minutes30),
+      (const Duration(hours: 1), l.hour1),
+      (const Duration(hours: 6), l.hour6),
+      (const Duration(hours: 12), l.hour12),
+      (const Duration(days: 1), l.days1),
+      (const Duration(days: 3), l.days3),
+      (const Duration(days: 7), l.days7),
     ];
     showBoltDialog<void>(
       context,
-      title: 'Интервал обновления',
+      title: l.updateIntervalTitle,
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -183,8 +204,8 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
                   : Icons.schedule,
               label: label,
               description: duration == profile.autoUpdateDuration
-                  ? 'Текущий интервал'
-                  : 'Автообновление каждые $label',
+                  ? l.currentInterval
+                  : l.autoUpdateEvery(label),
               onTap: () {
                 Navigator.of(context).pop();
                 ref
@@ -198,10 +219,11 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
   }
 
   void _showRenameDialog(Profile profile) {
+    final l = context.appLocalizations;
     final controller = TextEditingController(text: profile.realLabel);
     showBoltDialog<void>(
       context,
-      title: 'Переименовать подписку',
+      title: l.renameSubscription,
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -209,7 +231,7 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
           BoltTextField(
             controller: controller,
             autofocus: true,
-            hint: 'Название',
+            hint: l.name,
             onSubmitted: (value) {
               if (value.trim().isEmpty) return;
               Navigator.of(context).pop();
@@ -222,11 +244,11 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
       ),
       actions: [
         BoltSecondaryButton(
-          label: 'Отмена',
+          label: l.cancel,
           onTap: () => Navigator.of(context).pop(),
         ),
         BoltPrimaryButton(
-          label: 'Переименовать',
+          label: l.rename,
           onTap: () {
             final label = controller.text.trim();
             if (label.isEmpty) return;
@@ -245,7 +267,7 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
     final text = data?.text?.trim();
     if (text == null || text.isEmpty) {
       if (!mounted) return;
-      showBoltToast(context, 'Буфер обмена пуст');
+      showBoltToast(context, context.appLocalizations.clipboardEmpty);
       return;
     }
     final profilesAction = ref.read(profilesActionProvider.notifier);
@@ -256,24 +278,25 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
         await profilesAction.addProfileFromText(text);
       } catch (e) {
         if (!mounted) return;
-        showBoltToast(context, 'Не удалось добавить: $e');
+        showBoltToast(context, context.appLocalizations.addFailed('$e'));
       }
     }
   }
 
   void _showAddMenu() {
     final profilesAction = ref.read(profilesActionProvider.notifier);
+    final l = context.appLocalizations;
     showBoltDialog<void>(
       context,
-      title: 'Добавить подписку',
+      title: l.addSubscription,
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _MethodRow(
             icon: Icons.link,
-            label: 'Ввести URL вручную',
-            description: 'Ссылка на подписку Remnawave',
+            label: l.enterUrlManually,
+            description: l.remnawaveSubscriptionLink,
             onTap: () {
               Navigator.of(context).pop();
               _showUrlDialog();
@@ -281,8 +304,8 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
           ),
           _MethodRow(
             icon: Icons.key,
-            label: 'Сырой ключ',
-            description: 'vless:// trojan:// ss:// — свои ключи',
+            label: l.rawKey,
+            description: l.rawKeyHint,
             onTap: () {
               Navigator.of(context).pop();
               _showRawKeyDialog();
@@ -290,8 +313,8 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
           ),
           _MethodRow(
             icon: Icons.content_paste,
-            label: 'Из буфера обмена',
-            description: 'Вставить скопированную ссылку или конфиг',
+            label: l.fromClipboard,
+            description: l.fromClipboardDesc,
             onTap: () {
               Navigator.of(context).pop();
               _addFromClipboard();
@@ -299,8 +322,8 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
           ),
           _MethodRow(
             icon: Icons.insert_drive_file_outlined,
-            label: 'Из файла',
-            description: 'Импорт .yaml / .yml / .json',
+            label: l.fromFile,
+            description: l.fromFileDesc,
             onTap: () {
               Navigator.of(context).pop();
               profilesAction.addProfileFormFile();
@@ -308,8 +331,8 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
           ),
           _MethodRow(
             icon: Icons.qr_code_2,
-            label: 'QR-код',
-            description: 'Сканировать камерой',
+            label: l.qrcode,
+            description: l.scanQrCode,
             onTap: () {
               Navigator.of(context).pop();
               profilesAction.addProfileFormQrCode();
@@ -321,10 +344,11 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
   }
 
   void _showUrlDialog() {
+    final l = context.appLocalizations;
     final controller = TextEditingController();
     showBoltDialog<void>(
       context,
-      title: 'Ссылка на подписку',
+      title: l.remnawaveSubscriptionLink,
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -345,11 +369,11 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
       ),
       actions: [
         BoltSecondaryButton(
-          label: 'Отмена',
+          label: l.cancel,
           onTap: () => Navigator.of(context).pop(),
         ),
         BoltPrimaryButton(
-          label: 'Добавить',
+          label: l.add,
           onTap: () {
             final url = controller.text.trim();
             if (url.isEmpty) return;
@@ -362,10 +386,11 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
   }
 
   void _showRawKeyDialog() {
+    final l = context.appLocalizations;
     final controller = TextEditingController();
     showBoltDialog<void>(
       context,
-      title: 'Сырой ключ',
+      title: l.rawKey,
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -386,7 +411,7 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
             },
           ),
           Text(
-            'vless:// trojan:// ss:// — свои ключи',
+            l.rawKeyHint,
             style: TextStyle(
               color: context.surfaces.text3,
               fontSize: AppFontSize.xs,
@@ -396,11 +421,11 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
       ),
       actions: [
         BoltSecondaryButton(
-          label: 'Отмена',
+          label: l.cancel,
           onTap: () => Navigator.of(context).pop(),
         ),
         BoltPrimaryButton(
-          label: 'Добавить',
+          label: l.add,
           onTap: () {
             final text = controller.text.trim();
             if (text.isEmpty) return;
@@ -423,7 +448,7 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
           .toList();
       if (links.isEmpty) {
         if (!dialogContext.mounted) return;
-        showBoltToast(dialogContext, 'Введите ключ');
+        showBoltToast(dialogContext, dialogContext.appLocalizations.enterKey);
         return;
       }
       try {
@@ -432,7 +457,10 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
             .addKeysToProfile(profile, links);
         if (!dialogContext.mounted) return;
         controller.clear();
-        showBoltToast(dialogContext, 'Добавлено ключей: ${links.length}');
+        showBoltToast(
+          dialogContext,
+          dialogContext.appLocalizations.keysAdded(links.length),
+        );
         ref.invalidate(managedKeysProvider(profile.id));
         await ref.read(managedKeysProvider(profile.id).future);
         if (!dialogContext.mounted) return;
@@ -446,7 +474,10 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
         });
       } catch (e) {
         if (!dialogContext.mounted) return;
-        showBoltToast(dialogContext, 'Не удалось добавить: $e');
+        showBoltToast(
+          dialogContext,
+          dialogContext.appLocalizations.addFailed('$e'),
+        );
       }
     }
 
@@ -463,13 +494,16 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
         ref.invalidate(managedKeysProvider(profile.id));
       } catch (e) {
         if (!dialogContext.mounted) return;
-        showBoltToast(dialogContext, 'Не удалось удалить: $e');
+        showBoltToast(
+          dialogContext,
+          dialogContext.appLocalizations.deleteFailed('$e'),
+        );
       }
     }
 
     showBoltDialog<void>(
       context,
-      title: 'Ключи — ${profile.realLabel}',
+      title: context.appLocalizations.keysTitle(profile.realLabel),
       content: SizedBox(
         width: 440,
         child: Consumer(
@@ -491,7 +525,7 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
                   Padding(
                     padding: const EdgeInsets.all(AppSpace.s3),
                     child: Text(
-                      'Ключей нет',
+                      context.appLocalizations.noKeys,
                       textAlign: TextAlign.center,
                       style: TextStyle(color: context.surfaces.text3),
                     ),
@@ -524,7 +558,7 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
                                 ),
                                 const SizedBox(width: AppSpace.s2),
                                 BoltIconButton(
-                                  tooltip: 'Удалить ключ',
+                                  tooltip: context.appLocalizations.deleteKey,
                                   compact: true,
                                   color: context.semanticColors.danger,
                                   danger: true,
@@ -542,7 +576,7 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
                 BoltTextField(
                   controller: controller,
                   maxLines: 3,
-                  hint: 'hysteria2://... vless://... trojan://...',
+                  hint: context.appLocalizations.enterKeyHint,
                   fontFamily: AppTheme.monoFontFamily,
                   onSubmitted: (_) => addKeys(context),
                 ),
@@ -553,11 +587,11 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
       ),
       actions: [
         BoltSecondaryButton(
-          label: 'Закрыть',
+          label: context.appLocalizations.close,
           onTap: () => Navigator.of(context).pop(),
         ),
         BoltPrimaryButton(
-          label: 'Добавить ключ',
+          label: context.appLocalizations.addKey,
           onTap: () => addKeys(context),
         ),
       ],
@@ -586,10 +620,10 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
             child: Row(
               children: [
                 Text(
-                  'Подписки',
+                  context.appLocalizations.subscriptions,
                   style: TextStyle(
-                    fontSize: AppFontSize.xl,
-                    fontWeight: FontWeight.w600,
+                    fontSize: AppFontSize.lg,
+                    fontWeight: FontWeight.w500,
                     color: surfaces.text1,
                     fontFamily: AppFontFamily.display,
                   ),
@@ -613,20 +647,20 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
                   )
                 else if (hasUpdatable)
                   BoltIconButton(
-                    tooltip: 'Обновить все подписки',
+                    tooltip: context.appLocalizations.updateAllSubs,
                     onTap: _updateAll,
                     icon: Icons.refresh,
                   ),
                 const SizedBox(width: AppSpace.s2),
                 BoltIconButton(
-                  tooltip: 'Добавить',
+                  tooltip: context.appLocalizations.add,
                   onTap: _showAddMenu,
                   icon: Icons.add,
                 ),
                 if (widget.onClose != null) ...[
                   const SizedBox(width: AppSpace.s2),
                   BoltIconButton(
-                    tooltip: 'Закрыть',
+                    tooltip: context.appLocalizations.close,
                     onTap: widget.onClose,
                     icon: Icons.close,
                   ),
@@ -638,7 +672,7 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
             child: profiles.isEmpty
                 ? Center(
                     child: Text(
-                      'Подписок пока нет',
+                      context.appLocalizations.noSubscriptions,
                       style: TextStyle(color: surfaces.text3),
                     ),
                   )
@@ -704,120 +738,145 @@ class _SubscriptionTile extends ConsumerWidget {
     final subtitle = profile.type == ProfileType.url
         ? profile.url
         : (keys.value != null
-              ? 'Ключи: ${keys.value!.length}'
-              : 'Локальный источник');
-    final usage = usageSummary(profile.subscriptionInfo);
+              ? context.appLocalizations.keysCount(keys.value!.length)
+              : context.appLocalizations.localSource);
+    final usageTooltipText = usageTooltip(profile.subscriptionInfo);
+    final info = profile.subscriptionInfo;
+    final used = info == null ? 0 : info.upload + info.download;
 
     return Material(
       color: surfaces.card,
       borderRadius: BorderRadius.circular(AppRadius.sm),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         borderRadius: BorderRadius.circular(AppRadius.sm),
         onTap: updating ? null : onTap,
         onSecondaryTap: updating ? null : onSecondaryTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppRadius.sm),
-            border: Border.all(color: surfaces.border),
-          ),
-          child: Row(
-            children: [
-              const BoltPillIcon(icon: Icons.dns_outlined),
-              const SizedBox(width: AppSpace.s3),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      profile.realLabel,
-                      style: TextStyle(
-                        color: surfaces.text1,
-                        fontSize: AppFontSize.md,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: surfaces.text2,
-                        fontSize: AppFontSize.sm,
-                      ),
-                    ),
-                    if (usage != null) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        usage,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: isActive ? semantic.on : surfaces.text3,
-                          fontFamily: AppTheme.monoFontFamily,
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w500,
+        child: Stack(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+                border: Border.all(color: surfaces.border),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.dns_outlined, size: 18, color: surfaces.text2),
+                  const SizedBox(width: AppSpace.s3),
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                profile.realLabel,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: surfaces.text1,
+                                  fontSize: AppFontSize.md,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: surfaces.text2,
+                            fontSize: AppFontSize.sm,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (updating)
+                    const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  else ...[
+                    if (usageTooltipText != null)
+                      BoltIconButton(
+                        tooltip: usageTooltipText,
+                        compact: true,
+                        onTap: null,
+                        icon: Icons.data_usage,
+                        size: 14,
+                        color: isActive ? semantic.on : null,
+                      ),
+                    if (onRefresh != null) ...[
+                      const SizedBox(width: 4),
+                      BoltIconButton(
+                        tooltip: context.appLocalizations.refresh,
+                        compact: true,
+                        onTap: onRefresh,
+                        icon: Icons.refresh,
+                        size: 14,
+                      ),
+                    ],
+                    if (onEdit != null) ...[
+                      const SizedBox(width: 4),
+                      BoltIconButton(
+                        tooltip: context.appLocalizations.editConfig,
+                        compact: true,
+                        onTap: onEdit,
+                        icon: Icons.edit,
+                        size: 14,
+                      ),
+                    ],
+                    if (profile.type == ProfileType.file &&
+                        keys.value != null &&
+                        onManageKeys != null) ...[
+                      const SizedBox(width: 4),
+                      BoltIconButton(
+                        tooltip: context.appLocalizations.keysList,
+                        compact: true,
+                        onTap: onManageKeys,
+                        icon: Icons.key,
+                        size: 14,
+                      ),
+                    ],
+                    if (onDelete != null) ...[
+                      const SizedBox(width: 4),
+                      BoltIconButton(
+                        tooltip: context.appLocalizations.delete,
+                        compact: true,
+                        color: semantic.danger,
+                        danger: true,
+                        onTap: onDelete,
+                        icon: Icons.delete_outline,
+                        size: 14,
                       ),
                     ],
                   ],
+                  const SizedBox(width: AppSpace.s2),
+                  BoltCheck(active: isActive),
+                ],
+              ),
+            ),
+            if (info != null)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: LinearProgressIndicator(
+                  value: info.total > 0 ? (used / info.total).clamp(0, 1) : 1.0,
+                  minHeight: 2,
+                  backgroundColor: surfaces.borderSoft,
+                  valueColor: AlwaysStoppedAnimation(semantic.on),
                 ),
               ),
-              if (updating)
-                const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              else ...[
-                if (onRefresh != null)
-                  BoltIconButton(
-                    tooltip: 'Обновить',
-                    compact: true,
-                    onTap: onRefresh,
-                    icon: Icons.refresh,
-                    size: 14,
-                  ),
-                if (onEdit != null) ...[
-                  const SizedBox(width: 4),
-                  BoltIconButton(
-                    tooltip: 'Редактировать конфиг',
-                    compact: true,
-                    onTap: onEdit,
-                    icon: Icons.edit,
-                    size: 14,
-                  ),
-                ],
-                if (profile.type == ProfileType.file &&
-                    keys.value != null &&
-                    onManageKeys != null) ...[
-                  const SizedBox(width: 4),
-                  BoltIconButton(
-                    tooltip: 'Ключи',
-                    compact: true,
-                    onTap: onManageKeys,
-                    icon: Icons.key,
-                    size: 14,
-                  ),
-                ],
-                if (onDelete != null) ...[
-                  const SizedBox(width: 4),
-                  BoltIconButton(
-                    tooltip: 'Удалить',
-                    compact: true,
-                    color: semantic.danger,
-                    danger: true,
-                    onTap: onDelete,
-                    icon: Icons.delete_outline,
-                    size: 14,
-                  ),
-                ],
-              ],
-              const SizedBox(width: AppSpace.s2),
-              BoltCheck(active: isActive),
-            ],
-          ),
+          ],
         ),
       ),
     );
@@ -879,7 +938,8 @@ class _MethodRow extends StatelessWidget {
                 ],
               ),
             ),
-            trailing ?? Icon(Icons.chevron_right, size: 16, color: surfaces.text3),
+            trailing ??
+                Icon(Icons.chevron_right, size: 16, color: surfaces.text3),
           ],
         ),
       ),

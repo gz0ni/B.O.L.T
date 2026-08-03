@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../common/context.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_tokens.dart';
 import '../widgets/bolt_controls.dart';
@@ -259,7 +260,7 @@ class _EditorButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final semantic = context.semanticColors;
     return Tooltip(
-      message: 'Изменить',
+      message: context.appLocalizations.edit,
       child: Material(
         color: semantic.onDim,
         shape: RoundedRectangleBorder(
@@ -303,13 +304,13 @@ class SettingsListEditor extends StatelessWidget {
     required this.title,
     required this.value,
     required this.onChanged,
-    this.hint = 'Значение',
+    this.hint,
   });
 
   final String title;
   final List<String> value;
   final ValueChanged<List<String>> onChanged;
-  final String hint;
+  final String? hint;
 
   @override
   Widget build(BuildContext context) {
@@ -322,6 +323,8 @@ class SettingsListEditor extends StatelessWidget {
   void _showListEditor(BuildContext context) {
     final items = List<String>.from(value);
     final controller = TextEditingController();
+    final local = context.appLocalizations;
+    final hintText = hint ?? local.value;
     showDialog<void>(
       context: context,
       builder: (dialogContext) {
@@ -352,7 +355,7 @@ class SettingsListEditor extends StatelessWidget {
                               key: item,
                               trailing: BoltIconButton(
                                 icon: Icons.close,
-                                tooltip: 'Удалить',
+                                tooltip: context.appLocalizations.delete,
                                 compact: true,
                                 color: context.semanticColors.danger,
                                 danger: true,
@@ -376,7 +379,7 @@ class SettingsListEditor extends StatelessWidget {
                     _dialogTextField(
                       context,
                       controller: controller,
-                      hint: hint,
+                      hint: hintText,
                       onSubmitted: (_) => add(),
                     ),
                   ],
@@ -385,14 +388,14 @@ class SettingsListEditor extends StatelessWidget {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(dialogContext).pop(),
-                  child: const Text('Отмена'),
+                  child: Text(context.appLocalizations.cancel),
                 ),
                 FilledButton(
                   onPressed: () {
                     Navigator.of(dialogContext).pop();
                     onChanged(items);
                   },
-                  child: const Text('Сохранить'),
+                  child: Text(context.appLocalizations.save),
                 ),
               ],
             );
@@ -409,15 +412,15 @@ class SettingsMapEditor extends StatelessWidget {
     required this.title,
     required this.value,
     required this.onChanged,
-    this.keyHint = 'Ключ',
-    this.valueHint = 'Значение',
+    this.keyHint,
+    this.valueHint,
   });
 
   final String title;
   final Map<String, String> value;
   final ValueChanged<Map<String, String>> onChanged;
-  final String keyHint;
-  final String valueHint;
+  final String? keyHint;
+  final String? valueHint;
 
   @override
   Widget build(BuildContext context) {
@@ -431,6 +434,9 @@ class SettingsMapEditor extends StatelessWidget {
     final items = Map<String, String>.from(value);
     final keyController = TextEditingController();
     final valueController = TextEditingController();
+    final local = context.appLocalizations;
+    final keyHintText = keyHint ?? local.key;
+    final valueHintText = valueHint ?? local.value;
     showDialog<void>(
       context: context,
       builder: (dialogContext) {
@@ -463,7 +469,7 @@ class SettingsMapEditor extends StatelessWidget {
                               key: entry.key,
                               trailing: BoltIconButton(
                                 icon: Icons.close,
-                                tooltip: 'Удалить',
+                                tooltip: context.appLocalizations.delete,
                                 compact: true,
                                 color: context.semanticColors.danger,
                                 onTap: () {
@@ -491,7 +497,7 @@ class SettingsMapEditor extends StatelessWidget {
                           child: _dialogTextField(
                             context,
                             controller: keyController,
-                            hint: keyHint,
+                            hint: keyHintText,
                           ),
                         ),
                         const SizedBox(width: AppSpace.s2),
@@ -499,13 +505,13 @@ class SettingsMapEditor extends StatelessWidget {
                           child: _dialogTextField(
                             context,
                             controller: valueController,
-                            hint: valueHint,
+                            hint: valueHintText,
                           ),
                         ),
                         const SizedBox(width: AppSpace.s1),
                         BoltIconButton(
                           icon: Icons.add,
-                          tooltip: 'Добавить',
+                          tooltip: context.appLocalizations.add,
                           compact: true,
                           onTap: add,
                         ),
@@ -517,14 +523,14 @@ class SettingsMapEditor extends StatelessWidget {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(dialogContext).pop(),
-                  child: const Text('Отмена'),
+                  child: Text(context.appLocalizations.cancel),
                 ),
                 FilledButton(
                   onPressed: () {
                     Navigator.of(dialogContext).pop();
                     onChanged(items);
                   },
-                  child: const Text('Сохранить'),
+                  child: Text(context.appLocalizations.save),
                 ),
               ],
             );
@@ -602,7 +608,7 @@ class SettingsPortsEditor extends StatelessWidget {
         }
 
         return AlertDialog(
-          title: const Text('Порты'),
+          title: Text(context.appLocalizations.ports),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -616,7 +622,7 @@ class SettingsPortsEditor extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Отмена'),
+              child: Text(context.appLocalizations.cancel),
             ),
             FilledButton(
               onPressed: () {
@@ -629,7 +635,7 @@ class SettingsPortsEditor extends StatelessWidget {
                   int.tryParse(tproxy.text.trim()) ?? 0,
                 );
               },
-              child: const Text('Сохранить'),
+              child: Text(context.appLocalizations.save),
             ),
           ],
         );

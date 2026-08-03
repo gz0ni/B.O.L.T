@@ -6,6 +6,7 @@ import 'package:bolt/core/core.dart';
 import 'package:bolt/enum/enum.dart';
 import 'package:bolt/models/models.dart';
 import 'package:bolt/providers/providers.dart';
+import 'package:bolt/state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -52,10 +53,15 @@ class _AppShellState extends ConsumerState<AppShell> {
     );
   }
 
-  void _openSubscriptions() =>
-      _openSheet(SubscriptionsScreen(onClose: () => Navigator.of(context).pop()));
+  void _openSubscriptions({bool autoOpenAdd = false}) => _openSheet(
+    SubscriptionsScreen(
+      onClose: () => Navigator.of(context).pop(),
+      autoOpenAdd: autoOpenAdd,
+    ),
+  );
 
-  void _openLogs() => _openSheet(LogsScreen(onClose: () => Navigator.of(context).pop()));
+  void _openLogs() =>
+      _openSheet(LogsScreen(onClose: () => Navigator.of(context).pop()));
 
   void _openSettings() =>
       _openSheet(SettingsScreen(onClose: () => Navigator.of(context).pop()));
@@ -63,7 +69,10 @@ class _AppShellState extends ConsumerState<AppShell> {
   void _openConfigEditor() {
     final profile = ref.read(currentProfileProvider);
     if (profile == null) {
-      showBoltToast(context, 'Сначала активируйте подписку');
+      showBoltToast(
+        context,
+        context.appLocalizations.activateSubscriptionFirst,
+      );
       return;
     }
     _openSheet(
@@ -71,7 +80,7 @@ class _AppShellState extends ConsumerState<AppShell> {
         profileId: profile.id,
         onClose: () => Navigator.of(context).pop(),
       ),
-      title: 'Конфигурация',
+      title: context.appLocalizations.configuration,
     );
   }
 
@@ -93,6 +102,8 @@ class _AppShellState extends ConsumerState<AppShell> {
                     onOpenSettings: _openSettings,
                     onOpenSubscriptions: _openSubscriptions,
                     onOpenConfigEditor: _openConfigEditor,
+                    onAddSubscription: () =>
+                        _openSubscriptions(autoOpenAdd: true),
                   ),
                 ),
               ],
@@ -177,7 +188,6 @@ class _LocationsSidebarState extends ConsumerState<_LocationsSidebar> {
   @override
   Widget build(BuildContext context) {
     final surfaces = context.surfaces;
-    final semantic = context.semanticColors;
 
     final groups = ref.watch(currentGroupsStateProvider).value;
     final group = _resolvePreferredGroup(groups);
@@ -185,9 +195,13 @@ class _LocationsSidebarState extends ConsumerState<_LocationsSidebar> {
     var nodes = group?.all ?? const <Proxy>[];
     // Служебные/вложенные группы-обёртки внутри all — оставляем только
     // реальные ноды (без вложенных Selector/URLTest записей).
-    nodes = nodes.where((p) => p.type != 'Selector' && p.type != 'URLTest').toList();
+    nodes = nodes
+        .where((p) => p.type != 'Selector' && p.type != 'URLTest')
+        .toList();
     if (_query.isNotEmpty) {
-      nodes = nodes.where((n) => n.name.toLowerCase().contains(_query)).toList();
+      nodes = nodes
+          .where((n) => n.name.toLowerCase().contains(_query))
+          .toList();
     }
     nodes.sort((a, b) {
       final favA = _favorites.contains(a.name) ? 0 : 1;
@@ -206,10 +220,22 @@ class _LocationsSidebarState extends ConsumerState<_LocationsSidebar> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(AppSpace.s4, AppSpace.s5, AppSpace.s4, AppSpace.s2),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpace.s4,
+              AppSpace.s5,
+              AppSpace.s4,
+              AppSpace.s2,
+            ),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
               children: [
-                Icon(Icons.bolt, color: semantic.on, size: 22),
+                Image.asset(
+                  'assets/images/icon.png',
+                  width: 22,
+                  height: 22,
+                  fit: BoxFit.contain,
+                ),
                 const SizedBox(width: AppSpace.s2),
                 Text(
                   'B.O.L.T',
@@ -217,6 +243,16 @@ class _LocationsSidebarState extends ConsumerState<_LocationsSidebar> {
                     color: surfaces.text1,
                     fontWeight: FontWeight.w700,
                     fontSize: AppFontSize.lg,
+                  ),
+                ),
+                const SizedBox(width: AppSpace.s1),
+                Text(
+                  'v${globalState.packageInfo.version}'
+                  '${globalState.isPre ? '-beta' : ''}',
+                  style: TextStyle(
+                    color: surfaces.text3,
+                    fontSize: AppFontSize.xs,
+                    fontWeight: FontWeight.w400,
                   ),
                 ),
               ],
@@ -227,7 +263,7 @@ class _LocationsSidebarState extends ConsumerState<_LocationsSidebar> {
             child: Row(
               children: [
                 Text(
-                  'ЛОКАЦИИ',
+                  context.appLocalizations.locations,
                   style: TextStyle(
                     fontSize: 11,
                     letterSpacing: 0.8,
@@ -248,7 +284,7 @@ class _LocationsSidebarState extends ConsumerState<_LocationsSidebar> {
                     : BoltIconButton(
                         icon: Icons.bolt,
                         compact: true,
-                        tooltip: 'Проверить задержку всех серверов',
+                        tooltip: context.appLocalizations.testAllServers,
                         onTap: () => _testAllDelays(nodes, group?.testUrl),
                       ),
               ],
@@ -261,8 +297,11 @@ class _LocationsSidebarState extends ConsumerState<_LocationsSidebar> {
               controller: _searchController,
               style: TextStyle(color: surfaces.text1, fontSize: AppFontSize.sm),
               decoration: InputDecoration(
-                hintText: 'Поиск локации...',
-                hintStyle: TextStyle(color: surfaces.text3, fontSize: AppFontSize.sm),
+                hintText: context.appLocalizations.searchLocations,
+                hintStyle: TextStyle(
+                  color: surfaces.text3,
+                  fontSize: AppFontSize.sm,
+                ),
                 prefixIcon: Icon(Icons.search, size: 18, color: surfaces.text3),
                 filled: true,
                 fillColor: surfaces.card2,
@@ -278,8 +317,10 @@ class _LocationsSidebarState extends ConsumerState<_LocationsSidebar> {
           Expanded(
             child: group == null
                 ? Center(
-                    child: Text('Нет доступных локаций',
-                        style: TextStyle(color: surfaces.text3)),
+                    child: Text(
+                      context.appLocalizations.noLocationsAvailable,
+                      style: TextStyle(color: surfaces.text3),
+                    ),
                   )
                 : Scrollbar(
                     thumbVisibility: true,
@@ -349,7 +390,9 @@ class _LocationTile extends ConsumerWidget {
     final surfaces = context.surfaces;
     final semantic = context.semanticColors;
 
-    final delayMs = ref.watch(delayProvider(proxyName: node.name, testUrl: testUrl));
+    final delayMs = ref.watch(
+      delayProvider(proxyName: node.name, testUrl: testUrl),
+    );
 
     Color pingColor() {
       if (delayMs == null) return surfaces.text3;
@@ -376,7 +419,10 @@ class _LocationTile extends ConsumerWidget {
               .updateCurrentGroupName(groupName);
         },
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpace.s3, vertical: AppSpace.s2),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpace.s3,
+            vertical: AppSpace.s2,
+          ),
           child: Row(
             children: [
               Expanded(
@@ -388,10 +434,18 @@ class _LocationTile extends ConsumerWidget {
                       style: TextStyle(
                         color: surfaces.text1,
                         fontSize: AppFontSize.sm,
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.w400,
                       ),
                     ),
-                    Text(node.type, style: TextStyle(color: surfaces.text3, fontSize: AppFontSize.xs)),
+                    Text(
+                      node.type,
+                      style: TextStyle(
+                        color: surfaces.text3,
+                        fontSize: AppFontSize.xs,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -414,14 +468,15 @@ class _LocationTile extends ConsumerWidget {
                               height: 14,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                valueColor:
-                                    AlwaysStoppedAnimation(semantic.on),
+                                valueColor: AlwaysStoppedAnimation(semantic.on),
                               ),
                             )
                           : Text(
                               delayMs == null
                                   ? '...'
-                                  : (delayMs <= 0 ? 'timeout' : '$delayMs мс'),
+                                  : (delayMs <= 0
+                                        ? 'n/a'
+                                        : '$delayMs мс'),
                               key: ValueKey(delayMs ?? -1),
                               style: TextStyle(
                                 color: pingColor(),
@@ -435,7 +490,9 @@ class _LocationTile extends ConsumerWidget {
               BoltIconButton(
                 icon: isFavorite ? Icons.star : Icons.star_border,
                 compact: true,
-                tooltip: isFavorite ? 'Убрать из избранного' : 'В избранное',
+                tooltip: isFavorite
+                    ? context.appLocalizations.removeFromFavorites
+                    : context.appLocalizations.addToFavorites,
                 color: isFavorite ? semantic.connecting : surfaces.text3,
                 onTap: onFavoriteTap,
               ),
@@ -508,8 +565,7 @@ class _MarqueeTextState extends State<_MarqueeText>
             style: widget.style,
           );
         }
-        final distance =
-            painter.width + AppSpace.s4 - constraints.maxWidth;
+        final distance = painter.width + AppSpace.s4 - constraints.maxWidth;
         _controller.duration = Duration(
           milliseconds: (700 + painter.width / 3).clamp(1200, 3500).round(),
         );
@@ -560,20 +616,26 @@ class _MainArea extends ConsumerWidget {
     required this.onOpenSettings,
     required this.onOpenSubscriptions,
     required this.onOpenConfigEditor,
+    required this.onAddSubscription,
   });
 
   final VoidCallback onOpenLogs;
   final VoidCallback onOpenSettings;
   final VoidCallback onOpenSubscriptions;
   final VoidCallback onOpenConfigEditor;
+  final VoidCallback onAddSubscription;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final surfaces = context.surfaces;
     final semantic = context.semanticColors;
+    final l = context.appLocalizations;
 
     final isStart = ref.watch(isStartProvider);
     final currentProfile = ref.watch(currentProfileProvider);
+    final hasProfiles = ref.watch(
+      profilesProvider.select((state) => state.isNotEmpty),
+    );
     final currentGroup = _resolvePreferredGroup(
       ref.watch(currentGroupsStateProvider).value,
     );
@@ -583,8 +645,8 @@ class _MainArea extends ConsumerWidget {
 
     final status = !isStart
         ? (ref.watch(isTransitioningProvider)
-            ? ConnectionStatus.connecting
-            : ConnectionStatus.idle)
+              ? ConnectionStatus.connecting
+              : ConnectionStatus.idle)
         : ConnectionStatus.on;
 
     return Container(
@@ -596,61 +658,161 @@ class _MainArea extends ConsumerWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                BoltIconButton(icon: Icons.terminal, tooltip: 'Логи ядра', onTap: onOpenLogs),
+                BoltIconButton(
+                  icon: Icons.terminal,
+                  tooltip: l.logs,
+                  onTap: onOpenLogs,
+                ),
                 const SizedBox(width: AppSpace.s2),
-                BoltIconButton(icon: Icons.code, tooltip: 'Редактор конфига', onTap: onOpenConfigEditor),
+                BoltIconButton(
+                  icon: Icons.code,
+                  tooltip: context.appLocalizations.configEditor,
+                  onTap: onOpenConfigEditor,
+                ),
                 const SizedBox(width: AppSpace.s2),
-                BoltIconButton(icon: Icons.settings, tooltip: 'Настройки', onTap: onOpenSettings),
+                BoltIconButton(
+                  icon: Icons.settings,
+                  tooltip: l.settings,
+                  onTap: onOpenSettings,
+                ),
               ],
             ),
           ),
           const Spacer(),
-          PowerButton(
-            status: status,
-            onTap: () => ref.read(commonActionProvider.notifier).updateStart(),
-          ),
-          const SizedBox(height: AppSpace.s6),
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 150),
-            switchInCurve: AppMotion.ease,
-            switchOutCurve: Curves.easeOut,
-            transitionBuilder: (child, animation) =>
-                FadeTransition(opacity: animation, child: child),
-            child: Text(
-              isStart ? 'Подключено' : 'Отключено',
-              key: ValueKey(isStart),
+          if (hasProfiles) ...[
+            PowerButton(
+              status: status,
+              onTap: () =>
+                  ref.read(commonActionProvider.notifier).updateStart(),
+            ),
+            const SizedBox(height: AppSpace.s6),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 150),
+              switchInCurve: AppMotion.ease,
+              switchOutCurve: Curves.easeOut,
+              transitionBuilder: (child, animation) =>
+                  FadeTransition(opacity: animation, child: child),
+              child: Text(
+                isStart ? l.connected : l.disconnected,
+                key: ValueKey(isStart),
+                style: TextStyle(
+                  fontSize: AppFontSize.xl,
+                  fontWeight: FontWeight.w600,
+                  color: isStart ? semantic.on : surfaces.text1,
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSpace.s2),
+            AnimatedSwitcher(
+              duration: AppMotion.base,
+              switchInCurve: AppMotion.ease,
+              switchOutCurve: Curves.easeOut,
+              transitionBuilder: (child, animation) =>
+                  FadeTransition(opacity: animation, child: child),
+              child: Text(
+                isStart
+                    ? (currentSelected?.isNotEmpty == true
+                          ? currentSelected!
+                          : '—')
+                    : l.pressToConnect,
+                key: ValueKey(isStart ? currentSelected : 'idle'),
+                style: TextStyle(
+                  color: surfaces.text3,
+                  fontSize: AppFontSize.sm,
+                  fontFamily: 'monospace',
+                ),
+              ),
+            ),
+          ] else ...[
+            _AddSubscriptionButton(onTap: onAddSubscription),
+            const SizedBox(height: AppSpace.s6),
+            Text(
+              l.addSubscription,
+              textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: AppFontSize.xl,
                 fontWeight: FontWeight.w600,
-                color: isStart ? semantic.on : surfaces.text1,
+                color: surfaces.text1,
               ),
             ),
-          ),
-          const SizedBox(height: AppSpace.s2),
-          AnimatedSwitcher(
-            duration: AppMotion.base,
-            switchInCurve: AppMotion.ease,
-            switchOutCurve: Curves.easeOut,
-            transitionBuilder: (child, animation) => FadeTransition(
-              opacity: animation,
-              child: child,
-            ),
-            child: Text(
-              isStart
-                  ? (currentSelected?.isNotEmpty == true ? currentSelected! : '—')
-                  : 'Нажмите, чтобы подключиться',
-              key: ValueKey(isStart ? currentSelected : 'idle'),
+            const SizedBox(height: AppSpace.s2),
+            Text(
+              l.pressToAddConfig,
+              textAlign: TextAlign.center,
               style: TextStyle(
                 color: surfaces.text3,
                 fontSize: AppFontSize.sm,
                 fontFamily: 'monospace',
               ),
             ),
-          ),
+          ],
           const Spacer(),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(AppSpace.s4, 0, AppSpace.s4, AppSpace.s3),
-            child: _UsageCard(profile: currentProfile, onTap: onOpenSubscriptions),
+          if (hasProfiles)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpace.s4,
+                0,
+                AppSpace.s4,
+                AppSpace.s3,
+              ),
+              child: SizedBox(
+                width: double.infinity,
+                child: _UsageCard(
+                  profile: currentProfile,
+                  onTap: onOpenSubscriptions,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Кнопка «+» на месте кнопки питания, когда конфигов нет вообще.
+class _AddSubscriptionButton extends StatelessWidget {
+  const _AddSubscriptionButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final surfaces = context.surfaces;
+    final semantic = context.semanticColors;
+    return SizedBox(
+      width: 208,
+      height: 208,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          GestureDetector(
+            onTap: onTap,
+            child: AnimatedContainer(
+              duration: AppMotion.slow,
+              curve: AppMotion.ease,
+              width: 164,
+              height: 164,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  center: const Alignment(-0.36, -0.44),
+                  radius: 0.9,
+                  colors: [surfaces.card2, surfaces.card],
+                  stops: const [0.0, 0.7],
+                ),
+                border: Border.all(color: surfaces.border),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x99000000),
+                    blurRadius: 40,
+                    offset: Offset(0, 20),
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Icon(Icons.add, size: 54, color: semantic.on),
+              ),
+            ),
           ),
         ],
       ),
@@ -689,6 +851,7 @@ class _StatsPanelState extends ConsumerState<_StatsPanel> {
   @override
   Widget build(BuildContext context) {
     final surfaces = context.surfaces;
+    final l = context.appLocalizations;
     final isStart = ref.watch(isStartProvider);
     final traffic = ref.watch(trafficsProvider).list.safeLast(const Traffic());
     final runTime = ref.watch(runTimeProvider);
@@ -701,7 +864,7 @@ class _StatsPanelState extends ConsumerState<_StatsPanel> {
         children: [
           Expanded(
             child: _StatCard(
-              label: 'Приём',
+              label: l.statReceive,
               value: isStart ? '${traffic.down.traffic.show}/s' : '—',
               dimmed: !isStart,
             ),
@@ -709,7 +872,7 @@ class _StatsPanelState extends ConsumerState<_StatsPanel> {
           const SizedBox(width: AppSpace.s2),
           Expanded(
             child: _StatCard(
-              label: 'Отдача',
+              label: l.statTransmit,
               value: isStart ? '${traffic.up.traffic.show}/s' : '—',
               dimmed: !isStart,
             ),
@@ -717,7 +880,7 @@ class _StatsPanelState extends ConsumerState<_StatsPanel> {
           const SizedBox(width: AppSpace.s2),
           Expanded(
             child: _StatCard(
-              label: 'Время',
+              label: l.statTime,
               value: isStart ? _formatRunTime(runTime) : '—',
               dimmed: !isStart,
             ),
@@ -756,91 +919,72 @@ class _UsageCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final surfaces = context.surfaces;
     final semantic = context.semanticColors;
+    final l = context.appLocalizations;
     final info = profile?.subscriptionInfo;
-    final daysLeft = subscriptionDaysLeft(info);
     final used = info == null ? 0 : info.upload + info.download;
+    final usageTooltipText = usageTooltip(info);
 
     return Material(
       color: surfaces.card,
       borderRadius: BorderRadius.circular(AppRadius.sm),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         borderRadius: BorderRadius.circular(AppRadius.sm),
         onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpace.s3),
-          child: Row(
-            children: [
-              Icon(Icons.sim_card_outlined, size: 20, color: surfaces.text2),
-              const SizedBox(width: AppSpace.s3),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            profile?.label.isNotEmpty == true
-                                ? profile!.label
-                                : 'Нет активной подписки',
-                            style: TextStyle(
-                              color: surfaces.text1,
-                              fontSize: AppFontSize.sm,
-                            ),
-                          ),
-                        ),
-                        if (daysLeft != null)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpace.s2,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: daysLeft >= 0
-                                  ? semantic.on.withValues(alpha: 0.15)
-                                  : semantic.danger.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: Text(
-                              daysLeft >= 0 ? 'Осталось $daysLeft дн.' : 'Истекла',
-                              style: TextStyle(
-                                color: daysLeft >= 0
-                                    ? semantic.on
-                                    : semantic.danger,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                      ],
+        child: Stack(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(AppSpace.s3),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.sim_card_outlined,
+                    size: 18,
+                    color: surfaces.text2,
+                  ),
+                  const SizedBox(width: AppSpace.s3),
+                  Expanded(
+                    child: Text(
+                      profile?.label.isNotEmpty == true
+                          ? profile!.label
+                          : l.noActiveSubscription,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: surfaces.text1,
+                        fontSize: AppFontSize.sm,
+                      ),
                     ),
-                    if (info != null && info.total > 0) ...[
-                      const SizedBox(height: 6),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(2),
-                        child: LinearProgressIndicator(
-                          value: (used / info.total).clamp(0, 1),
-                          minHeight: 3,
-                          backgroundColor: surfaces.card2,
-                          valueColor: AlwaysStoppedAnimation(semantic.on),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${formatSize(used)} из ${formatSize(info.total)}',
-                        style: TextStyle(
-                          color: surfaces.text3,
-                          fontSize: 10,
-                        ),
-                      ),
-                    ],
+                  ),
+                  if (profile?.type == ProfileType.url) ...[
+                    const SizedBox(width: AppSpace.s2),
+                    BoltIconButton(
+                      tooltip: usageTooltipText ?? l.noTrafficData,
+                      compact: true,
+                      onTap: null,
+                      icon: Icons.data_usage,
+                      size: 15,
+                      color: surfaces.text3,
+                    ),
                   ],
+                  const SizedBox(width: AppSpace.s2),
+                  Icon(Icons.chevron_right, size: 16, color: surfaces.text3),
+                ],
+              ),
+            ),
+            if (info != null && (info.total > 0 || used > 0))
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: LinearProgressIndicator(
+                  value: info.total > 0 ? (used / info.total).clamp(0, 1) : 1.0,
+                  minHeight: 2,
+                  backgroundColor: surfaces.borderSoft,
+                  valueColor: AlwaysStoppedAnimation(semantic.on),
                 ),
               ),
-              const SizedBox(width: AppSpace.s2),
-              Icon(Icons.chevron_right, size: 18, color: surfaces.text3),
-            ],
-          ),
+          ],
         ),
       ),
     );
@@ -866,6 +1010,7 @@ class _StatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final surfaces = context.surfaces;
     final semantic = context.semanticColors;
+    final l = context.appLocalizations;
     final content = Padding(
       padding: const EdgeInsets.symmetric(vertical: AppSpace.s3),
       child: Column(
@@ -923,12 +1068,9 @@ class _StatCard extends StatelessWidget {
         side: BorderSide(color: surfaces.border),
       ),
       clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onCopy,
-        child: content,
-      ),
+      child: InkWell(onTap: onCopy, child: content),
     );
     if (onCopy == null) return card;
-    return Tooltip(message: 'Скопировать IP', child: card);
+    return Tooltip(message: l.copyIp, child: card);
   }
 }

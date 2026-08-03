@@ -1,13 +1,17 @@
+import 'package:bolt/common/common.dart';
 import 'package:bolt/enum/enum.dart';
 import 'package:bolt/models/models.dart';
 import 'package:bolt/providers/providers.dart';
+import 'package:bolt/state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../theme/app_theme.dart';
 import '../theme/app_tokens.dart';
 import '../widgets/bolt_controls.dart';
 import '../widgets/bolt_icon_button.dart';
+import '../widgets/bolt_surfaces.dart';
 import 'settings_widgets.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -20,15 +24,18 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  static const _categories = [
-    'Основное',
-    'Приложение',
-    'Ядро · mihomo',
-    'DNS',
-    'Сеть',
-  ];
-
   int _category = 0;
+
+  List<String> _categories() {
+    final l = context.appLocalizations;
+    return [
+      l.mainCategory,
+      l.application,
+      l.coreCategory,
+      l.dnsCategory,
+      l.networkCategory,
+    ];
+  }
 
   void _changeMode(Mode mode) {
     ref.read(setupActionProvider.notifier).changeMode(mode);
@@ -49,6 +56,94 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     ref.read(appSettingProvider.notifier).update(update);
   }
 
+  void _openAbout() {
+    final l = context.appLocalizations;
+    showBoltSheet<void>(
+      context,
+      title: l.about,
+      heightFactor: 0.8,
+      builder: (sheetContext) => ListView(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpace.s4,
+          AppSpace.s4,
+          AppSpace.s4,
+          AppSpace.s4,
+        ),
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: AppSpace.s3),
+            child: Column(
+              children: [
+                ClipOval(
+                  child: Image.asset(
+                    'assets/images/avatar/about.jpg',
+                    width: 72,
+                    height: 72,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                const SizedBox(height: AppSpace.s2),
+                Text(
+                  'B.O.L.T',
+                  style: TextStyle(
+                    color: sheetContext.surfaces.text1,
+                    fontWeight: FontWeight.w700,
+                    fontSize: AppFontSize.lg,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'v${globalState.packageInfo.version}'
+                  '${globalState.isPre ? '-beta' : ''}',
+                  style: TextStyle(
+                    color: sheetContext.surfaces.text3,
+                    fontSize: AppFontSize.xs,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SettingsRow(
+            title: l.author,
+            trailing: Text(
+              'gz0ni',
+              style: TextStyle(
+                color: sheetContext.surfaces.text1,
+                fontSize: AppFontSize.md,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          SettingsRow(
+            title: 'GitHub',
+            description: 'github.com/$repository',
+            trailing: BoltIconButton(
+              icon: Icons.open_in_new,
+              tooltip: l.openRepository,
+              onTap: () =>
+                  launchUrl(Uri.parse('https://github.com/$repository')),
+            ),
+          ),
+          SettingsRow(
+            title: l.update,
+            description: l.checkUpdatesDesc,
+            trailing: BoltMiniButton(
+              label: l.checkUpdates,
+              onTap: _checkUpdate,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _checkUpdate() async {
+    final data = await request.checkForUpdate();
+    await ref
+        .read(commonActionProvider.notifier)
+        .checkUpdateResultHandle(data: data, isUser: true);
+  }
+
   @override
   Widget build(BuildContext context) {
     final surfaces = context.surfaces;
@@ -66,14 +161,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             padding: const EdgeInsets.fromLTRB(
               AppSpace.s4,
               AppSpace.s4,
-              AppSpace.s2,
+              AppSpace.s4,
               0,
             ),
             child: Row(
               children: [
                 Expanded(
                   child: Text(
-                    'Настройки',
+                    context.appLocalizations.settings,
                     style: TextStyle(
                       fontFamily: AppFontFamily.display,
                       fontSize: AppFontSize.lg,
@@ -85,7 +180,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 if (widget.onClose != null)
                   BoltIconButton(
                     icon: Icons.close,
-                    tooltip: 'Закрыть',
+                    tooltip: context.appLocalizations.close,
                     onTap: widget.onClose,
                   ),
               ],
@@ -100,10 +195,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
             child: BoltSegmented<int>(
               expanded: true,
-              options: [
-                for (var i = 0; i < _categories.length; i++)
-                  BoltSegmentedOption(i, _categories[i]),
-              ],
+              options: _categories()
+                  .asMap()
+                  .entries
+                  .map((e) => BoltSegmentedOption(e.key, e.value))
+                  .toList(),
               value: _category,
               onChanged: (v) => setState(() => _category = v),
             ),
@@ -119,7 +215,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 children: [
                   if (_category == 0)
-                    ..._quickRows(patchConfig, network, themeProps),
+                    ..._quickRows(patchConfig, network, themeProps, appSetting),
                   if (_category == 1) ..._appRows(appSetting, themeProps),
                   if (_category == 2) ..._coreRows(patchConfig, appSetting),
                   if (_category == 3) ..._dnsRows(patchConfig),
@@ -135,18 +231,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   SettingsRow _modeRow(PatchClashConfig patchConfig) {
+    final l = context.appLocalizations;
     return SettingsRow(
-      title: 'Режим маршрутизации',
-      help:
-          'Правила — трафик по правилам конфига; Глобальный — весь '
-          'трафик через прокси; Прямой — без прокси.',
+      title: l.routeMode,
+      help: l.routeModeHelp,
       trailing: SettingsSegmented<Mode>(
         options: Mode.values,
         value: patchConfig.mode,
-        labels: const {
-          Mode.rule: 'Правила',
-          Mode.global: 'Глобальный',
-          Mode.direct: 'Прямой',
+        labels: {
+          Mode.rule: l.routeModeRule,
+          Mode.global: l.routeModeGlobal,
+          Mode.direct: l.routeModeDirect,
         },
         onChanged: _changeMode,
       ),
@@ -154,16 +249,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   SettingsRow _tunRow(PatchClashConfig patchConfig) {
+    final l = context.appLocalizations;
     final semantic = context.semanticColors;
     final surfaces = context.surfaces;
     final tunEnable = ref.watch(realTunEnableProvider);
     final coreConnected = ref.watch(coreStatusProvider) == CoreStatus.connected;
     final running = tunEnable && coreConnected;
     return SettingsRow(
-      title: 'TUN-режим',
-      description:
-          'Перехват всего системного трафика через виртуальный адаптер. '
-          'При включении ядро запросит права администратора.',
+      title: l.tunMode,
+      description: l.tunModeDesc,
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -177,7 +271,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
           const SizedBox(width: AppSpace.s1),
           Text(
-            running ? 'Работает' : 'Остановлен',
+            running ? l.running : l.stopped,
             style: TextStyle(
               fontSize: AppFontSize.xs,
               fontWeight: FontWeight.w600,
@@ -196,9 +290,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   SettingsRow _systemProxyRow(NetworkProps network) {
+    final l = context.appLocalizations;
     return SettingsRow(
-      title: 'Системный прокси',
-      description: 'Проксировать системный трафик через mixed-порт ядра',
+      title: l.systemProxy,
+      description: l.systemProxyForkDesc,
       trailing: SettingsSwitch(
         value: network.systemProxy,
         onChanged: (v) => ref
@@ -209,15 +304,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   SettingsRow _themeRow(ThemeProps themeProps) {
+    final l = context.appLocalizations;
     return SettingsRow(
-      title: 'Тема',
+      title: l.theme,
       trailing: SettingsSegmented<ThemeMode>(
         options: const [ThemeMode.dark, ThemeMode.light, ThemeMode.system],
         value: themeProps.themeMode,
-        labels: const {
-          ThemeMode.dark: 'Тёмная',
-          ThemeMode.light: 'Светлая',
-          ThemeMode.system: 'Авто',
+        labels: {
+          ThemeMode.dark: l.dark,
+          ThemeMode.light: l.light,
+          ThemeMode.system: l.auto,
         },
         onChanged: (v) => ref
             .read(themeSettingProvider.notifier)
@@ -226,16 +322,117 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
+  String _languageLabel(String? locale) {
+    switch (locale) {
+      case 'ru':
+        return 'Русский';
+      case 'en':
+        return 'English';
+      default:
+        return context.appLocalizations.languageSystem;
+    }
+  }
+
+  void _openLanguage() {
+    final l = context.appLocalizations;
+    final current = ref.read(appSettingProvider).locale;
+    void select(String? value) {
+      ref
+          .read(appSettingProvider.notifier)
+          .update((state) => state.copyWith(locale: value));
+    }
+
+    showBoltSheet<void>(
+      context,
+      title: l.language,
+      builder: (sheetContext) {
+        final surfaces = sheetContext.surfaces;
+        Widget option(String label, String? value) {
+          final selected = current == value;
+          return InkWell(
+            onTap: () {
+              Navigator.of(sheetContext).pop();
+              select(value);
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpace.s4,
+                vertical: AppSpace.s3,
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                        color: surfaces.text1,
+                        fontSize: AppFontSize.md,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  if (selected)
+                    Icon(Icons.check, size: 18, color: surfaces.text1),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return ListView(
+          shrinkWrap: true,
+          children: [
+            option(l.languageSystem, null),
+            option('Русский', 'ru'),
+            option('English', 'en'),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _languageRow(AppSettingProps appSetting) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: _openLanguage,
+        child: SettingsRow(
+          title: context.appLocalizations.language,
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                _languageLabel(appSetting.locale),
+                style: TextStyle(
+                  color: context.surfaces.text2,
+                  fontSize: AppFontSize.md,
+                ),
+              ),
+              const SizedBox(width: AppSpace.s1),
+              Icon(
+                Icons.chevron_right,
+                size: 18,
+                color: context.surfaces.text3,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   List<Widget> _quickRows(
     PatchClashConfig patchConfig,
     NetworkProps network,
     ThemeProps themeProps,
+    AppSettingProps appSetting,
   ) {
     return [
       _modeRow(patchConfig),
       _tunRow(patchConfig),
       _systemProxyRow(network),
       _themeRow(themeProps),
+      _languageRow(appSetting),
     ];
   }
 
@@ -243,14 +440,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     PatchClashConfig patchConfig,
     AppSettingProps appSetting,
   ) {
+    final l = context.appLocalizations;
     return [
       _modeRow(patchConfig),
       _tunRow(patchConfig),
       SettingsRow(
-        title: 'Стек TUN',
-        help:
-            'gVisor — лучшая совместимость; System — выше производительность; '
-            'Mixed — гибрид обоих.',
+        title: l.tunStack,
+        help: l.tunStackHelp,
         trailing: SettingsSegmented<TunStack>(
           options: TunStack.values,
           value: patchConfig.tun.stack,
@@ -264,11 +460,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
       ),
       SettingsRow(
-        title: 'MTU',
-        description: 'Применяется перезапуском ядра',
-        help:
-            'Максимальный размер пакета в TUN. Стандарт — 9000; при '
-            'проблемах подключения попробуйте 1500.',
+        title: l.mtu,
+        description: l.mtuReapplyRestart,
+        help: l.mtuHelp,
         trailing: SettingsStepper(
           value: patchConfig.tun.mtu == 0 ? 9000 : patchConfig.tun.mtu,
           step: 100,
@@ -279,8 +473,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
       ),
       SettingsRow(
-        title: 'Строгий роут',
-        description: 'Весь трафик идёт через TUN, без обхода маршрутов',
+        title: l.strictRoute,
+        description: l.strictRouteDesc,
         trailing: SettingsSwitch(
           value: patchConfig.tun.strictRoute,
           onChanged: (v) =>
@@ -289,10 +483,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
       SettingsRow(
         title: 'Sniffer',
-        description: 'Определение домена по TLS SNI / HTTP Host',
-        help:
-            'Распознаёт домен из зашифрованного трафика — нужно для '
-            'корректной работы правил по доменам.',
+        description: l.snifferDesc,
+        help: l.snifferHelp,
         trailing: SettingsSwitch(
           value: patchConfig.sniffer.enable,
           onChanged: (v) => _updatePatchConfig(
@@ -302,9 +494,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
       ),
       SettingsRow(
-        title: 'Разрешить LAN',
-        help:
-            'Разрешить подключения к ядру с других устройств в локальной сети.',
+        title: l.allowLan,
+        help: l.allowLanHelp,
         trailing: SettingsSwitch(
           value: patchConfig.allowLan,
           onChanged: (v) =>
@@ -313,7 +504,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
       SettingsRow(
         title: 'IPv6',
-        help: 'Разрешить IPv6-трафик через ядро.',
+        help: l.ipv6EnabledHelp,
         trailing: SettingsSwitch(
           value: patchConfig.ipv6,
           onChanged: (v) =>
@@ -322,10 +513,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
       SettingsRow(
         title: 'Find Process Mode',
-        description: 'Определение процесса-владельца соединения',
-        help:
-            'Нужно для правил PROCESS-NAME. Always — определять всегда; '
-            'Off — отключить (ниже нагрузка).',
+        description: l.findProcessModeDesc,
+        help: l.findProcessModeHelp,
         trailing: SettingsSegmented<FindProcessMode>(
           options: FindProcessMode.values,
           value: patchConfig.findProcessMode,
@@ -339,10 +528,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
       SettingsRow(
         title: 'Unified Delay',
-        description: 'Единый метод замера задержки',
-        help:
-            'Все группы используют один метод замера, чтобы показания были '
-            'сопоставимы между собой.',
+        description: l.unifiedDelayForkDesc,
+        help: l.unifiedDelayForkHelp,
         trailing: SettingsSwitch(
           value: patchConfig.unifiedDelay,
           onChanged: (v) =>
@@ -351,10 +538,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
       SettingsRow(
         title: 'TCP Concurrent',
-        description: 'Параллельные попытки подключения для ускорения',
-        help:
-            'Ускоряет установку соединения за счёт параллельных попыток, '
-            'но может увеличить расход трафика.',
+        description: l.tcpConcurrentForkDesc,
+        help: l.tcpConcurrentForkHelp,
         trailing: SettingsSwitch(
           value: patchConfig.tcpConcurrent,
           onChanged: (v) =>
@@ -363,9 +548,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
       SettingsRow(
         title: 'Geodata Loader',
-        help:
-            'Memory — геоданные в оперативной памяти (быстрее старт); '
-            'Standard — с диска (меньше памяти).',
+        help: l.geodataLoaderHelp,
         trailing: SettingsSegmented<GeodataLoader>(
           options: GeodataLoader.values,
           value: patchConfig.geodataLoader,
@@ -379,16 +562,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
       SettingsRow(
         title: 'External Controller',
-        description: 'HTTP-API ядра (127.0.0.1:9090)',
-        help:
-            'Внешний API для управления ядром (например, через '
-            'сторонние дашборды).',
+        description: l.externalControllerApiDesc,
+        help: l.externalControllerHelp,
         trailing: SettingsSegmented<ExternalControllerStatus>(
           options: ExternalControllerStatus.values,
           value: patchConfig.externalController,
-          labels: const {
-            ExternalControllerStatus.close: 'Выкл',
-            ExternalControllerStatus.open: 'Вкл',
+          labels: {
+            ExternalControllerStatus.close: l.off,
+            ExternalControllerStatus.open: l.on,
           },
           onChanged: (v) => _updatePatchConfig(
             (state) => state.copyWith(externalController: v),
@@ -396,8 +577,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
       ),
       SettingsRow(
-        title: 'Keep-alive',
-        description: 'Интервал проверки соединений, сек',
+        title: l.keepAlive,
+        description: l.keepAliveIntervalDesc,
         trailing: SettingsInput(
           width: 80,
           numeric: true,
@@ -412,11 +593,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
       ),
       SettingsRow(
-        title: 'Порты',
+        title: l.ports,
         description: 'Mixed / SOCKS / HTTP / Redir / TProxy',
-        help:
-            'Порты, на которых ядро слушает прокси-протоколы. 0 — порт '
-            'отключён.',
+        help: l.portsHelp,
         trailing: SettingsPortsEditor(
           mixedPort: patchConfig.mixedPort,
           socksPort: patchConfig.socksPort,
@@ -436,7 +615,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
       SettingsRow(
         title: 'Hosts',
-        description: 'Статические DNS-записи',
+        description: l.staticHostsDesc,
         trailing: SettingsMapEditor(
           title: 'Hosts',
           value: patchConfig.hosts,
@@ -448,7 +627,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
       SettingsRow(
         title: 'User-Agent',
-        description: 'UA при обновлении подписок',
+        description: l.uaDesc,
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -461,23 +640,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
             const SizedBox(width: AppSpace.s2),
             PopupMenuButton<String>(
-              tooltip: 'Пресеты',
+              tooltip: l.presets,
               onSelected: (v) =>
                   _updatePatchConfig((state) => state.copyWith(globalUa: v)),
-              itemBuilder: (_) => const [
-                PopupMenuItem(
+              itemBuilder: (_) => [
+                const PopupMenuItem(
                   value: 'clash-verge/v2.4.2',
                   child: Text('clash-verge/v2.4.2'),
                 ),
-                PopupMenuItem(
+                const PopupMenuItem(
                   value: 'ClashforWindows/0.19.23',
                   child: Text('ClashforWindows/0.19.23'),
                 ),
-                PopupMenuItem(value: '', child: Text('По умолчанию')),
+                PopupMenuItem(value: '', child: Text(l.defaultText)),
               ],
-              child: const BoltIconButton(
+              child: BoltIconButton(
                 icon: Icons.arrow_drop_down,
-                tooltip: 'Пресеты',
+                tooltip: l.presets,
                 onTap: null,
                 compact: true,
               ),
@@ -487,8 +666,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
       SettingsRow(
         title: 'Test URL',
-        description: 'Ссылка для замера задержки',
-        help: 'Ссылка, которой ядро проверяет задержку серверов.',
+        description: l.testUrlDesc,
+        help: l.testUrlHelp,
         trailing: SettingsInput(
           width: 180,
           value: appSetting.testUrl,
@@ -500,12 +679,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   List<Widget> _dnsRows(PatchClashConfig patchConfig) {
+    final l = context.appLocalizations;
     return [
       SettingsRow(
-        title: 'Режим DNS',
-        help:
-            'Fake IP — доменам выдаются виртуальные адреса; '
-            'Redir Host — перезапись Host в DNS-ответах.',
+        title: l.dnsMode,
+        help: l.dnsModeHelp,
         trailing: SettingsSegmented<DnsMode>(
           options: const [DnsMode.fakeIp, DnsMode.redirHost],
           value: patchConfig.dns.enhancedMode,
@@ -517,9 +695,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
       ),
       SettingsRow(
-        title: 'Listen',
-        description: 'Адрес встроенного DNS-сервера',
-        help: 'Адрес:порт, на котором ядро слушает DNS-запросы.',
+        title: l.dnsListen,
+        description: l.dnsListenDesc,
+        help: l.dnsListenHelp,
         trailing: SettingsInput(
           width: 130,
           value: patchConfig.dns.listen,
@@ -528,9 +706,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
       SettingsRow(
         title: 'Prefer H3',
-        help:
-            'Использовать HTTP/3 (QUIC) для DoH-резолверов, где '
-            'поддерживается.',
+        help: l.preferH3Help,
         trailing: SettingsSwitch(
           value: patchConfig.dns.preferH3,
           onChanged: (v) => _updateDns((dns) => dns.copyWith(preferH3: v)),
@@ -538,7 +714,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
       SettingsRow(
         title: 'Use Hosts',
-        help: 'Учитывать файл hosts конфига при резолве.',
+        help: l.useHostsHelp,
         trailing: SettingsSwitch(
           value: patchConfig.dns.useHosts,
           onChanged: (v) => _updateDns((dns) => dns.copyWith(useHosts: v)),
@@ -546,7 +722,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
       SettingsRow(
         title: 'Use System Hosts',
-        help: 'Учитывать системные hosts Windows при резолве.',
+        help: l.useSystemHostsHelp,
         trailing: SettingsSwitch(
           value: patchConfig.dns.useSystemHosts,
           onChanged: (v) =>
@@ -555,7 +731,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
       SettingsRow(
         title: 'Respect Rules',
-        description: 'Учитывать правила при DNS-запросах',
+        description: l.respectRulesDesc,
         trailing: SettingsSwitch(
           value: patchConfig.dns.respectRules,
           onChanged: (v) => _updateDns((dns) => dns.copyWith(respectRules: v)),
@@ -563,7 +739,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
       SettingsRow(
         title: 'IPv6',
-        help: 'Отвечать на AAAA-запросы встроенным DNS-сервером.',
+        help: l.ipv6DnsHelp,
         trailing: SettingsSwitch(
           value: patchConfig.dns.ipv6,
           onChanged: (v) => _updateDns((dns) => dns.copyWith(ipv6: v)),
@@ -571,9 +747,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
       SettingsRow(
         title: 'Fake-IP Range',
-        help:
-            'Подсеть для fake-ip адресов. Используется только в режиме '
-            'Fake IP.',
+        help: l.fakeipRangeHelp,
         trailing: SettingsInput(
           width: 130,
           value: patchConfig.dns.fakeIpRange,
@@ -582,9 +756,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
       SettingsRow(
         title: 'Fake-IP Filter',
-        help:
-            'Домены из списка резолвятся реальным IP, а не через fake-ip '
-            '(например, *.lan).',
+        help: l.fakeipFilterHelp,
         trailing: SettingsListEditor(
           title: 'Fake-IP Filter',
           value: patchConfig.dns.fakeIpFilter,
@@ -594,7 +766,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
       SettingsRow(
         title: 'Default Nameserver',
-        help: 'Резолверы для запросов, не попавших под nameserver-policy.',
+        help: l.defaultNameserverHelp,
         trailing: SettingsListEditor(
           title: 'Default Nameserver',
           value: patchConfig.dns.defaultNameserver,
@@ -605,7 +777,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
       SettingsRow(
         title: 'Nameserver',
-        help: 'Основные DNS-резолверы для обычных запросов.',
+        help: l.nameserverHelp,
         trailing: SettingsListEditor(
           title: 'Nameserver',
           value: patchConfig.dns.nameserver,
@@ -615,9 +787,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
       SettingsRow(
         title: 'Fallback',
-        help:
-            'Резолверы для запросов, которые нужно обрабатывать отдельно '
-            '(например, при блокировке основного DNS).',
+        help: l.fallbackHelp,
         trailing: SettingsListEditor(
           title: 'Fallback',
           value: patchConfig.dns.fallback,
@@ -627,7 +797,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
       SettingsRow(
         title: 'Proxy Server Nameserver',
-        help: 'Резолверы для доменных имён прокси-серверов.',
+        help: l.proxyNameserverHelp,
         trailing: SettingsListEditor(
           title: 'Proxy Server Nameserver',
           value: patchConfig.dns.proxyServerNameserver,
@@ -638,9 +808,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
       SettingsRow(
         title: 'Nameserver Policy',
-        help:
-            'Правила выбора резолверов по доменам (например, '
-            'geosite:cn → китайские DoH).',
+        help: l.nameserverPolicyHelp,
         trailing: SettingsMapEditor(
           title: 'Nameserver Policy',
           value: patchConfig.dns.nameserverPolicy,
@@ -654,12 +822,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   List<Widget> _networkRows(NetworkProps network) {
+    final l = context.appLocalizations;
     return [
       _systemProxyRow(network),
       SettingsRow(
-        title: 'Append System DNS',
-        description: 'Добавлять system:// в nameserver',
-        help: 'Подмешивает системные резолверы Windows к DNS-серверам ядра.',
+        title: l.appendSystemDns,
+        description: l.appendSystemDnsDesc,
+        help: l.appendSystemDnsHelp,
         trailing: SettingsSwitch(
           value: network.appendSystemDns,
           onChanged: (v) => ref
@@ -669,8 +838,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
       SettingsRow(
         title: 'Bypass Domain',
-        description: 'Домены, идущие в обход прокси',
-        help: 'Домены из списка не будут проходить через системный прокси.',
+        description: l.bypassDomainDesc,
+        help: l.bypassDomainHelp,
         trailing: SettingsListEditor(
           title: 'Bypass Domain',
           value: network.bypassDomain,
@@ -684,10 +853,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   List<Widget> _appRows(AppSettingProps appSetting, ThemeProps themeProps) {
+    final l = context.appLocalizations;
     return [
       SettingsRow(
-        title: 'Автоподключение при запуске',
-        description: 'Поднимать соединение сразу при старте приложения',
+        title: l.autoRunFork,
+        description: l.autoRunForkDesc,
         trailing: SettingsSwitch(
           value: appSetting.autoRun,
           onChanged: (v) =>
@@ -695,8 +865,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
       ),
       SettingsRow(
-        title: 'Запуск вместе с системой',
-        help: 'Добавляет приложение в автозагрузку Windows.',
+        title: l.launchWithSystem,
+        help: l.autoLaunchHelp,
         trailing: SettingsSwitch(
           value: appSetting.autoLaunch,
           onChanged: (v) =>
@@ -704,8 +874,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
       ),
       SettingsRow(
-        title: 'Свернуть при закрытии',
-        description: 'Закрытие окна сворачивает приложение в трей',
+        title: l.minimizeOnClose,
+        description: l.minimizeOnExitForkDesc,
         trailing: SettingsSwitch(
           value: appSetting.minimizeOnExit,
           onChanged: (v) =>
@@ -713,10 +883,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
       ),
       SettingsRow(
-        title: 'Закрывать соединения при выходе',
-        help:
-            'Закрывать активные соединения и останавливать ядро при '
-            'выходе из приложения.',
+        title: l.closeConnectionsExit,
+        help: l.closeConnectionsExitHelp,
         trailing: SettingsSwitch(
           value: appSetting.closeConnections,
           onChanged: (v) =>
@@ -724,8 +892,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
       ),
       SettingsRow(
-        title: 'Статистика только прокси',
-        description: 'Учитывать трафик только через прокси',
+        title: l.onlyStatisticsProxy,
+        description: l.countTrafficThroughProxy,
         trailing: SettingsSwitch(
           value: appSetting.onlyStatisticsProxy,
           onChanged: (v) => _updateAppSetting(
@@ -734,8 +902,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
       ),
       SettingsRow(
-        title: 'Проверять обновления',
-        help: 'Автоматически проверять наличие новых версий приложения.',
+        title: l.checkUpdatesTitle,
+        help: l.checkUpdatesTitleHelp,
         trailing: SettingsSwitch(
           value: appSetting.autoCheckUpdate,
           onChanged: (v) =>
@@ -743,6 +911,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
       ),
       _themeRow(themeProps),
+      Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: _openAbout,
+          child: SettingsRow(
+            title: context.appLocalizations.about,
+            description: context.appLocalizations.aboutDesc,
+            trailing: Icon(
+              Icons.chevron_right,
+              size: 18,
+              color: context.surfaces.text3,
+            ),
+          ),
+        ),
+      ),
     ];
   }
 }

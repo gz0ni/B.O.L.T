@@ -47,13 +47,13 @@ class _LogsScreenState extends ConsumerState<LogsScreen> {
         .join('\n');
     await Clipboard.setData(ClipboardData(text: text));
     if (!mounted) return;
-    showBoltToast(context, 'Скопировано строк: ${logs.length}');
+    showBoltToast(context, context.appLocalizations.copiedLines(logs.length));
   }
 
   Future<void> _exportLogs() async {
     final saved = await ref.read(logsProvider.notifier).exportLogs();
     if (!mounted || !saved) return;
-    showBoltToast(context, 'Логи экспортированы');
+    showBoltToast(context, context.appLocalizations.logsExported);
   }
 
   void _clearLogs() {
@@ -110,7 +110,7 @@ class _LogsScreenState extends ConsumerState<LogsScreen> {
             child: Row(
               children: [
                 Text(
-                  'Логи ядра',
+                  context.appLocalizations.coreLogs,
                   style: TextStyle(
                     fontSize: AppFontSize.xl,
                     fontWeight: FontWeight.w600,
@@ -134,26 +134,28 @@ class _LogsScreenState extends ConsumerState<LogsScreen> {
                 ),
                 const SizedBox(width: AppSpace.s2),
                 BoltIconButton(
-                  tooltip: 'Скопировать всё',
+                  tooltip: context.appLocalizations.copyAll,
                   onTap: filtered.isEmpty ? null : () => _copyAll(filtered),
                   icon: Icons.copy_all_outlined,
                 ),
                 const SizedBox(width: AppSpace.s1),
                 BoltIconButton(
-                  tooltip: 'Экспорт логов',
+                  tooltip: context.appLocalizations.exportLogs,
                   onTap: filtered.isEmpty ? null : _exportLogs,
                   icon: Icons.save_alt,
                 ),
                 const SizedBox(width: AppSpace.s1),
                 BoltIconButton(
-                  tooltip: _autoscroll ? 'Автоскролл: вкл' : 'Автоскролл: выкл',
+                  tooltip: _autoscroll
+                      ? context.appLocalizations.autoscrollOn
+                      : context.appLocalizations.autoscrollOff,
                   onTap: () => setState(() => _autoscroll = !_autoscroll),
                   icon: Icons.vertical_align_bottom,
                   color: _autoscroll ? semantic.on : surfaces.text3,
                 ),
                 const SizedBox(width: AppSpace.s1),
                 BoltIconButton(
-                  tooltip: 'Очистить',
+                  tooltip: context.appLocalizations.clear,
                   onTap: _clearLogs,
                   icon: Icons.delete_outline,
                   danger: true,
@@ -161,7 +163,7 @@ class _LogsScreenState extends ConsumerState<LogsScreen> {
                 if (widget.onClose != null) ...[
                   const SizedBox(width: AppSpace.s2),
                   BoltIconButton(
-                    tooltip: 'Закрыть',
+                    tooltip: context.appLocalizations.close,
                     onTap: widget.onClose,
                     icon: Icons.close,
                   ),
@@ -186,7 +188,7 @@ class _LogsScreenState extends ConsumerState<LogsScreen> {
                 child: filtered.isEmpty
                     ? Center(
                         child: Text(
-                          'Логов пока нет',
+                          context.appLocalizations.noLogs,
                           style: TextStyle(color: surfaces.text3),
                         ),
                       )
