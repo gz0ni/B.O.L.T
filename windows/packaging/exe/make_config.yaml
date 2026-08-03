@@ -1,14 +1,13 @@
 script_template: inno_setup.iss
 app_id: 728B3532-C74B-4870-9068-BE70FE12A3E6
 app_name: B.O.L.T
-publisher: chen08209
-publisher_url: https://github.com/chen08209/FlClash
+publisher: gz0ni
+publisher_url: https://github.com/gz0ni/B.O.L.T
 display_name: B.O.L.T
 executable_name: B.O.L.T.exe
-output_base_file_name: B.O.L.T.exe
+output_base_file_name: B.O.L.T-Setup
 setup_icon_file: ..\windows\runner\resources\app_icon.ico
 locales:
-  - lang: zh
-    file: ..\windows\packaging\exe\ChineseSimplified.isl
   - lang: en
+  - lang: ru
 privileges_required: admin
