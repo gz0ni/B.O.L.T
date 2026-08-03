@@ -57,7 +57,12 @@ class BoltIconButton extends StatelessWidget {
             onTap: onTap,
             hoverColor: danger
                 ? semantic.danger.withValues(alpha: 0.12)
-                : surfaces.card2,
+                : isCompact
+                    ? Color.alphaBlend(
+                        surfaces.text1.withValues(alpha: 0.07),
+                        surfaces.card2,
+                      )
+                    : surfaces.card2,
             child: SizedBox(
               width: dimension,
               height: dimension,

@@ -47,9 +47,9 @@ class _Surfaces {
     card2: Color(0xFFEEF0F4),
     border: Color(0x170F1117), // rgba(15,17,23,0.09)
     borderSoft: Color(0x0D0F1117), // rgba(15,17,23,0.05)
-    text1: Color(0xFF15161C),
-    text2: Color(0xFF5B5F72),
-    text3: Color(0xFF9A9DB0),
+    text1: Color(0xFF0B0D10),
+    text2: Color(0xFF4A4E60),
+    text3: Color(0xFF666B7D),
   );
 }
 
@@ -61,16 +61,16 @@ class AppTheme {
   static final String? monoFontFamily = GoogleFonts.jetBrainsMono().fontFamily;
 
   static ThemeData dark() => _build(
-        surfaces: _Surfaces.dark,
-        semantic: AppSemanticColors.dark,
-        brightness: Brightness.dark,
-      );
+    surfaces: _Surfaces.dark,
+    semantic: AppSemanticColors.dark,
+    brightness: Brightness.dark,
+  );
 
   static ThemeData light() => _build(
-        surfaces: _Surfaces.light,
-        semantic: AppSemanticColors.light,
-        brightness: Brightness.light,
-      );
+    surfaces: _Surfaces.light,
+    semantic: AppSemanticColors.light,
+    brightness: Brightness.light,
+  );
 
   static ThemeData _build({
     required _Surfaces surfaces,
@@ -83,10 +83,9 @@ class AppTheme {
         : Typography.blackMountainView;
 
     // --font-ui: 'Inter' — основной интерфейсный шрифт
-    final uiText = GoogleFonts.interTextTheme(baseTextTheme).apply(
-      bodyColor: surfaces.text1,
-      displayColor: surfaces.text1,
-    );
+    final uiText = GoogleFonts.interTextTheme(
+      baseTextTheme,
+    ).apply(bodyColor: surfaces.text1, displayColor: surfaces.text1);
 
     // --font-display: 'Space Grotesk' — заголовки/titlebar/крупные цифры
     final displayFont = GoogleFonts.spaceGrotesk(
@@ -212,10 +211,7 @@ class AppTheme {
           borderRadius: BorderRadius.circular(AppRadius.md),
           side: BorderSide(color: surfaces.border),
         ),
-        textStyle: TextStyle(
-          color: surfaces.text1,
-          fontSize: AppFontSize.sm,
-        ),
+        textStyle: TextStyle(color: surfaces.text1, fontSize: AppFontSize.sm),
       ),
       tooltipTheme: TooltipThemeData(
         decoration: BoxDecoration(
@@ -223,10 +219,7 @@ class AppTheme {
           borderRadius: BorderRadius.circular(AppRadius.sm),
           border: Border.all(color: surfaces.border),
         ),
-        textStyle: TextStyle(
-          color: surfaces.text1,
-          fontSize: AppFontSize.xs,
-        ),
+        textStyle: TextStyle(color: surfaces.text1, fontSize: AppFontSize.xs),
         waitDuration: const Duration(milliseconds: 400),
       ),
       filledButtonTheme: FilledButtonThemeData(
@@ -295,9 +288,7 @@ class AppTheme {
         linearTrackColor: surfaces.card2,
       ),
       scrollbarTheme: ScrollbarThemeData(
-        thumbColor: WidgetStateProperty.resolveWith(
-          (states) => surfaces.card2,
-        ),
+        thumbColor: WidgetStateProperty.resolveWith((states) => surfaces.card2),
         thickness: const WidgetStatePropertyAll(6),
         radius: const Radius.circular(3),
       ),
@@ -337,16 +328,16 @@ class AppSurfaces {
 
 extension on _Surfaces {
   AppSurfaces toPublic() => AppSurfaces(
-        bg: bg,
-        bgSoft: bgSoft,
-        card: card,
-        card2: card2,
-        border: border,
-        borderSoft: borderSoft,
-        text1: text1,
-        text2: text2,
-        text3: text3,
-      );
+    bg: bg,
+    bgSoft: bgSoft,
+    card: card,
+    card2: card2,
+    border: border,
+    borderSoft: borderSoft,
+    text1: text1,
+    text2: text2,
+    text3: text3,
+  );
 }
 
 class AppSurfacesThemeExtension

@@ -115,7 +115,7 @@ class AppSemanticColors {
   );
 
   static const light = AppSemanticColors(
-    idle: Color(0xFFAEB1C0),
+    idle: Color(0xFF6E7388),
     idleDim: Color(0x1F5A5D6E),
     connecting: Color(0xFFE8A857),
     connectingDim: Color(0x28D28C32),
