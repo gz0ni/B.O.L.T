@@ -1,139 +1,73 @@
 <div>
 
-[**简体中文**](README_zh_CN.md)
+[**Русский**](README_ru.md)
 
 </div>
 
-## FlClash
+# B.O.L.T
 
-[![Downloads](https://img.shields.io/github/downloads/chen08209/FlClash/total?style=flat-square&logo=github)](https://github.com/chen08209/FlClash/releases/)[![Last Version](https://img.shields.io/github/release/chen08209/FlClash/all.svg?style=flat-square)](https://github.com/chen08209/FlClash/releases/)[![License](https://img.shields.io/github/license/chen08209/FlClash?style=flat-square)](LICENSE)
+[![Last Version](https://img.shields.io/github/release/gz0ni/B.O.L.T/all.svg?style=flat-square)](https://github.com/gz0ni/B.O.L.T/releases)[![License](https://img.shields.io/github/license/gz0ni/B.O.L.T?style=flat-square)](LICENSE)
 
-[![Channel](https://img.shields.io/badge/Telegram-Channel-blue?style=flat-square&logo=telegram)](https://t.me/FlClash)
+> A trenchant look at your traffic. VPN / proxy client for Windows, macOS, Android and Linux, built on the
+> [Clash.Meta (mihomo)](https://github.com/MetaCubeX/mihomo) core. Simple, open-source, ad-free and free to use.
 
-A multi-platform proxy client based on ClashMeta, simple and easy to use, open-source and ad-free.
-
-on Desktop:
-<p style="text-align: center;">
-    <img alt="desktop" src="snapshots/desktop.gif">
-</p>
-
-on Mobile:
-<p style="text-align: center;">
-    <img alt="mobile" src="snapshots/mobile.gif">
-</p>
+B.O.L.T (short for *Bolt*, a fastener — as in an anchorage or a tunneling bolt) is a fork of
+[FlClash](https://github.com/chen08209/FlClash) that keeps a clean, honest core: the Clash.Meta (mihomo) engine does the
+heavy lifting while the app stays lightweight and fast.
 
 ## Features
 
-✈️ Multi-platform: Android, Windows, macOS and Linux
+- **Multi-platform** — Windows, macOS, Linux, Android (Windows is the primary, most-tested target)
+- **Clean UI** — Material You design language, light and dark themes, native look
+- **Subscription support** — add a subscription link, raw key, URL or `.yaml`/`.yml`/`.json` config directly
+- **Traffic usage** — live traffic stats, subscription quota and expiry tracking
+- **Core tools** — latency testing across servers, favorites, config editor, core logs
+- **Localization** — English and Russian (system locale, or pick a language in Settings)
 
-💻 Adaptive multiple screen sizes, Multiple color themes available
+## Roadmap
 
-💡 Based on Material You Design, [Surfboard](https://github.com/getsurfboard/surfboard)-like UI
-
-☁️ Supports data sync via WebDAV
-
-✨ Support subscription link, Dark mode
-
-## Use
-
-### Linux
-
-⚠️ Make sure to install the following dependencies before using them
-
-   ```bash
-    sudo apt-get install libayatana-appindicator3-dev
-    sudo apt-get install libkeybinder-3.0-dev
-   ```
-
-### Android
-
-Support the following actions
-
-   ```bash
-    com.follow.clash.action.START
-    
-    com.follow.clash.action.STOP
-    
-    com.follow.clash.action.TOGGLE
-   ```
+- **iOS** — planned. Android/desktop targets first; iOS requires sideloading/signing (there is **no** App Store release).
+- **WebDAV sync** — in progress (carried over from FlClash).
 
 ## Download
 
-<a href="https://chen08209.github.io/FlClash-fdroid-repo/repo?fingerprint=789D6D32668712EF7672F9E58DEEB15FBD6DCEEC5AE7A4371EA72F2AAE8A12FD"><img alt="Get it on F-Droid" src="snapshots/get-it-on-fdroid.svg" width="200px"/></a> <a href="https://github.com/chen08209/FlClash/releases"><img alt="Get it on GitHub" src="snapshots/get-it-on-github.svg" width="200px"/></a>
-
-### Homebrew
-
-```bash
-brew tap chen08209/tap
-brew install --cask flclash
-```
+Grab the latest release for your platform from [Releases](https://github.com/gz0ni/B.O.L.T/releases).
 
 ## Build
 
-1. Update submodules
+1. Install the [Flutter](https://flutter.dev) and [Go](https://go.dev) toolchains.
+2. Update the mihomo core submodule:
    ```bash
    git submodule update --init --recursive
    ```
+3. Build a target:
 
-2. Install `Flutter` and `Golang` environment
+   - **Windows**: install GCC and Inno Setup, then
+     ```bash
+     dart setup.dart windows
+     ```
+     or directly:
+     ```bash
+     flutter build windows --release --dart-define-from-file=env.json --no-pub
+     ```
 
-3. Build Application
+   - **Linux**: `dart setup.dart linux` (or install `libayatana-appindicator3-dev` and `libkeybinder-3.0-dev` yourself).
 
-    - android
+   - **macOS**: `dart setup.dart macos` (requires macOS).
 
-        1. Install `Android SDK`, `Android NDK`
+   - **Android**: install Android SDK/NDK, export `ANDROID_NDK`, then `dart setup.dart android`.
 
-        2. Set `ANDROID_NDK` environment variable
+## Honest notes
 
-        3. Run build script
+- The proxy core used here is **Clash.Meta (mihomo)** — it is the engine behind this client.
+- This is a fork of FlClash (GNU GPLv3). All changes on top of the original are also GPLv3.
+- There is no App Store version of this app.
 
-           ```bash
-           dart setup.dart android
-           ```
+## License
 
-    - windows
+[GPL-3.0](LICENSE) — the whole project, including the original FlClash code that this fork is based on.
 
-        1. Requires a Windows client
+## Thanks
 
-        2. Install `GCC`, `Inno Setup`
-
-        3. Run build script
-
-           ```bash
-           dart setup.dart windows
-           ```
-
-    - linux
-
-        1. Requires a Linux client
-
-        2. Dependencies are auto-installed by setup script, or manually:
-           ```bash
-           sudo apt-get install -y libayatana-appindicator3-dev libkeybinder-3.0-dev
-           ```
-
-        3. Run build script
-
-           ```bash
-           dart setup.dart linux
-           ```
-
-    - macOS
-
-        1. Requires a macOS client
-
-        2. Run build script
-
-           ```bash
-           dart setup.dart macos
-           ```
-
-## Star
-
-The easiest way to support developers is to click on the star (⭐) at the top of the page.
-
-<p style="text-align: center;">
-    <a href="https://api.star-history.com/svg?repos=chen08209/FlClash&Date">
-        <img alt="start" width=50% src="https://api.star-history.com/svg?repos=chen08209/FlClash&Date"/>
-    </a>
-</p>
+- [FlClash](https://github.com/chen08209/FlClash) — original client this project forked from.
+- [Clash.Meta](https://github.com/MetaCubeX/mihomo) — the proxy core used by both.
