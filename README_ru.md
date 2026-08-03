@@ -11,7 +11,7 @@
 > Резкий взгляд на ваш трафик. VPN / прокси-клиент для Windows, macOS, Android и Linux на основе ядра
 > [Clash.Meta (mihomo)](https://github.com/MetaCubeX/mihomo). Простой, открытый, без рекламы и бесплатный.
 
-B.O.L.T (название — от *bolt*, крепёжного элемента) — форк [FlClash](https://github.com/chen08209/FlClash), который
+B.O.L.T (от англ. **Borderless Online Tunnel**) — форк [FlClash](https://github.com/chen08209/FlClash), который
 сохраняет чистое честное ядро: вся работа ложится на движок Clash.Meta (mihomo), а само приложение остаётся лёгким
 и быстрым.
 

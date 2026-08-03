@@ -11,7 +11,7 @@
 > A trenchant look at your traffic. VPN / proxy client for Windows, macOS, Android and Linux, built on the
 > [Clash.Meta (mihomo)](https://github.com/MetaCubeX/mihomo) core. Simple, open-source, ad-free and free to use.
 
-B.O.L.T (short for *Bolt*, a fastener — as in an anchorage or a tunneling bolt) is a fork of
+B.O.L.T (short for **Borderless Online Tunnel**) is a fork of
 [FlClash](https://github.com/chen08209/FlClash) that keeps a clean, honest core: the Clash.Meta (mihomo) engine does the
 heavy lifting while the app stays lightweight and fast.
 
