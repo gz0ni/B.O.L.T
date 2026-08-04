@@ -185,7 +185,7 @@ class Tray {
     final exitMenuItem = MenuItem(
       label: appLocalizations.exit,
       onClick: (_) async {
-        await systemAction.handleExit();
+        await systemAction.handleExit(true);
       },
     );
     menuItems.add(exitMenuItem);

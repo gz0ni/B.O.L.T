@@ -40,6 +40,19 @@ class _WindowContainerState extends ConsumerState<WindowManager>
         });
       }
     });
+    ref.listenManual(
+      appSettingProvider.select((state) => state.forceMobileView),
+      (prev, next) {
+        if (prev == next) return;
+        if (next) {
+          window
+              ?.setMinimumSize(const Size(360, 640))
+              .then((_) => windowManager.setSize(const Size(360, 640)));
+        } else {
+          window?.setMinimumSize(const Size(640, 540));
+        }
+      },
+    );
     windowExtManager.addListener(this);
     windowManager.addListener(this);
   }
@@ -59,7 +72,7 @@ class _WindowContainerState extends ConsumerState<WindowManager>
 
   @override
   Future<void> onShouldTerminate() async {
-    await ref.read(systemActionProvider.notifier).handleExit();
+    await ref.read(systemActionProvider.notifier).handleExit(true);
     super.onShouldTerminate();
   }
 

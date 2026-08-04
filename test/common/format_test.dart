@@ -1,8 +1,14 @@
 import 'package:bolt/common/format.dart';
+import 'package:bolt/l10n/l10n.dart';
 import 'package:bolt/models/profile.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  setUpAll(() async {
+    await AppLocalizations.load(const Locale('ru'));
+  });
+
   group('formatSize', () {
     test('formats gigabytes with comma', () {
       expect(formatSize(12 * 1024 * 1024 * 1024 + 400 * 1024 * 1024), '12,4 ГБ');

@@ -6,7 +6,8 @@ import '../theme/app_tokens.dart';
 /// Шторка-шит из мокапа: фон bg-soft, верхние углы 26, handle 36x4,
 /// шапка с заголовком Space Grotesk 16/600 + border-bottom soft,
 /// барьер rgba(8,9,13,0.55). Если title == null — шапка не рисуется
-/// (экран сам рисует свой заголовок).
+/// (экран сам рисует свой заголовок). Тянущаяся вниз магнитная шторка:
+/// свайп вниз (или по хэндлу/шапке) закрывает её.
 Future<T?> showBoltSheet<T>(
   BuildContext context, {
   String? title,
@@ -17,66 +18,79 @@ Future<T?> showBoltSheet<T>(
   return showModalBottomSheet<T>(
     context: context,
     isScrollControlled: true,
-    elevation: 0,
-    clipBehavior: Clip.antiAlias,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(
-        top: Radius.circular(AppRadius.sheetTop),
-      ),
-    ),
+    enableDrag: true,
+    isDismissible: true,
+    useSafeArea: true,
+    backgroundColor: Colors.transparent,
+    barrierColor: modalBarrierColor,
     constraints: const BoxConstraints(maxWidth: double.infinity),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.sheetTop)),
+    ),
     builder: (context) {
       final surfaces = context.surfaces;
       return FractionallySizedBox(
         heightFactor: heightFactor,
         widthFactor: 1,
-        child: Column(
-          children: [
-            const SizedBox(height: AppSpace.s3),
-            Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: surfaces.border,
-                borderRadius: BorderRadius.circular(2),
-              ),
+        child: Material(
+          color: surfaces.bgSoft,
+          clipBehavior: Clip.antiAlias,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(
+              top: Radius.circular(AppRadius.sheetTop),
             ),
-            if (title != null)
+          ),
+          child: Column(
+            children: [
+              const SizedBox(height: AppSpace.s3),
               Container(
-                width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpace.s5,
-                  AppSpace.s3 - 2,
-                  AppSpace.s5,
-                  AppSpace.s4 - 2,
-                ),
+                width: 36,
+                height: 4,
                 decoration: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(color: surfaces.borderSoft),
-                  ),
+                  color: surfaces.border,
+                  borderRadius: BorderRadius.circular(2),
                 ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        title,
-                        style: TextStyle(
-                          fontFamily: AppFontFamily.display,
-                          fontSize: AppFontSize.lg,
-                          fontWeight: FontWeight.w600,
-                          color: surfaces.text1,
+              ),
+              if (title != null)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpace.s5,
+                    AppSpace.s3 - 2,
+                    AppSpace.s5,
+                    AppSpace.s4 - 2,
+                  ),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(color: surfaces.borderSoft),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: TextStyle(
+                            fontFamily: AppFontFamily.display,
+                            fontSize: AppFontSize.lg,
+                            fontWeight: FontWeight.w600,
+                            color: surfaces.text1,
+                          ),
                         ),
                       ),
-                    ),
-                    if (actions != null) ...[
-                      const SizedBox(width: AppSpace.s2),
-                      Row(mainAxisSize: MainAxisSize.min, children: actions),
+                      if (actions != null) ...[
+                        const SizedBox(width: AppSpace.s2),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: actions,
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
-              ),
-            Expanded(child: builder(context)),
-          ],
+              Expanded(child: builder(context)),
+            ],
+          ),
         ),
       );
     },
@@ -122,10 +136,28 @@ Future<T?> showBoltDialog<T>(
   required String title,
   Widget? content,
   List<Widget>? actions,
+  bool barrierDismissible = true,
 }) {
-  return showDialog<T>(
+  return showGeneralDialog<T>(
     context: context,
-    builder: (context) =>
+    barrierDismissible: barrierDismissible,
+    barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
+    barrierColor: const Color(0x55000000),
+    transitionDuration: const Duration(milliseconds: 200),
+    pageBuilder: (context, _, _) =>
         AlertDialog(title: Text(title), content: content, actions: actions),
+    transitionBuilder: (context, animation, _, child) {
+      final curved = CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeOutQuart,
+      );
+      return FadeTransition(
+        opacity: curved,
+        child: ScaleTransition(
+          scale: Tween<double>(begin: 0.96, end: 1).animate(curved),
+          child: child,
+        ),
+      );
+    },
   );
 }

@@ -1,10 +1,11 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:file_picker/file_picker.dart';
 import 'package:bolt/common/common.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:bolt/widgets/qr_scanner_screen.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:image/image.dart' as img;
+import 'package:zxing2/qrcode.dart';
 
 class Picker {
   Future<PlatformFile?> pickerFile() async {
@@ -40,20 +41,48 @@ class Picker {
   }
 
   Future<String?> pickerConfigQRCode() async {
-    final xFile = await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (xFile == null) {
+    final result = system.isAndroid
+        ? await showQrScanner()
+        : await _qrFromImage();
+    if (result == null) {
       return null;
     }
-    final controller = MobileScannerController();
-    final capture = await controller.analyzeImage(
-      xFile.path,
-      formats: [BarcodeFormat.qrCode],
-    );
-    final result = capture?.barcodes.first.rawValue;
-    if (result == null || !result.isUrl) {
+    if (!result.isUrl) {
       throw currentAppLocalizations.pleaseUploadValidQrcode;
     }
     return result;
+  }
+
+  Future<String?> _qrFromImage() async {
+    final file = await FilePicker.pickFile(
+      type: FileType.image,
+      initialDirectory: await appPath.downloadDirPath,
+    );
+    if (file == null) {
+      return null;
+    }
+    final bytes = await file.readAsBytes();
+    final decoded = img.decodeImage(bytes);
+    if (decoded == null) {
+      return null;
+    }
+    final pixels = Int32List(decoded.width * decoded.height);
+    var index = 0;
+    for (final pixel in decoded) {
+      final r = pixel.r.toInt();
+      final g = pixel.g.toInt();
+      final b = pixel.b.toInt();
+      final a = pixel.a.toInt();
+      pixels[index++] = (a << 24) | (r << 16) | (g << 8) | b;
+    }
+    try {
+      final source = RGBLuminanceSource(decoded.width, decoded.height, pixels);
+      final bitmap = BinaryBitmap(HybridBinarizer(source));
+      final result = QRCodeReader().decode(bitmap);
+      return result.text;
+    } on ReaderException {
+      return null;
+    }
   }
 }
 

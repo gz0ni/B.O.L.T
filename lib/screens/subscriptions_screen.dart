@@ -1,5 +1,5 @@
 import 'config_editor_screen.dart';
-import 'package:bolt/common/context.dart';
+import 'package:bolt/common/common.dart';
 import 'package:bolt/common/format.dart';
 import 'package:bolt/database/database.dart';
 import 'package:bolt/enum/enum.dart';
@@ -115,6 +115,35 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              if (current.subscriptionInfo != null) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 11,
+                    vertical: 10,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        context.appLocalizations.trafficUsage,
+                        style: TextStyle(
+                          color: context.surfaces.text1,
+                          fontSize: AppFontSize.md,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 1),
+                      Text(
+                        usageSummary(current.subscriptionInfo) ?? '—',
+                        style: TextStyle(
+                          color: context.surfaces.text3,
+                          fontSize: 11.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               if (current.type == ProfileType.url) ...[
                 _MethodRow(
                   icon: Icons.autorenew,
@@ -332,7 +361,7 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
           _MethodRow(
             icon: Icons.qr_code_2,
             label: l.qrcode,
-            description: l.scanQrCode,
+            description: system.isAndroid ? l.scanQrCode : l.pickQrImageDesc,
             onTap: () {
               Navigator.of(context).pop();
               profilesAction.addProfileFormQrCode();
@@ -559,12 +588,10 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
                                 const SizedBox(width: AppSpace.s2),
                                 BoltIconButton(
                                   tooltip: context.appLocalizations.deleteKey,
-                                  compact: true,
                                   color: context.semanticColors.danger,
                                   danger: true,
                                   onTap: () => removeKey(context, key),
                                   icon: Icons.delete_outline,
-                                  size: 15,
                                 ),
                               ],
                             ),
@@ -740,7 +767,6 @@ class _SubscriptionTile extends ConsumerWidget {
         : (keys.value != null
               ? context.appLocalizations.keysCount(keys.value!.length)
               : context.appLocalizations.localSource);
-    final usageTooltipText = usageTooltip(profile.subscriptionInfo);
     final info = profile.subscriptionInfo;
     final used = info == null ? 0 : info.upload + info.download;
 
@@ -752,6 +778,7 @@ class _SubscriptionTile extends ConsumerWidget {
         borderRadius: BorderRadius.circular(AppRadius.sm),
         onTap: updating ? null : onTap,
         onSecondaryTap: updating ? null : onSecondaryTap,
+        onLongPress: updating ? null : onSecondaryTap,
         child: Stack(
           children: [
             Container(
@@ -795,6 +822,18 @@ class _SubscriptionTile extends ConsumerWidget {
                             fontSize: AppFontSize.sm,
                           ),
                         ),
+                        const SizedBox(height: 1),
+                        Text(
+                          usageSummary(info) ??
+                              context.appLocalizations.noTrafficData,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: isActive ? semantic.on : surfaces.text3,
+                            fontSize: AppFontSize.xs,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -805,57 +844,40 @@ class _SubscriptionTile extends ConsumerWidget {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   else ...[
-                    if (usageTooltipText != null)
-                      BoltIconButton(
-                        tooltip: usageTooltipText,
-                        compact: true,
-                        onTap: null,
-                        icon: Icons.data_usage,
-                        size: 14,
-                        color: isActive ? semantic.on : null,
-                      ),
                     if (onRefresh != null) ...[
-                      const SizedBox(width: 4),
+                      const SizedBox(width: AppSpace.s2),
                       BoltIconButton(
                         tooltip: context.appLocalizations.refresh,
-                        compact: true,
                         onTap: onRefresh,
                         icon: Icons.refresh,
-                        size: 14,
                       ),
                     ],
                     if (onEdit != null) ...[
-                      const SizedBox(width: 4),
+                      const SizedBox(width: AppSpace.s2),
                       BoltIconButton(
                         tooltip: context.appLocalizations.editConfig,
-                        compact: true,
                         onTap: onEdit,
                         icon: Icons.edit,
-                        size: 14,
                       ),
                     ],
                     if (profile.type == ProfileType.file &&
                         keys.value != null &&
                         onManageKeys != null) ...[
-                      const SizedBox(width: 4),
+                      const SizedBox(width: AppSpace.s2),
                       BoltIconButton(
                         tooltip: context.appLocalizations.keysList,
-                        compact: true,
                         onTap: onManageKeys,
                         icon: Icons.key,
-                        size: 14,
                       ),
                     ],
                     if (onDelete != null) ...[
-                      const SizedBox(width: 4),
+                      const SizedBox(width: AppSpace.s2),
                       BoltIconButton(
                         tooltip: context.appLocalizations.delete,
-                        compact: true,
                         color: semantic.danger,
                         danger: true,
                         onTap: onDelete,
                         icon: Icons.delete_outline,
-                        size: 14,
                       ),
                     ],
                   ],
@@ -933,6 +955,8 @@ class _MethodRow extends StatelessWidget {
                   const SizedBox(height: 1),
                   Text(
                     description,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(color: surfaces.text3, fontSize: 11.5),
                   ),
                 ],

@@ -103,10 +103,15 @@ class Request {
   Future<Result<IpInfo?>> checkIp({CancelToken? cancelToken}) async {
     var failureCount = 0;
     final token = cancelToken ?? CancelToken();
-    final futures = _ipInfoSources.entries.map((source) async {
+    final sources = _ipInfoSources.entries.toList();
+    final futures = sources.map((source) async {
       final Completer<Result<IpInfo?>> completer = Completer();
       void handleFailRes() {
-        if (!completer.isCompleted && failureCount == _ipInfoSources.length) {
+        if (!completer.isCompleted && failureCount == sources.length) {
+          commonPrint.log(
+            'checkIp all sources failed',
+            logLevel: LogLevel.warning,
+          );
           completer.complete(Result.success(null));
         }
       }
@@ -115,18 +120,31 @@ class Request {
           .get<Map<String, dynamic>>(
             source.key,
             cancelToken: token,
-            options: Options(responseType: ResponseType.json),
+            options: Options(
+              responseType: ResponseType.json,
+              validateStatus: (code) =>
+                  code != null && code >= 200 && code < 300,
+            ),
           )
           .timeout(const Duration(seconds: 10));
       future
           .then((res) {
-            if (res.statusCode == HttpStatus.ok && res.data != null) {
-              completer.complete(Result.success(source.value(res.data!)));
+            if (res.statusCode != HttpStatus.ok || res.data == null) {
+              commonPrint.log('checkIp data empty', logLevel: LogLevel.info);
+              failureCount++;
+              handleFailRes();
               return;
             }
-            commonPrint.log('checkIp data empty', logLevel: LogLevel.info);
-            failureCount++;
-            handleFailRes();
+            try {
+              completer.complete(Result.success(source.value(res.data!)));
+            } catch (e) {
+              commonPrint.log(
+                'checkIp parse failed: ${source.key}',
+                logLevel: LogLevel.info,
+              );
+              failureCount++;
+              handleFailRes();
+            }
           })
           .catchError((e) {
             failureCount++;
@@ -134,7 +152,10 @@ class Request {
               completer.complete(Result.error('cancelled'));
               return;
             }
-            commonPrint.log('checkIp error $e', logLevel: LogLevel.warning);
+            commonPrint.log(
+              'checkIp error: ${source.key}',
+              logLevel: LogLevel.info,
+            );
             handleFailRes();
           });
       return completer.future;

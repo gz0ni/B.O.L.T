@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:bolt/common/common.dart';
 import 'package:bolt/models/config.dart';
+import 'package:bolt/providers/providers.dart';
+import 'package:bolt/state.dart';
 import 'package:flutter/material.dart';
 import 'package:screen_retriever/screen_retriever.dart';
 import 'package:window_manager/window_manager.dart';
@@ -16,6 +18,9 @@ class Window {
     return _instance!;
   }
 
+  static const _desktopMinimumSize = Size(640, 540);
+  static const _mobileMinimumSize = Size(360, 640);
+
   Future<void> init(int version, WindowProps props) async {
     final acquire = await singleInstanceLock.acquire();
     if (!acquire) {
@@ -27,10 +32,13 @@ class Window {
       protocol.register('flclash');
     }
     await windowManager.ensureInitialized();
-    // kDebugMode ? Size(680, 580) :
+    final forceMobileView =
+        globalState.container.read(appSettingProvider).forceMobileView;
+    final minimumSize =
+        forceMobileView ? _mobileMinimumSize : _desktopMinimumSize;
     final WindowOptions windowOptions = WindowOptions(
-      size: props.size,
-      minimumSize: const Size(380, 400),
+      size: forceMobileView ? minimumSize : props.size,
+      minimumSize: minimumSize,
     );
     if (system.isMacOS) {
       await windowManager.setTitleBarStyle(TitleBarStyle.hidden);
@@ -39,6 +47,7 @@ class Window {
     await _windowPosition(props);
     await windowManager.waitUntilReadyToShow(windowOptions, () async {
       await windowManager.setPreventClose(true);
+      await windowManager.setMinimumSize(minimumSize);
     });
   }
 
@@ -67,6 +76,10 @@ class Window {
         }
       }
     }
+  }
+
+  Future<void> setMinimumSize(Size size) async {
+    await windowManager.setMinimumSize(size);
   }
 
   Future<void> show() async {

@@ -177,7 +177,7 @@ class ApplicationState extends ConsumerState<Application> {
     linkManager.destroy();
     _autoUpdateProfilesTaskTimer?.cancel();
     await coreController.destroy();
-    await ref.read(systemActionProvider.notifier).handleExit();
+    await ref.read(systemActionProvider.notifier).handleExit(true);
     super.dispose();
   }
 }

@@ -12,6 +12,7 @@ import '../theme/app_tokens.dart';
 import '../widgets/bolt_controls.dart';
 import '../widgets/bolt_icon_button.dart';
 import '../widgets/bolt_surfaces.dart';
+import 'access_control_screen.dart';
 import 'settings_widgets.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -235,6 +236,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     return SettingsRow(
       title: l.routeMode,
       help: l.routeModeHelp,
+      wrapTrailing: true,
       trailing: SettingsSegmented<Mode>(
         options: Mode.values,
         value: patchConfig.mode,
@@ -307,6 +309,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final l = context.appLocalizations;
     return SettingsRow(
       title: l.theme,
+      wrapTrailing: true,
       trailing: SettingsSegmented<ThemeMode>(
         options: const [ThemeMode.dark, ThemeMode.light, ThemeMode.system],
         value: themeProps.themeMode,
@@ -335,8 +338,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   void _openLanguage() {
     final l = context.appLocalizations;
-    final current = ref.read(appSettingProvider).locale;
-    void select(String? value) {
+    final current = ref.read(appSettingProvider).locale;    void select(String? value) {
       ref
           .read(appSettingProvider.notifier)
           .update((state) => state.copyWith(locale: value));
@@ -391,6 +393,53 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
+  void _openAccessControl() {
+    final l = context.appLocalizations;
+    showBoltSheet<void>(
+      context,
+      title: l.accessControlSettings,
+      heightFactor: 0.92,
+      actions: [
+        BoltIconButton(
+          icon: Icons.close,
+          tooltip: l.close,
+          onTap: () => Navigator.of(context).pop(),
+        ),
+      ],
+      builder: (_) => AccessControlScreen(
+        onClose: () => Navigator.of(context).pop(),
+      ),
+    );
+  }
+
+  Widget _accessControlRow() {
+    final l = context.appLocalizations;
+    final ac = ref.watch(
+      vpnSettingProvider.select((state) => state.accessControlProps),
+    );
+    final status = !ac.enable
+        ? l.off
+        : ac.mode == AccessControlMode.acceptSelected
+            ? l.accessControlAllow
+            : l.accessControlNotAllow;
+    final count = ac.currentList.length;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: _openAccessControl,
+        child: SettingsRow(
+          title: l.accessControl,
+          description: count > 0 ? '$status, ${l.selected}: $count' : status,
+          trailing: Icon(
+            Icons.chevron_right,
+            size: 18,
+            color: context.surfaces.text3,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _languageRow(AppSettingProps appSetting) {
     return Material(
       color: Colors.transparent,
@@ -431,6 +480,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       _modeRow(patchConfig),
       _tunRow(patchConfig),
       _systemProxyRow(network),
+      if (system.isAndroid) _accessControlRow(),
       _themeRow(themeProps),
       _languageRow(appSetting),
     ];
@@ -447,6 +497,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       SettingsRow(
         title: l.tunStack,
         help: l.tunStackHelp,
+        wrapTrailing: true,
         trailing: SettingsSegmented<TunStack>(
           options: TunStack.values,
           value: patchConfig.tun.stack,
@@ -459,19 +510,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               _updatePatchConfig((state) => state.copyWith.tun(stack: v)),
         ),
       ),
-      SettingsRow(
-        title: l.mtu,
-        description: l.mtuReapplyRestart,
-        help: l.mtuHelp,
-        trailing: SettingsStepper(
-          value: patchConfig.tun.mtu == 0 ? 9000 : patchConfig.tun.mtu,
-          step: 100,
-          min: 1000,
-          max: 9000,
-          onChanged: (v) =>
-              _updatePatchConfig((state) => state.copyWith.tun(mtu: v)),
+      if (!system.isAndroid) ...[
+        SettingsRow(
+          title: l.mtu,
+          description: l.mtuReapplyRestart,
+          help: l.mtuHelp,
+          wrapTrailing: true,
+          trailing: SettingsStepper(
+            value: patchConfig.tun.mtu == 0 ? 9000 : patchConfig.tun.mtu,
+            step: 100,
+            min: 1000,
+            max: 9000,
+            onChanged: (v) =>
+                _updatePatchConfig((state) => state.copyWith.tun(mtu: v)),
+          ),
         ),
-      ),
+      ],
       SettingsRow(
         title: l.strictRoute,
         description: l.strictRouteDesc,
@@ -515,6 +569,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         title: 'Find Process Mode',
         description: l.findProcessModeDesc,
         help: l.findProcessModeHelp,
+        wrapTrailing: true,
         trailing: SettingsSegmented<FindProcessMode>(
           options: FindProcessMode.values,
           value: patchConfig.findProcessMode,
@@ -549,6 +604,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       SettingsRow(
         title: 'Geodata Loader',
         help: l.geodataLoaderHelp,
+        wrapTrailing: true,
         trailing: SettingsSegmented<GeodataLoader>(
           options: GeodataLoader.values,
           value: patchConfig.geodataLoader,
@@ -560,48 +616,56 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               _updatePatchConfig((state) => state.copyWith(geodataLoader: v)),
         ),
       ),
-      SettingsRow(
-        title: 'External Controller',
-        description: l.externalControllerApiDesc,
-        help: l.externalControllerHelp,
-        trailing: SettingsSegmented<ExternalControllerStatus>(
-          options: ExternalControllerStatus.values,
-          value: patchConfig.externalController,
-          labels: {
-            ExternalControllerStatus.close: l.off,
-            ExternalControllerStatus.open: l.on,
-          },
-          onChanged: (v) => _updatePatchConfig(
-            (state) => state.copyWith(externalController: v),
+      if (!system.isAndroid) ...[
+        SettingsRow(
+          title: 'External Controller',
+          description: l.externalControllerApiDesc,
+          help: l.externalControllerHelp,
+          wrapTrailing: true,
+          trailing: SettingsSegmented<ExternalControllerStatus>(
+            options: ExternalControllerStatus.values,
+            value: patchConfig.externalController,
+            labels: {
+              ExternalControllerStatus.close: l.off,
+              ExternalControllerStatus.open: l.on,
+            },
+            onChanged: (v) => _updatePatchConfig(
+              (state) => state.copyWith(externalController: v),
+            ),
           ),
         ),
-      ),
-      SettingsRow(
-        title: l.keepAlive,
-        description: l.keepAliveIntervalDesc,
-        trailing: SettingsInput(
-          width: 80,
-          numeric: true,
-          value: '${patchConfig.keepAliveInterval}',
-          onChanged: (v) {
-            final parsed = int.tryParse(v);
-            if (parsed == null || parsed <= 0) return;
-            _updatePatchConfig(
-              (state) => state.copyWith(keepAliveInterval: parsed),
-            );
-          },
+        SettingsRow(
+          title: l.keepAlive,
+          description: l.keepAliveIntervalDesc,
+          wrapTrailing: true,
+          trailing: SettingsInput(
+            width: 80,
+            numeric: true,
+            value: '${patchConfig.keepAliveInterval}',
+            onChanged: (v) {
+              final parsed = int.tryParse(v);
+              if (parsed == null || parsed <= 0) return;
+              _updatePatchConfig(
+                (state) => state.copyWith(keepAliveInterval: parsed),
+              );
+            },
+          ),
         ),
-      ),
+      ],
       SettingsRow(
         title: l.ports,
-        description: 'Mixed / SOCKS / HTTP / Redir / TProxy',
+        description: system.isAndroid
+            ? 'Mixed / SOCKS / HTTP'
+            : 'Mixed / SOCKS / HTTP / Redir / TProxy',
         help: l.portsHelp,
+        wrapTrailing: true,
         trailing: SettingsPortsEditor(
           mixedPort: patchConfig.mixedPort,
           socksPort: patchConfig.socksPort,
           port: patchConfig.port,
           redirPort: patchConfig.redirPort,
           tproxyPort: patchConfig.tproxyPort,
+          showRedirTproxy: !system.isAndroid,
           onChanged: (mixed, socks, port, redir, tproxy) => _updatePatchConfig(
             (state) => state.copyWith(
               mixedPort: mixed,
@@ -616,6 +680,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       SettingsRow(
         title: 'Hosts',
         description: l.staticHostsDesc,
+        wrapTrailing: true,
         trailing: SettingsMapEditor(
           title: 'Hosts',
           value: patchConfig.hosts,
@@ -658,7 +723,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 icon: Icons.arrow_drop_down,
                 tooltip: l.presets,
                 onTap: null,
-                compact: true,
               ),
             ),
           ],
@@ -668,6 +732,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         title: 'Test URL',
         description: l.testUrlDesc,
         help: l.testUrlHelp,
+        wrapTrailing: true,
         trailing: SettingsInput(
           width: 180,
           value: appSetting.testUrl,
@@ -684,6 +749,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       SettingsRow(
         title: l.dnsMode,
         help: l.dnsModeHelp,
+        wrapTrailing: true,
         trailing: SettingsSegmented<DnsMode>(
           options: const [DnsMode.fakeIp, DnsMode.redirHost],
           value: patchConfig.dns.enhancedMode,
@@ -698,6 +764,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         title: l.dnsListen,
         description: l.dnsListenDesc,
         help: l.dnsListenHelp,
+        wrapTrailing: true,
         trailing: SettingsInput(
           width: 130,
           value: patchConfig.dns.listen,
@@ -748,6 +815,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       SettingsRow(
         title: 'Fake-IP Range',
         help: l.fakeipRangeHelp,
+        wrapTrailing: true,
         trailing: SettingsInput(
           width: 130,
           value: patchConfig.dns.fakeIpRange,
@@ -757,6 +825,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       SettingsRow(
         title: 'Fake-IP Filter',
         help: l.fakeipFilterHelp,
+        wrapTrailing: true,
         trailing: SettingsListEditor(
           title: 'Fake-IP Filter',
           value: patchConfig.dns.fakeIpFilter,
@@ -767,6 +836,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       SettingsRow(
         title: 'Default Nameserver',
         help: l.defaultNameserverHelp,
+        wrapTrailing: true,
         trailing: SettingsListEditor(
           title: 'Default Nameserver',
           value: patchConfig.dns.defaultNameserver,
@@ -778,6 +848,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       SettingsRow(
         title: 'Nameserver',
         help: l.nameserverHelp,
+        wrapTrailing: true,
         trailing: SettingsListEditor(
           title: 'Nameserver',
           value: patchConfig.dns.nameserver,
@@ -788,6 +859,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       SettingsRow(
         title: 'Fallback',
         help: l.fallbackHelp,
+        wrapTrailing: true,
         trailing: SettingsListEditor(
           title: 'Fallback',
           value: patchConfig.dns.fallback,
@@ -798,6 +870,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       SettingsRow(
         title: 'Proxy Server Nameserver',
         help: l.proxyNameserverHelp,
+        wrapTrailing: true,
         trailing: SettingsListEditor(
           title: 'Proxy Server Nameserver',
           value: patchConfig.dns.proxyServerNameserver,
@@ -809,6 +882,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       SettingsRow(
         title: 'Nameserver Policy',
         help: l.nameserverPolicyHelp,
+        wrapTrailing: true,
         trailing: SettingsMapEditor(
           title: 'Nameserver Policy',
           value: patchConfig.dns.nameserverPolicy,
@@ -825,6 +899,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final l = context.appLocalizations;
     return [
       _systemProxyRow(network),
+      if (system.isAndroid) _accessControlRow(),
       SettingsRow(
         title: l.appendSystemDns,
         description: l.appendSystemDnsDesc,
@@ -840,6 +915,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         title: 'Bypass Domain',
         description: l.bypassDomainDesc,
         help: l.bypassDomainHelp,
+        wrapTrailing: true,
         trailing: SettingsListEditor(
           title: 'Bypass Domain',
           value: network.bypassDomain,
@@ -864,33 +940,47 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               _updateAppSetting((state) => state.copyWith(autoRun: v)),
         ),
       ),
-      SettingsRow(
-        title: l.launchWithSystem,
-        help: l.autoLaunchHelp,
-        trailing: SettingsSwitch(
-          value: appSetting.autoLaunch,
-          onChanged: (v) =>
-              _updateAppSetting((state) => state.copyWith(autoLaunch: v)),
+      if (!system.isAndroid) ...[
+        SettingsRow(
+          title: l.launchWithSystem,
+          help: l.autoLaunchHelp,
+          trailing: SettingsSwitch(
+            value: appSetting.autoLaunch,
+            onChanged: (v) =>
+                _updateAppSetting((state) => state.copyWith(autoLaunch: v)),
+          ),
         ),
-      ),
-      SettingsRow(
-        title: l.minimizeOnClose,
-        description: l.minimizeOnExitForkDesc,
-        trailing: SettingsSwitch(
-          value: appSetting.minimizeOnExit,
-          onChanged: (v) =>
-              _updateAppSetting((state) => state.copyWith(minimizeOnExit: v)),
+        SettingsRow(
+          title: l.minimizeOnClose,
+          description: l.minimizeOnExitForkDesc,
+          trailing: SettingsSwitch(
+            value: appSetting.minimizeOnExit,
+            onChanged: (v) =>
+                _updateAppSetting((state) => state.copyWith(minimizeOnExit: v)),
+          ),
         ),
-      ),
-      SettingsRow(
-        title: l.closeConnectionsExit,
-        help: l.closeConnectionsExitHelp,
-        trailing: SettingsSwitch(
-          value: appSetting.closeConnections,
-          onChanged: (v) =>
-              _updateAppSetting((state) => state.copyWith(closeConnections: v)),
+        SettingsRow(
+          title: l.closeConnectionsExit,
+          help: l.closeConnectionsExitHelp,
+          trailing: SettingsSwitch(
+            value: appSetting.closeConnections,
+            onChanged: (v) => _updateAppSetting(
+              (state) => state.copyWith(closeConnections: v),
+            ),
+          ),
         ),
-      ),
+      ],
+      if (!system.isAndroid)
+        SettingsRow(
+          title: l.mobileInterface,
+          description: l.mobileInterfaceDesc,
+          trailing: SettingsSwitch(
+            value: appSetting.forceMobileView,
+            onChanged: (v) => _updateAppSetting(
+              (state) => state.copyWith(forceMobileView: v),
+            ),
+          ),
+        ),
       SettingsRow(
         title: l.onlyStatisticsProxy,
         description: l.countTrafficThroughProxy,

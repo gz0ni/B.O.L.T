@@ -11,6 +11,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart';
 
+import '../widgets/bolt_surfaces.dart';
+
 class System {
   static System? _instance;
 
@@ -100,31 +102,30 @@ class System {
     } else if (Platform.isLinux) {
       final shell = Platform.environment['SHELL'] ?? 'bash';
       final controller = TextEditingController();
-      final password = await showDialog<String>(
-        context: globalState.navigatorKey.currentContext!,
-        builder: (dialogContext) {
-          return AlertDialog(
-            title: Text(currentAppLocalizations.pleaseInputAdminPassword),
-            content: TextField(
-              controller: controller,
-              obscureText: true,
-              autofocus: true,
-              onSubmitted: (_) =>
-                  Navigator.of(dialogContext).pop(controller.text),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(dialogContext).pop(),
-                child: Text(currentAppLocalizations.cancel),
-              ),
-              FilledButton(
-                onPressed: () =>
-                    Navigator.of(dialogContext).pop(controller.text),
-                child: Text(currentAppLocalizations.confirm),
-              ),
-            ],
-          );
-        },
+      final password = await showBoltDialog<String>(
+        globalState.navigatorKey.currentContext!,
+        title: currentAppLocalizations.pleaseInputAdminPassword,
+        content: TextField(
+          controller: controller,
+          obscureText: true,
+          autofocus: true,
+          onSubmitted: (_) => Navigator.of(
+            globalState.navigatorKey.currentContext!,
+          ).pop(controller.text),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () =>
+                Navigator.of(globalState.navigatorKey.currentContext!).pop(),
+            child: Text(currentAppLocalizations.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(
+              globalState.navigatorKey.currentContext!,
+            ).pop(controller.text),
+            child: Text(currentAppLocalizations.confirm),
+          ),
+        ],
       );
       if (password == null || password.isEmpty) {
         return AuthorizeCode.error;

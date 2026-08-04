@@ -57,8 +57,8 @@ class _RadarRingsState extends State<_RadarRings>
         duration: AppMotion.base,
         curve: AppMotion.ease,
         child: SizedBox(
-          width: 208,
-          height: 208,
+          width: 224,
+          height: 224,
           child: Stack(),
         ),
       );
@@ -84,8 +84,8 @@ class _RadarRingsState extends State<_RadarRings>
                 child: Transform.scale(
                   scale: scale,
                   child: Container(
-                    width: 208,
-                    height: 208,
+                    width: 224,
+                    height: 224,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(color: widget.color, width: 1),
@@ -147,8 +147,8 @@ class PowerButton extends StatelessWidget {
     final isConnecting = status == ConnectionStatus.connecting;
 
     return SizedBox(
-      width: 208,
-      height: 208,
+      width: 224,
+      height: 224,
       child: Stack(
         alignment: Alignment.center,
         children: [
@@ -158,8 +158,8 @@ class PowerButton extends StatelessWidget {
             child: AnimatedContainer(
               duration: AppMotion.slow,
               curve: AppMotion.ease,
-              width: 164,
-              height: 164,
+              width: 178,
+              height: 178,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
@@ -211,7 +211,7 @@ class PowerButton extends StatelessWidget {
                       : Icon(
                           Icons.power_settings_new,
                           key: const ValueKey('power'),
-                          size: 54,
+                          size: 60,
                           color: color,
                         ),
                 ),

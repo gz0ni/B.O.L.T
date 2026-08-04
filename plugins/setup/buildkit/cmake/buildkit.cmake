@@ -24,7 +24,7 @@ function(apply_buildkit)
     set(_output "${PROJECT_ROOT}/libclash/windows/BOLTCore.exe")
     set(_platform_args "windows")
   else()
-    set(_output "${PROJECT_ROOT}/libclash/linux/FlClashCore")
+    set(_output "${PROJECT_ROOT}/libclash/linux/BOLTCore")
     set(_platform_args "linux")
   endif()
 

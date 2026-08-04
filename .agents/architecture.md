@@ -12,7 +12,7 @@ Android lib mode:
 
 Desktop core mode:
 
-- Go core runs as a separate process with `CGO_ENABLED=0`.
+- Go core runs as a separate process with `CGO_ENABLED=0`. The Windows binary is `libclash/windows/BOLTCore.exe` (linked with `-H=windowsgui` so no console window appears).
 - Flutter communicates via JSON over socket, using a Unix socket on macOS/Linux and TCP on Windows.
 - Dart-side implementation: `lib/core/service.dart` (`CoreService`).
 
@@ -39,16 +39,17 @@ Provider files in `lib/providers/`:
 
 ## Database
 
-The app uses Drift/SQLite in `lib/database/`. Current schema version is 2.
+The app uses Drift/SQLite in `lib/database/`. Current schema version is 3 (`lib/database/database.dart`).
 
-Tables:
+Tables (one file per table under `lib/database/`):
 
-- `Profiles`
-- `Scripts`
-- `Rules`
-- `ProfileRuleLinks` (`profile_rule_mapping`)
-- `ProxyGroups`
-- `IconRecords` (`icon_records`)
+- `Profiles` (`profiles.dart`)
+- `Scripts` (`scripts.dart`)
+- `Rules` (`rules.dart`)
+- `ProfileRuleLinks` (`links.dart`, `profile_rule_mapping`)
+- `ProfileKeys` (`profile_keys.dart`)
+- `ProxyGroups` (`groups.dart`)
+- `IconRecords` (`icons.dart`, `icon_records`)
 
 Rule scenes distinguish global added rules, profile added rules, profile custom rules, and disabled links. Rule and proxy-group ordering use fractional indexing.
 
@@ -56,16 +57,18 @@ Generated Drift output lives in `lib/database/generated/database.g.dart`. After 
 
 ## Manager Stack
 
-Managers are nested `InheritedWidget`/`StatefulWidget` components in `lib/application.dart`:
+Managers are nested `InheritedWidget`/`StatefulWidget` components in `lib/manager/`, assembled in `lib/application.dart`:
 
 ```text
-AppEnvManager > StatusManager > ThemeManager
+AppEnvManager
+  > StatusManager > ThemeManager
   > [Desktop: WindowManager > TrayManager > HotKeyManager > ProxyManager]
-  > ConnectivityManager > CoreManager > AppStateManager
-  > [Mobile: AndroidManager > VpnManager | Desktop: WindowHeaderContainer]
+  > [Android: AndroidManager > TileManager]
+  > AppStateManager > CoreManager > ConnectivityManager
+  > [Windows: (none) | Desktop macOS/Linux: WindowHeaderContainer | Android: VpnManager]
 ```
 
-Each manager in `lib/manager/` handles a specific platform concern. Desktop-only managers are conditionally inserted.
+`AppEnvManager` and `AppStateManager` both live in `lib/manager/app_manager.dart`. Desktop-only managers are conditionally inserted.
 
 ## Core Controller and Actions
 
@@ -87,70 +90,75 @@ Business logic lives in Riverpod notifier classes in `lib/providers/action.dart`
 
 Desktop:
 
-- `WindowManager`
-- `TrayManager`
-- `HotKeyManager`
-- `ProxyManager`
+- `WindowManager` (`window_manager.dart`)
+- `TrayManager` (`tray_manager.dart`)
+- `HotKeyManager` (`hotkey_manager.dart`)
+- `ProxyManager` (`proxy_manager.dart`)
 
 Mobile:
 
-- `AndroidManager`
-- `TileManager`
-- `VpnManager`
+- `AndroidManager` (`android_manager.dart`)
+- `TileManager` (`tile_manager.dart`)
+- `VpnManager` (`vpn_manager.dart`)
 
 Shared:
 
-- `ConnectivityManager`
-- `CoreManager`
-- `AppStateManager`
-- `StatusManager`
-- `ThemeManager`
+- `ConnectivityManager` (`connectivity_manager.dart`)
+- `CoreManager` (`core_manager.dart`)
+- `AppStateManager` / `AppEnvManager` (`app_manager.dart`)
+- `StatusManager` (`status_manager.dart`)
+- `ThemeManager` (`theme_manager.dart`)
 
 ## Build System
 
 `setup.dart` is the release build orchestrator:
 
-1. On Windows, pre-builds Go core via `dart run build_tool windows` and reads `core_sha256.json`.
-2. Writes `env.json` (`APP_ENV`).
-3. Passes SHA256 as `--dart-define=CORE_SHA256=$val`, embedded at compile time for Windows.
-4. Activates `flutter_distributor` for packaging.
+1. On Windows, pre-builds the Go core via `dart run build_tool windows --root-dir .` (run from `plugins/setup/buildkit/build_tool/`) and reads `core_sha256.json`.
+2. Writes `env.json` (`APP_ENV`, and `CORE_SHA256` on Windows).
+3. Passes the file via `--dart-define-from-file=env.json`, embedding the SHA at compile time for Windows.
+4. Activates the `flutter_distributor` fork for packaging:
 
-Go core building is handled by `build_tool`, a standalone Dart CLI in `plugins/setup/buildkit/build_tool/`.
+   ```bash
+   dart pub global activate -s git https://github.com/chen08209/flutter_distributor.git --git-ref FlClash --git-path packages/flutter_distributor
+   ```
+
+Go core building is handled by `build_tool`, a standalone Dart CLI in `plugins/setup/buildkit/build_tool/`. Build configuration defaults live in `build_tool/lib/src/options.dart` and can be overridden via `build_config.yaml`.
 
 Platform build hooks inside `flutter build` trigger `build_tool` automatically:
 
 - macOS: podspec script phase, `build_pod.sh`, `build_tool macos`.
 - Linux: CMake include, `buildkit/cmake/buildkit.cmake`, `build_tool linux`.
-- Windows: CMake include, `buildkit/cmake/buildkit.cmake`, `build_tool windows`. Debug passes `--dev` via `CMAKE_BUILD_TYPE`.
+- Windows: CMake include, `buildkit/cmake/buildkit.cmake`, `build_tool windows`.
 - Android: Gradle include, `buildkit/gradle/plugin.gradle`, `build_tool android`.
+
+The CMake hook passes the build configuration to the tool through the `BUILDKIT_CONFIGURATION` environment variable (set from `$<CONFIG>`), not a `--dev` flag. The Go linker adds `-H=windowsgui` on Windows targets (no console window), and the Windows desktop minimum window size is 640×540.
 
 Windows helper auth:
 
-- Release: Core SHA256 is embedded in both the Flutter app and the Rust helper. The app pings the helper and verifies the token matches.
-- Debug: The Rust helper skips token verification when built in debug mode, so `flutter run` works without the SHA256 flow.
+- Release: Core SHA256 is embedded in both the Flutter app and the Rust helper (`services/helper/`, built through `RustBuilder` in the build tool). The app pings the helper and verifies the token matches.
+- Debug: the Rust helper is built without `--release` and skips token verification, so `flutter run` works without the SHA256 flow.
 
-`plugins/setup/` is an FFI plugin that exists only as a build harness. It carries no Dart API, only platform build hooks that trigger Go compilation. Windows builds also compile a Rust helper in `services/helper/` through `RustBuilder`.
+Windows packaging notes:
 
-Build configuration defaults live in `build_tool/lib/src/options.dart` and can be overridden via `build_config.yaml`.
-
-Architecture detection is automatic. The `--description` flag passed to `flutter_distributor` adds arch suffixes to artifact names, such as `FlClash-0.8.93-macos-arm64.dmg`.
+- Artifact names gain arch suffixes via the `--description` flag passed to `flutter_distributor`, e.g. `B.O.L.T-0.0.1-windows-amd64-setup.exe` and `B.O.L.T-0.0.1-macos-arm64.dmg`.
+- Inno config lives in `windows/packaging/exe/make_config.yaml`; AppId is `99C0DBC8-79A6-425E-ACAC-15DACB6D60D8` (must stay unique; the upstream FlClash AppId `728B3532-C74B-4870-9068-BE70FE12A3E6` must never be reused).
 
 ## Local Plugins
 
-- `setup`: build harness FFI plugin.
+- `setup`: build harness FFI plugin, no Dart API — only platform build hooks that trigger Go compilation (`plugins/setup/buildkit/`).
 - `proxy`: system proxy configuration.
 - `rust_api`: Flutter Rust Bridge FFI plugin.
-- `tray_manager`: system tray fork/customization.
 - `wifi_ssid`: Wi-Fi SSID detection.
 - `window_ext`: window extensions.
-- `flutter_distributor`: app packaging/distribution.
+
+`tray_manager` is a Git fork dependency in `pubspec.yaml` (not a local plugin); `flutter_distributor` is activated globally at build time and is not a pubspec dependency.
 
 ## Rust Helper Service
 
-`services/helper/` is a Windows-only privileged helper for starting the core as admin and managing TUN. It is built with:
+`services/helper/` is a Windows-only privileged helper for starting the core as admin and managing TUN. It is built by the build tool with:
 
 ```bash
-cargo build --release --features windows-service
+cargo build --features windows-service [--release]
 ```
 
-It uses token-based auth with the Flutter app.
+It uses token-based auth with the Flutter app (SHA256-based in release, skipped in debug). The built binary is `libclash/windows/BOLT_HelperService.exe`.

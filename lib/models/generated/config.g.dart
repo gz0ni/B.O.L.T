@@ -36,6 +36,12 @@ _AppSettingProps _$AppSettingPropsFromJson(Map<String, dynamic> json) =>
           RestoreStrategy.compatible,
       showTrayTitle: json['showTrayTitle'] as bool? ?? true,
       customUserAgent: json['customUserAgent'] as String? ?? '',
+      forceMobileView: json['forceMobileView'] as bool? ?? false,
+      favoriteLocations:
+          (json['favoriteLocations'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
     );
 
 Map<String, dynamic> _$AppSettingPropsToJson(_AppSettingProps instance) =>
@@ -63,6 +69,8 @@ Map<String, dynamic> _$AppSettingPropsToJson(_AppSettingProps instance) =>
       'restoreStrategy': _$RestoreStrategyEnumMap[instance.restoreStrategy]!,
       'showTrayTitle': instance.showTrayTitle,
       'customUserAgent': instance.customUserAgent,
+      'forceMobileView': instance.forceMobileView,
+      'favoriteLocations': instance.favoriteLocations,
     };
 
 const _$RestoreStrategyEnumMap = {

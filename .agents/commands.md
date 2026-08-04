@@ -17,7 +17,7 @@ dart setup.dart windows
 dart setup.dart android
 ```
 
-Build only the Go core and skip Flutter packaging:
+Build only the Go core and skip Flutter packaging (`make` wraps `plugins/setup/buildkit/run_build_tool.sh`):
 
 ```bash
 make core-macos
@@ -26,11 +26,6 @@ make core-windows
 make core-android
 ```
 
-IMPORTANT: Windows release builds MUST go through `dart setup.dart windows` (or pass
-`--dart-define-from-file=env.json` to `flutter build`). `env.json` carries `CORE_SHA256`,
-which the app compares against the helper's `/ping` response; a plain `flutter build windows`
-embeds an empty value and silently breaks the elevated core/TUN flow.
-
 Pass `ARCH` or `TARGET_PLATFORM` through `make` when needed, for example:
 
 ```bash
@@ -38,19 +33,22 @@ make core-macos ARCH=arm64
 make core-android TARGET_PLATFORM=android-arm64
 ```
 
-The Makefile wraps `plugins/setup/buildkit/run_build_tool.sh`; prefer the `make` entry points unless debugging the build tool itself.
+IMPORTANT: Windows release builds MUST go through `dart setup.dart windows` (or pass
+`--dart-define-from-file=env.json` to `flutter build windows`). `setup.dart` writes `env.json`
+with `APP_ENV` and (on Windows) `CORE_SHA256` read from `core_sha256.json`; the app compares
+the embedded SHA against the helper's `/ping` response. A plain `flutter build windows`
+embeds empty values and silently breaks the elevated core/TUN flow.
+
+Windows packaging activates a fork of `flutter_distributor` globally at build time and runs
+Inno Setup to produce `dist/B.O.L.T-<version>-windows-<arch>-setup.exe` plus a `.zip`:
+
+```bash
+dart pub global activate -s git https://github.com/chen08209/flutter_distributor.git --git-ref FlClash --git-path packages/flutter_distributor
+```
 
 ## Flutter Development
 
-The project is pinned with FVM.
-
-```bash
-fvm flutter pub get
-fvm flutter run
-fvm flutter test
-```
-
-Plain Flutter also works when the global SDK matches project constraints:
+The project is not pinned with FVM; use the system Flutter SDK.
 
 ```bash
 flutter pub get
@@ -81,9 +79,15 @@ Generated output paths, configured in `build.yaml`:
 - `lib/providers/generated/*.g.dart`.
 - `lib/database/generated/*.g.dart`.
 
+Localization: source ARBs are `arb/intl_en.arb` and `arb/intl_ru.arb`; regenerate `lib/l10n/` with:
+
+```bash
+dart run intl_utils:generate
+```
+
 ## Testing
 
-Tests use `package:test/test.dart` for pure Dart logic and `flutter_test` for provider and widget tests. `mocktail` is the mocking framework.
+Tests use `package:test/test.dart` for pure Dart logic and `flutter_test` for provider and widget tests. `mocktail` is the mocking framework. There is no `test/widgets/` suite. Test paths:
 
 ```bash
 flutter test test/models/
@@ -91,12 +95,14 @@ flutter test test/core/
 flutter test test/providers/
 flutter test test/common/
 flutter test test/database/
-flutter test test/widgets/
+flutter test test/enum/
 flutter test test/setup_test.dart
 flutter test plugins/proxy/test/proxy_test.dart
 ```
 
 Root `flutter test` only discovers the root package's `test/` directory by default. Include bundled plugin Dart tests by passing paths explicitly, or run `flutter test` from that plugin package directory. Native plugin tests under platform folders are not run by `flutter test`.
+
+Expected baseline: a few `test/common/format_test.dart` tests fail until `AppLocalizations` is initialized (assertion `_current != null`), plus 3 analyzer infos in that file. These pre-date any feature work.
 
 ## Verify
 

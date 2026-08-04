@@ -5,24 +5,66 @@
 //
 // It adds a task that runs build_tool android before mergeNativeLibs.
 
-def buildkitDir = file("${project.projectDir}/../buildkit").absolutePath
-def launcher = "${buildkitDir}/run_build_tool.sh"
+def buildkitDir = project.file("${projectDir}/../buildkit").absolutePath
 def projectRoot = file("${buildkitDir}/../../..").absolutePath
 def androidArch = System.getenv('ANDROID_ARCH')
 def targetPlatform = project.findProperty('target-platform') ?:
         rootProject.findProperty('target-platform')
-def androidNdk = System.getenv('ANDROID_NDK')
 def archArgs = androidArch
         ? ['--arch', androidArch]
         : (targetPlatform ? ['--target-platform', targetPlatform.toString()] : [])
 
+// ANDROID_NDK is rarely set in the Gradle environment on Windows; AGP resolves
+// the NDK from the SDK instead. Fall back to the SDK-installed NDK dir so the
+// Go build_tool can locate the LLVM toolchain.
+String resolveNdk() {
+    def fromEnv = System.getenv('ANDROID_NDK')
+    if (fromEnv) return fromEnv
+
+    def sdkDir = rootProject.findProperty('sdk.dir')
+    if (!sdkDir) {
+        def propsFile = rootProject.file('local.properties')
+        if (propsFile.exists()) {
+            def props = new Properties()
+            propsFile.withInputStream { is -> props.load(is) }
+            sdkDir = props.getProperty('sdk.dir')
+        }
+    }
+    if (!sdkDir) return null
+    def ndkRoot = new File(sdkDir, 'ndk')
+    if (!ndkRoot.isDirectory()) return null
+    def ndkDirs = ndkRoot.listFiles()?.findAll { it.isDirectory() }?.collect { it.name } ?: []
+    ndkDirs.sort()
+    return ndkDirs.isEmpty() ? null : new File(ndkRoot, ndkDirs.last()).absolutePath
+}
+def androidNdk = resolveNdk()
+
+// WSL Stub (WindowsApps\bash.exe) can't resolve MSYS/Windows paths reliably.
+// Prefer MSYS2 bash when present so that cygpath inside run_build_tool.sh works.
+def bashExe = 'bash'
+if (System.getProperty('os.name').toLowerCase().contains('windows')) {
+    def gitBash = 'C:\\Program Files\\Git\\bin\\bash.exe'
+    def msysBash = 'C:\\msys64\\usr\\bin\\bash.exe'
+    if (new File(msysBash).exists()) bashExe = msysBash
+    else if (new File(gitBash).exists()) bashExe = gitBash
+}
+
 task buildGoCore(type: Exec) {
     workingDir buildkitDir
-    commandLine 'bash', launcher, 'android', *archArgs
+    commandLine bashExe, 'run_build_tool.sh', 'android', *archArgs
 
-    environment 'ANDROID_NDK', androidNdk
+    if (androidNdk) {
+        environment 'ANDROID_NDK', androidNdk
+    }
     environment 'APP_ENV', project.hasProperty('appEnv') ? project.appEnv : 'pre'
     environment 'PROJECT_DIR', projectRoot
+    if (System.getProperty('os.name').toLowerCase().contains('windows')) {
+        // MSYS coreutils (mkdir/dirname/…): prepend their bin dir so the script's
+        // non-login bash finds them regardless of the inherited Windows PATH.
+        def msysBin = 'C:\\msys64\\usr\\bin'
+        def oldPath = System.getenv('PATH') ?: ''
+        environment 'PATH', "${msysBin};${oldPath}"
+    }
 }
 
 def goCoreTask = buildGoCore

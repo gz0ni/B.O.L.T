@@ -7,6 +7,11 @@ echo "warning: [setup] Plugin triggered"
 BASEDIR=$(cd "$(dirname "$0")" && pwd)
 PROJECT_DIR="${PROJECT_DIR:-$(pwd)}"
 
+if command -v cygpath >/dev/null 2>&1; then
+  BASEDIR=$(cygpath -m "$BASEDIR")
+  PROJECT_DIR=$(cygpath -m "$PROJECT_DIR")
+fi
+
 if [ ! -f "$PROJECT_DIR/pubspec.yaml" ] || [ ! -d "$PROJECT_DIR/core" ]; then
   echo "Error: Could not find project root at $PROJECT_DIR" >&2
   exit 1

@@ -38,6 +38,61 @@ class _LogsScreenState extends ConsumerState<LogsScreen> {
     return logs.where((log) => log.logLevel.index >= _minLevel.index).toList();
   }
 
+  List<Widget> _buildChips() {
+    return LogLevel.values
+        .where((level) => level != LogLevel.silent)
+        .map(
+          (level) => BoltChip(
+            label: level.name.toUpperCase(),
+            selected: _minLevel == level,
+            onTap: () => setState(() => _minLevel = level),
+          ),
+        )
+        .toList();
+  }
+
+  List<Widget> _buildButtons(bool hasLogs, List<Log> logs) {
+    final surfaces = context.surfaces;
+    final semantic = context.semanticColors;
+    return [
+      BoltIconButton(
+        tooltip: context.appLocalizations.copyAll,
+        onTap: !hasLogs ? null : () => _copyAll(logs),
+        icon: Icons.copy_all_outlined,
+      ),
+      const SizedBox(width: AppSpace.s1),
+      BoltIconButton(
+        tooltip: context.appLocalizations.exportLogs,
+        onTap: !hasLogs ? null : _exportLogs,
+        icon: Icons.save_alt,
+      ),
+      const SizedBox(width: AppSpace.s1),
+      BoltIconButton(
+        tooltip: _autoscroll
+            ? context.appLocalizations.autoscrollOn
+            : context.appLocalizations.autoscrollOff,
+        onTap: () => setState(() => _autoscroll = !_autoscroll),
+        icon: Icons.vertical_align_bottom,
+        color: _autoscroll ? semantic.on : surfaces.text3,
+      ),
+      const SizedBox(width: AppSpace.s1),
+      BoltIconButton(
+        tooltip: context.appLocalizations.clear,
+        onTap: _clearLogs,
+        icon: Icons.delete_outline,
+        danger: true,
+      ),
+      if (widget.onClose != null) ...[
+        const SizedBox(width: AppSpace.s2),
+        BoltIconButton(
+          tooltip: context.appLocalizations.close,
+          onTap: widget.onClose,
+          icon: Icons.close,
+        ),
+      ],
+    ];
+  }
+
   Future<void> _copyAll(List<Log> logs) async {
     final text = logs
         .map(
@@ -107,68 +162,51 @@ class _LogsScreenState extends ConsumerState<LogsScreen> {
               AppSpace.s4,
               AppSpace.s3,
             ),
-            child: Row(
-              children: [
-                Text(
-                  context.appLocalizations.coreLogs,
-                  style: TextStyle(
-                    fontSize: AppFontSize.xl,
-                    fontWeight: FontWeight.w600,
-                    color: surfaces.text1,
-                    fontFamily: AppFontFamily.display,
-                  ),
-                ),
-                const Spacer(),
-                Wrap(
-                  spacing: 4,
-                  children: LogLevel.values
-                      .where((level) => level != LogLevel.silent)
-                      .map(
-                        (level) => BoltChip(
-                          label: level.name.toUpperCase(),
-                          selected: _minLevel == level,
-                          onTap: () => setState(() => _minLevel = level),
-                        ),
-                      )
-                      .toList(),
-                ),
-                const SizedBox(width: AppSpace.s2),
-                BoltIconButton(
-                  tooltip: context.appLocalizations.copyAll,
-                  onTap: filtered.isEmpty ? null : () => _copyAll(filtered),
-                  icon: Icons.copy_all_outlined,
-                ),
-                const SizedBox(width: AppSpace.s1),
-                BoltIconButton(
-                  tooltip: context.appLocalizations.exportLogs,
-                  onTap: filtered.isEmpty ? null : _exportLogs,
-                  icon: Icons.save_alt,
-                ),
-                const SizedBox(width: AppSpace.s1),
-                BoltIconButton(
-                  tooltip: _autoscroll
-                      ? context.appLocalizations.autoscrollOn
-                      : context.appLocalizations.autoscrollOff,
-                  onTap: () => setState(() => _autoscroll = !_autoscroll),
-                  icon: Icons.vertical_align_bottom,
-                  color: _autoscroll ? semantic.on : surfaces.text3,
-                ),
-                const SizedBox(width: AppSpace.s1),
-                BoltIconButton(
-                  tooltip: context.appLocalizations.clear,
-                  onTap: _clearLogs,
-                  icon: Icons.delete_outline,
-                  danger: true,
-                ),
-                if (widget.onClose != null) ...[
-                  const SizedBox(width: AppSpace.s2),
-                  BoltIconButton(
-                    tooltip: context.appLocalizations.close,
-                    onTap: widget.onClose,
-                    icon: Icons.close,
-                  ),
-                ],
-              ],
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                if (constraints.maxWidth < 500) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              context.appLocalizations.coreLogs,
+                              style: TextStyle(
+                                fontSize: AppFontSize.xl,
+                                fontWeight: FontWeight.w600,
+                                color: surfaces.text1,
+                                fontFamily: AppFontFamily.display,
+                              ),
+                            ),
+                          ),
+                          ..._buildButtons(filtered.isNotEmpty, filtered),
+                        ],
+                      ),
+                      const SizedBox(height: AppSpace.s2),
+                      Wrap(spacing: 4, children: _buildChips()),
+                    ],
+                  );
+                }
+                return Row(
+                  children: [
+                    Text(
+                      context.appLocalizations.coreLogs,
+                      style: TextStyle(
+                        fontSize: AppFontSize.xl,
+                        fontWeight: FontWeight.w600,
+                        color: surfaces.text1,
+                        fontFamily: AppFontFamily.display,
+                      ),
+                    ),
+                    const Spacer(),
+                    Wrap(spacing: 4, children: _buildChips()),
+                    const SizedBox(width: AppSpace.s2),
+                    ..._buildButtons(filtered.isNotEmpty, filtered),
+                  ],
+                );
+              },
             ),
           ),
           Expanded(

@@ -16,6 +16,7 @@ class BoltIconButton extends StatelessWidget {
     required this.onTap,
     this.compact = false,
     this.size,
+    this.boxSize,
     this.color,
     this.danger = false,
     this.semanticsLabel,
@@ -26,6 +27,7 @@ class BoltIconButton extends StatelessWidget {
   final VoidCallback? onTap;
   final bool compact;
   final double? size;
+  final double? boxSize;
   final Color? color;
 
   /// Красная hover-подсветка для кнопок удаления.
@@ -37,8 +39,9 @@ class BoltIconButton extends StatelessWidget {
     final surfaces = context.surfaces;
     final semantic = context.semanticColors;
     final isCompact = compact;
-    final dimension = isCompact ? 26.0 : 34.0;
+    final dimension = boxSize ?? (isCompact ? 26.0 : 34.0);
     final radius = isCompact ? AppRadius.xs : AppRadius.sm;
+    final iconSize = size ?? (isCompact ? 13 : boxSize != null ? 18 : 16);
 
     return Tooltip(
       message: tooltip,
@@ -68,7 +71,7 @@ class BoltIconButton extends StatelessWidget {
               height: dimension,
               child: Icon(
                 icon,
-                size: size ?? (isCompact ? 13 : 16),
+                size: iconSize,
                 color: color ?? surfaces.text2,
               ),
             ),

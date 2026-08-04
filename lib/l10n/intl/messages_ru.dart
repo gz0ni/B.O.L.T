@@ -119,18 +119,44 @@ class MessageLookup extends MessageLookupByLibrary {
       "Версия, GitHub, обновления",
     ),
     "accessControl": MessageLookupByLibrary.simpleMessage("Контроль доступа"),
+    "accessControlAllow": MessageLookupByLibrary.simpleMessage(
+      "Только выбранные",
+    ),
     "accessControlAllowDesc": MessageLookupByLibrary.simpleMessage(
       "Разрешить только выбранным приложениям доступ к VPN",
     ),
     "accessControlDesc": MessageLookupByLibrary.simpleMessage(
       "Настройка доступа приложений к прокси",
     ),
+    "accessControlEmpty": MessageLookupByLibrary.simpleMessage(
+      "Ничего не найдено",
+    ),
+    "accessControlNotAllow": MessageLookupByLibrary.simpleMessage(
+      "Все, кроме выбранных",
+    ),
     "accessControlNotAllowDesc": MessageLookupByLibrary.simpleMessage(
       "Выбранные приложения будут исключены из VPN",
+    ),
+    "accessControlReconnectHint": MessageLookupByLibrary.simpleMessage(
+      "Изменения применятся после переподключения",
+    ),
+    "accessControlSearchHint": MessageLookupByLibrary.simpleMessage(
+      "Поиск приложений...",
     ),
     "accessControlSettings": MessageLookupByLibrary.simpleMessage(
       "Настройки контроля доступа",
     ),
+    "accessControlShowNonInternet": MessageLookupByLibrary.simpleMessage(
+      "Показывать приложения без интернета",
+    ),
+    "accessControlShowSystemApps": MessageLookupByLibrary.simpleMessage(
+      "Показывать системные приложения",
+    ),
+    "accessControlSortDefault": MessageLookupByLibrary.simpleMessage(
+      "Умолчание",
+    ),
+    "accessControlSortName": MessageLookupByLibrary.simpleMessage("Имя"),
+    "accessControlSortTime": MessageLookupByLibrary.simpleMessage("Время"),
     "account": MessageLookupByLibrary.simpleMessage("Аккаунт"),
     "action": MessageLookupByLibrary.simpleMessage("Действие"),
     "action_mode": MessageLookupByLibrary.simpleMessage("Переключить режим"),
@@ -784,6 +810,12 @@ class MessageLookup extends MessageLookupByLibrary {
     "minutesAgo": m28,
     "minutesCountLs": m29,
     "mixedPort": MessageLookupByLibrary.simpleMessage("Смешанный порт"),
+    "mobileInterface": MessageLookupByLibrary.simpleMessage(
+      "Интерфейс как на Android",
+    ),
+    "mobileInterfaceDesc": MessageLookupByLibrary.simpleMessage(
+      "Макет как на Android, все настройки десктопа остаются",
+    ),
     "mode": MessageLookupByLibrary.simpleMessage("Режим"),
     "monochromeScheme": MessageLookupByLibrary.simpleMessage("Монохром"),
     "monthsAgo": m30,
@@ -910,6 +942,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "palette": MessageLookupByLibrary.simpleMessage("Палитра"),
     "password": MessageLookupByLibrary.simpleMessage("Пароль"),
     "paste": MessageLookupByLibrary.simpleMessage("Вставить"),
+    "pickQrImageDesc": MessageLookupByLibrary.simpleMessage(
+      "Выбрать изображение с QR-кодом",
+    ),
     "pleaseBindWebDAV": MessageLookupByLibrary.simpleMessage(
       "Пожалуйста, привяжите WebDAV",
     ),

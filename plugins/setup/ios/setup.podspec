@@ -7,7 +7,7 @@ B.O.L.T Go core build harness (FFI plugin).
                        DESC
   s.homepage         = 'http://example.com'
   s.license          = { :file => '../LICENSE' }
-  s.author           = { 'FlClash' => 'email@example.com' }
+  s.author           = { 'gz0ni' => 'email@example.com' }
   s.module_name      = 'setup'
   s.source           = { :path => '.' }
   s.source_files     = 'Classes/**/*'

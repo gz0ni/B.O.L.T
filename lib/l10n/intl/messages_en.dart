@@ -120,18 +120,40 @@ class MessageLookup extends MessageLookupByLibrary {
       "Version, GitHub, and updates",
     ),
     "accessControl": MessageLookupByLibrary.simpleMessage("AccessControl"),
+    "accessControlAllow": MessageLookupByLibrary.simpleMessage(
+      "Allow selected",
+    ),
     "accessControlAllowDesc": MessageLookupByLibrary.simpleMessage(
       "Only allow selected app to enter VPN",
     ),
     "accessControlDesc": MessageLookupByLibrary.simpleMessage(
       "Configure application access proxy",
     ),
+    "accessControlEmpty": MessageLookupByLibrary.simpleMessage("Nothing found"),
+    "accessControlNotAllow": MessageLookupByLibrary.simpleMessage(
+      "Exclude selected",
+    ),
     "accessControlNotAllowDesc": MessageLookupByLibrary.simpleMessage(
       "The selected application will be excluded from VPN",
+    ),
+    "accessControlReconnectHint": MessageLookupByLibrary.simpleMessage(
+      "Changes will be applied after reconnecting",
+    ),
+    "accessControlSearchHint": MessageLookupByLibrary.simpleMessage(
+      "Search apps...",
     ),
     "accessControlSettings": MessageLookupByLibrary.simpleMessage(
       "Access Control Settings",
     ),
+    "accessControlShowNonInternet": MessageLookupByLibrary.simpleMessage(
+      "Show apps without internet",
+    ),
+    "accessControlShowSystemApps": MessageLookupByLibrary.simpleMessage(
+      "Show system apps",
+    ),
+    "accessControlSortDefault": MessageLookupByLibrary.simpleMessage("Default"),
+    "accessControlSortName": MessageLookupByLibrary.simpleMessage("Name"),
+    "accessControlSortTime": MessageLookupByLibrary.simpleMessage("Time"),
     "account": MessageLookupByLibrary.simpleMessage("Account"),
     "action": MessageLookupByLibrary.simpleMessage("Action"),
     "action_mode": MessageLookupByLibrary.simpleMessage("Switch mode"),
@@ -755,6 +777,12 @@ class MessageLookup extends MessageLookupByLibrary {
     "minutesAgo": m28,
     "minutesCountLs": m29,
     "mixedPort": MessageLookupByLibrary.simpleMessage("Mixed Port"),
+    "mobileInterface": MessageLookupByLibrary.simpleMessage(
+      "Interface like on Android",
+    ),
+    "mobileInterfaceDesc": MessageLookupByLibrary.simpleMessage(
+      "Use the Android-style layout while keeping all desktop settings",
+    ),
     "mode": MessageLookupByLibrary.simpleMessage("Mode"),
     "monochromeScheme": MessageLookupByLibrary.simpleMessage("Monochrome"),
     "monthsAgo": m30,
@@ -869,6 +897,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "palette": MessageLookupByLibrary.simpleMessage("Palette"),
     "password": MessageLookupByLibrary.simpleMessage("Password"),
     "paste": MessageLookupByLibrary.simpleMessage("Paste"),
+    "pickQrImageDesc": MessageLookupByLibrary.simpleMessage(
+      "Choose an image with a QR code",
+    ),
     "pleaseBindWebDAV": MessageLookupByLibrary.simpleMessage(
       "Please bind WebDAV",
     ),

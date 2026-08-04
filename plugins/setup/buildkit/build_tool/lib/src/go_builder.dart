@@ -64,7 +64,7 @@ class GoBuilder {
 
     final args = [
       'build',
-      '-ldflags=${config.goLdflags}',
+      '-ldflags=${config.goLdflags}${target.goos == 'windows' ? ' -H=windowsgui' : ''}',
       '-tags=${config.tags}',
       if (target.isLib) '-buildmode=c-shared',
       '-o',

@@ -699,6 +699,106 @@ class AppLocalizations {
     );
   }
 
+  /// `Allow selected`
+  String get accessControlAllow {
+    return Intl.message(
+      'Allow selected',
+      name: 'accessControlAllow',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Exclude selected`
+  String get accessControlNotAllow {
+    return Intl.message(
+      'Exclude selected',
+      name: 'accessControlNotAllow',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Show system apps`
+  String get accessControlShowSystemApps {
+    return Intl.message(
+      'Show system apps',
+      name: 'accessControlShowSystemApps',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Show apps without internet`
+  String get accessControlShowNonInternet {
+    return Intl.message(
+      'Show apps without internet',
+      name: 'accessControlShowNonInternet',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Default`
+  String get accessControlSortDefault {
+    return Intl.message(
+      'Default',
+      name: 'accessControlSortDefault',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Name`
+  String get accessControlSortName {
+    return Intl.message(
+      'Name',
+      name: 'accessControlSortName',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Time`
+  String get accessControlSortTime {
+    return Intl.message(
+      'Time',
+      name: 'accessControlSortTime',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Search apps...`
+  String get accessControlSearchHint {
+    return Intl.message(
+      'Search apps...',
+      name: 'accessControlSearchHint',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Nothing found`
+  String get accessControlEmpty {
+    return Intl.message(
+      'Nothing found',
+      name: 'accessControlEmpty',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Changes will be applied after reconnecting`
+  String get accessControlReconnectHint {
+    return Intl.message(
+      'Changes will be applied after reconnecting',
+      name: 'accessControlReconnectHint',
+      desc: '',
+      args: [],
+    );
+  }
+
   /// `Selected`
   String get selected {
     return Intl.message('Selected', name: 'selected', desc: '', args: []);
@@ -5489,6 +5589,36 @@ class AppLocalizations {
     return Intl.message(
       'Scan with the camera',
       name: 'scanQrCode',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Choose an image with a QR code`
+  String get pickQrImageDesc {
+    return Intl.message(
+      'Choose an image with a QR code',
+      name: 'pickQrImageDesc',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Interface like on Android`
+  String get mobileInterface {
+    return Intl.message(
+      'Interface like on Android',
+      name: 'mobileInterface',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Use the Android-style layout while keeping all desktop settings`
+  String get mobileInterfaceDesc {
+    return Intl.message(
+      'Use the Android-style layout while keeping all desktop settings',
+      name: 'mobileInterfaceDesc',
       desc: '',
       args: [],
     );

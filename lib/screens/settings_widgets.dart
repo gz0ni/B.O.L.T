@@ -6,6 +6,7 @@ import '../theme/app_tokens.dart';
 import '../widgets/bolt_controls.dart';
 import '../widgets/bolt_icon_button.dart';
 import '../widgets/bolt_list.dart';
+import '../widgets/bolt_surfaces.dart';
 
 class SettingsSectionLabel extends StatelessWidget {
   const SettingsSectionLabel(this.text, {super.key});
@@ -22,6 +23,7 @@ class SettingsRow extends StatelessWidget {
     this.description,
     this.help,
     required this.trailing,
+    this.wrapTrailing = false,
   });
 
   final String title;
@@ -29,55 +31,95 @@ class SettingsRow extends StatelessWidget {
   final String? help;
   final Widget trailing;
 
+  /// Для широких контролов (Segmented/Input/Stepper) на узких экранах:
+  /// контрол переносится под текст, иначе он выдавливает/обрезает текст.
+  final bool wrapTrailing;
+
   @override
   Widget build(BuildContext context) {
     final surfaces = context.surfaces;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 12, 10, 12),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+
+    Widget texts() {
+      return Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        title,
-                        style: TextStyle(
-                          color: surfaces.text1,
-                          fontSize: AppFontSize.md,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
+                Flexible(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      color: surfaces.text1,
+                      fontSize: AppFontSize.md,
+                      fontWeight: FontWeight.w500,
                     ),
-                    if (help != null) ...[
-                      const SizedBox(width: AppSpace.s1),
-                      Tooltip(
-                        message: help!,
+                  ),
+                ),
+                if (help != null) ...[
+                  const SizedBox(width: AppSpace.s1),
+                  Tooltip(
+                    message: help!,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => showBoltToast(
+                        context,
+                        help!,
+                        icon: Icons.help_outline,
+                        iconColor: surfaces.text3,
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(4),
                         child: Icon(
                           Icons.help_outline,
                           size: 14,
                           color: surfaces.text3,
                         ),
                       ),
-                    ],
-                  ],
-                ),
-                if (description != null) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    description!,
-                    style: TextStyle(color: surfaces.text3, fontSize: 11.5),
+                    ),
                   ),
                 ],
               ],
             ),
-          ),
-          const SizedBox(width: AppSpace.s3),
-          trailing,
-        ],
+            if (description != null) ...[
+              const SizedBox(height: 2),
+              Text(
+                description!,
+                style: TextStyle(color: surfaces.text3, fontSize: 11.5),
+              ),
+            ],
+          ],
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(10, 12, 10, 12),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (wrapTrailing && constraints.maxWidth < 480) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    texts(),
+                    const SizedBox(width: AppSpace.s3),
+                  ],
+                ),
+                const SizedBox(height: AppSpace.s2),
+                Align(alignment: Alignment.centerRight, child: trailing),
+              ],
+            );
+          }
+          return Row(
+            children: [
+              texts(),
+              const SizedBox(width: AppSpace.s3),
+              trailing,
+            ],
+          );
+        },
       ),
     );
   }
@@ -325,83 +367,78 @@ class SettingsListEditor extends StatelessWidget {
     final controller = TextEditingController();
     final local = context.appLocalizations;
     final hintText = hint ?? local.value;
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (dialogContext, setState) {
-            void add() {
-              final text = controller.text.trim();
-              if (text.isEmpty) return;
-              items.add(text);
-              controller.clear();
-              setState(() {});
-            }
+    showBoltDialog<void>(
+      context,
+      title: title,
+      content: StatefulBuilder(
+        builder: (dialogContext, setState) {
+          void add() {
+            final text = controller.text.trim();
+            if (text.isEmpty) return;
+            items.add(text);
+            controller.clear();
+            setState(() {});
+          }
 
-            return AlertDialog(
-              title: Text(title),
-              content: SizedBox(
-                width: 360,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Flexible(
-                      child: ListView(
-                        shrinkWrap: true,
-                        children: [
-                          for (final item in items)
-                            _dialogListItem(
-                              context,
-                              key: item,
-                              trailing: BoltIconButton(
-                                icon: Icons.close,
-                                tooltip: context.appLocalizations.delete,
-                                compact: true,
-                                color: context.semanticColors.danger,
-                                danger: true,
-                                onTap: () {
-                                  items.remove(item);
-                                  setState(() {});
-                                },
-                              ),
-                              child: Text(
-                                item,
-                                style: TextStyle(
-                                  color: context.surfaces.text1,
-                                  fontSize: AppFontSize.sm,
-                                ),
-                              ),
+          return SizedBox(
+            width: 360,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: ListView(
+                    shrinkWrap: true,
+                    children: [
+                      for (final item in items)
+                        _dialogListItem(
+                          context,
+                          key: item,
+                          trailing: BoltIconButton(
+                            icon: Icons.close,
+                            tooltip: context.appLocalizations.delete,
+                            color: context.semanticColors.danger,
+                            danger: true,
+                            onTap: () {
+                              items.remove(item);
+                              setState(() {});
+                            },
+                          ),
+                          child: Text(
+                            item,
+                            style: TextStyle(
+                              color: context.surfaces.text1,
+                              fontSize: AppFontSize.sm,
                             ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: AppSpace.s2),
-                    _dialogTextField(
-                      context,
-                      controller: controller,
-                      hint: hintText,
-                      onSubmitted: (_) => add(),
-                    ),
-                  ],
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(),
-                  child: Text(context.appLocalizations.cancel),
-                ),
-                FilledButton(
-                  onPressed: () {
-                    Navigator.of(dialogContext).pop();
-                    onChanged(items);
-                  },
-                  child: Text(context.appLocalizations.save),
+                const SizedBox(height: AppSpace.s2),
+                _dialogTextField(
+                  context,
+                  controller: controller,
+                  hint: hintText,
+                  onSubmitted: (_) => add(),
                 ),
               ],
-            );
+            ),
+          );
+        },
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(context.appLocalizations.cancel),
+        ),
+        FilledButton(
+          onPressed: () {
+            Navigator.of(context).pop();
+            onChanged(items);
           },
-        );
-      },
+          child: Text(context.appLocalizations.save),
+        ),
+      ],
     );
   }
 }
@@ -437,106 +474,100 @@ class SettingsMapEditor extends StatelessWidget {
     final local = context.appLocalizations;
     final keyHintText = keyHint ?? local.key;
     final valueHintText = valueHint ?? local.value;
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (dialogContext, setState) {
-            void add() {
-              final key = keyController.text.trim();
-              final val = valueController.text.trim();
-              if (key.isEmpty || val.isEmpty) return;
-              items[key] = val;
-              keyController.clear();
-              valueController.clear();
-              setState(() {});
-            }
+    showBoltDialog<void>(
+      context,
+      title: title,
+      content: StatefulBuilder(
+        builder: (dialogContext, setState) {
+          void add() {
+            final key = keyController.text.trim();
+            final val = valueController.text.trim();
+            if (key.isEmpty || val.isEmpty) return;
+            items[key] = val;
+            keyController.clear();
+            valueController.clear();
+            setState(() {});
+          }
 
-            return AlertDialog(
-              title: Text(title),
-              content: SizedBox(
-                width: 360,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Flexible(
-                      child: ListView(
-                        shrinkWrap: true,
-                        children: [
-                          for (final entry in items.entries)
-                            _dialogListItem(
-                              context,
-                              key: entry.key,
-                              trailing: BoltIconButton(
-                                icon: Icons.close,
-                                tooltip: context.appLocalizations.delete,
-                                compact: true,
-                                color: context.semanticColors.danger,
-                                onTap: () {
-                                  items.remove(entry.key);
-                                  setState(() {});
-                                },
-                              ),
-                              child: Text(
-                                '${entry.key} → ${entry.value}',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: context.surfaces.text1,
-                                  fontSize: AppFontSize.sm,
-                                ),
-                              ),
+          return SizedBox(
+            width: 360,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: ListView(
+                    shrinkWrap: true,
+                    children: [
+                      for (final entry in items.entries)
+                        _dialogListItem(
+                          context,
+                          key: entry.key,
+                          trailing: BoltIconButton(
+                            icon: Icons.close,
+                            tooltip: context.appLocalizations.delete,
+                            color: context.semanticColors.danger,
+                            onTap: () {
+                              items.remove(entry.key);
+                              setState(() {});
+                            },
+                          ),
+                          child: Text(
+                            '${entry.key} → ${entry.value}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: context.surfaces.text1,
+                              fontSize: AppFontSize.sm,
                             ),
-                        ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppSpace.s2),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _dialogTextField(
+                        context,
+                        controller: keyController,
+                        hint: keyHintText,
                       ),
                     ),
-                    const SizedBox(height: AppSpace.s2),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _dialogTextField(
-                            context,
-                            controller: keyController,
-                            hint: keyHintText,
-                          ),
-                        ),
-                        const SizedBox(width: AppSpace.s2),
-                        Expanded(
-                          child: _dialogTextField(
-                            context,
-                            controller: valueController,
-                            hint: valueHintText,
-                          ),
-                        ),
-                        const SizedBox(width: AppSpace.s1),
-                        BoltIconButton(
-                          icon: Icons.add,
-                          tooltip: context.appLocalizations.add,
-                          compact: true,
-                          onTap: add,
-                        ),
-                      ],
+                    const SizedBox(width: AppSpace.s2),
+                    Expanded(
+                      child: _dialogTextField(
+                        context,
+                        controller: valueController,
+                        hint: valueHintText,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpace.s1),
+                    BoltIconButton(
+                      icon: Icons.add,
+                      tooltip: context.appLocalizations.add,
+                      onTap: add,
                     ),
                   ],
                 ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(),
-                  child: Text(context.appLocalizations.cancel),
-                ),
-                FilledButton(
-                  onPressed: () {
-                    Navigator.of(dialogContext).pop();
-                    onChanged(items);
-                  },
-                  child: Text(context.appLocalizations.save),
-                ),
               ],
-            );
+            ),
+          );
+        },
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(context.appLocalizations.cancel),
+        ),
+        FilledButton(
+          onPressed: () {
+            Navigator.of(context).pop();
+            onChanged(items);
           },
-        );
-      },
+          child: Text(context.appLocalizations.save),
+        ),
+      ],
     );
   }
 }
@@ -550,6 +581,7 @@ class SettingsPortsEditor extends StatelessWidget {
     required this.redirPort,
     required this.tproxyPort,
     required this.onChanged,
+    this.showRedirTproxy = true,
   });
 
   final int mixedPort;
@@ -557,19 +589,21 @@ class SettingsPortsEditor extends StatelessWidget {
   final int port;
   final int redirPort;
   final int tproxyPort;
+  final bool showRedirTproxy;
   final void Function(int mixed, int socks, int port, int redir, int tproxy)
   onChanged;
 
   @override
   Widget build(BuildContext context) {
+    final ports = [
+      mixedPort,
+      socksPort,
+      port,
+      if (showRedirTproxy) redirPort,
+      if (showRedirTproxy) tproxyPort,
+    ];
     return _EditorButton(
-      count: [
-        mixedPort,
-        socksPort,
-        port,
-        redirPort,
-        tproxyPort,
-      ].where((v) => v > 0).length,
+      count: ports.where((v) => v > 0).length,
       onTap: () => _showPortsDialog(context),
     );
   }
@@ -580,66 +614,72 @@ class SettingsPortsEditor extends StatelessWidget {
     final portCtrl = TextEditingController(text: '$port');
     final redir = TextEditingController(text: '$redirPort');
     final tproxy = TextEditingController(text: '$tproxyPort');
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        Widget field(String label, TextEditingController controller) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: AppSpace.s2),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 120,
-                  child: Text(
-                    label,
-                    style: TextStyle(color: context.surfaces.text2),
+    showBoltDialog<void>(
+      context,
+      title: context.appLocalizations.ports,
+      content: Builder(
+        builder: (dialogContext) {
+          Widget field(String label, TextEditingController controller) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: AppSpace.s2),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 120,
+                    child: Text(
+                      label,
+                      style: TextStyle(color: dialogContext.surfaces.text2),
+                    ),
                   ),
-                ),
-                Expanded(
-                  child: _dialogTextField(
-                    context,
-                    controller: controller,
-                    numeric: true,
+                  Expanded(
+                    child: _dialogTextField(
+                      dialogContext,
+                      controller: controller,
+                      numeric: true,
+                    ),
                   ),
-                ),
-              ],
-            ),
-          );
-        }
+                ],
+              ),
+            );
+          }
 
-        return AlertDialog(
-          title: Text(context.appLocalizations.ports),
-          content: Column(
+          return Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               field('Mixed port', mixed),
               field('SOCKS', socks),
               field('HTTP', portCtrl),
-              field('Redir', redir),
-              field('TProxy', tproxy),
+              if (showRedirTproxy) ...[
+                field('Redir', redir),
+                field('TProxy', tproxy),
+              ],
             ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: Text(context.appLocalizations.cancel),
-            ),
-            FilledButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-                onChanged(
-                  int.tryParse(mixed.text.trim()) ?? 0,
-                  int.tryParse(socks.text.trim()) ?? 0,
-                  int.tryParse(portCtrl.text.trim()) ?? 0,
-                  int.tryParse(redir.text.trim()) ?? 0,
-                  int.tryParse(tproxy.text.trim()) ?? 0,
-                );
-              },
-              child: Text(context.appLocalizations.save),
-            ),
-          ],
-        );
-      },
+          );
+        },
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(context.appLocalizations.cancel),
+        ),
+        FilledButton(
+          onPressed: () {
+            Navigator.of(context).pop();
+            onChanged(
+              int.tryParse(mixed.text.trim()) ?? 0,
+              int.tryParse(socks.text.trim()) ?? 0,
+              int.tryParse(portCtrl.text.trim()) ?? 0,
+              showRedirTproxy
+                  ? int.tryParse(redir.text.trim()) ?? 0
+                  : redirPort,
+              showRedirTproxy
+                  ? int.tryParse(tproxy.text.trim()) ?? 0
+                  : tproxyPort,
+            );
+          },
+          child: Text(context.appLocalizations.save),
+        ),
+      ],
     );
   }
 }

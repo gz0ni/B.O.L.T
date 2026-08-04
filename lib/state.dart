@@ -17,6 +17,7 @@ import 'enum/enum.dart';
 import 'l10n/l10n.dart';
 import 'models/models.dart';
 import 'providers/providers.dart';
+import 'widgets/bolt_surfaces.dart';
 
 class GlobalState {
   static GlobalState? _instance;
@@ -159,104 +160,94 @@ class GlobalState {
     bool? dismissible,
   }) async {
     final dialogContext = context ?? navigatorKey.currentContext!;
-    return showDialog<bool>(
-      context: dialogContext,
+    return showBoltDialog<bool>(
+      dialogContext,
       barrierDismissible: dismissible ?? true,
-      builder: (dialogContext) {
-        final appLocalizations = dialogContext.appLocalizations;
-        return AlertDialog(
-          title: Text(title ?? appLocalizations.tip),
-          actions: [
-            if (cancelable)
-              TextButton(
-                onPressed: () {
-                  Navigator.of(dialogContext).pop(false);
-                },
-                child: Text(cancelText ?? appLocalizations.cancel),
-              ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop(true);
-              },
-              child: Text(confirmText ?? appLocalizations.confirm),
+      title: title ?? dialogContext.appLocalizations.tip,
+      content: SizedBox(
+        width: 300,
+        child: SingleChildScrollView(
+          child: SelectableText.rich(
+            TextSpan(
+              style: Theme.of(dialogContext).textTheme.labelLarge,
+              children: [message],
             ),
-          ],
-          content: SizedBox(
-            width: 300,
-            child: SingleChildScrollView(
-              child: SelectableText.rich(
-                TextSpan(
-                  style: Theme.of(dialogContext).textTheme.labelLarge,
-                  children: [message],
-                ),
-                style: const TextStyle(overflow: TextOverflow.visible),
-              ),
-            ),
+            style: const TextStyle(overflow: TextOverflow.visible),
           ),
-        );
-      },
+        ),
+      ),
+      actions: [
+        if (cancelable)
+          TextButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop(false);
+            },
+            child: Text(cancelText ?? dialogContext.appLocalizations.cancel),
+          ),
+        TextButton(
+          onPressed: () {
+            Navigator.of(dialogContext).pop(true);
+          },
+          child: Text(confirmText ?? dialogContext.appLocalizations.confirm),
+        ),
+      ],
     );
   }
 
   Future<bool?> showAllUpdatingMessagesDialog(
     List<UpdatingMessage> messages,
   ) async {
-    return showDialog<bool>(
-      context: navigatorKey.currentContext!,
-      builder: (dialogContext) {
-        final appLocalizations = currentAppLocalizations;
-        final surfaces = dialogContext.surfaces;
-        return AlertDialog(
-          title: Text(appLocalizations.tip),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop(true);
-              },
-              child: Text(appLocalizations.confirm),
-            ),
-          ],
-          content: SizedBox(
-            width: 300,
-            child: ListView.separated(
-              shrinkWrap: true,
-              itemBuilder: (_, index) {
-                final message = messages[index];
-                return Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpace.s2,
-                    vertical: AppSpace.s2,
+    final dialogContext = navigatorKey.currentContext!;
+    final surfaces = dialogContext.surfaces;
+    return showBoltDialog<bool>(
+      dialogContext,
+      title: dialogContext.appLocalizations.tip,
+      content: SizedBox(
+        width: 300,
+        child: ListView.separated(
+          shrinkWrap: true,
+          itemBuilder: (_, index) {
+            final message = messages[index];
+            return Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpace.s2,
+                vertical: AppSpace.s2,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    message.label,
+                    style: TextStyle(
+                      color: surfaces.text1,
+                      fontSize: AppFontSize.md,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        message.label,
-                        style: TextStyle(
-                          color: surfaces.text1,
-                          fontSize: AppFontSize.md,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        message.message,
-                        style: TextStyle(
-                          color: surfaces.text2,
-                          fontSize: AppFontSize.sm,
-                        ),
-                      ),
-                    ],
+                  const SizedBox(height: 2),
+                  Text(
+                    message.message,
+                    style: TextStyle(
+                      color: surfaces.text2,
+                      fontSize: AppFontSize.sm,
+                    ),
                   ),
-                );
-              },
-              itemCount: messages.length,
-              separatorBuilder: (_, _) =>
-                  const Divider(height: 1, thickness: 1),
-            ),
-          ),
-        );
-      },
+                ],
+              ),
+            );
+          },
+          itemCount: messages.length,
+          separatorBuilder: (_, _) => const Divider(height: 1, thickness: 1),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () {
+            Navigator.of(dialogContext).pop(true);
+          },
+          child: Text(dialogContext.appLocalizations.confirm),
+        ),
+      ],
     );
   }
 
@@ -306,8 +297,6 @@ class GlobalState {
       window?.hide();
     }
     await _handleFailedPreference();
-    await _handlerDisclaimer();
-    await _showCrashlyticsTip();
     await container.read(coreActionProvider.notifier).connectCore();
     await container.read(coreActionProvider.notifier).initCore();
     await container.read(setupActionProvider.notifier).initStatus();
@@ -326,66 +315,6 @@ class GlobalState {
       await file.safeDelete();
     }
     await container.read(systemActionProvider.notifier).handleExit();
-  }
-
-  Future<bool> showDisclaimer() async {
-    return await showDialog<bool>(
-          context: navigatorKey.currentContext!,
-          barrierDismissible: false,
-          builder: (dialogContext) {
-            return AlertDialog(
-              title: Text(currentAppLocalizations.disclaimer),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(dialogContext).pop<bool>(false);
-                  },
-                  child: Text(currentAppLocalizations.exit),
-                ),
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(dialogContext).pop<bool>(true);
-                  },
-                  child: Text(currentAppLocalizations.agree),
-                ),
-              ],
-              content: Text(currentAppLocalizations.disclaimerDesc),
-            );
-          },
-        ) ??
-        false;
-  }
-
-  Future<void> _showCrashlyticsTip() async {
-    if (!system.isAndroid) return;
-    if (container.read(
-      appSettingProvider.select((state) => state.crashlyticsTip),
-    )) {
-      return;
-    }
-    await showMessage(
-      title: currentAppLocalizations.dataCollectionTip,
-      cancelable: false,
-      message: TextSpan(text: currentAppLocalizations.dataCollectionContent),
-    );
-    container
-        .read(appSettingProvider.notifier)
-        .update((state) => state.copyWith(crashlyticsTip: true));
-  }
-
-  Future<void> _handlerDisclaimer() async {
-    if (container.read(
-      appSettingProvider.select((state) => state.disclaimerAccepted),
-    )) {
-      return;
-    }
-    final isDisclaimerAccepted = await showDisclaimer();
-    if (!isDisclaimerAccepted) {
-      await container.read(systemActionProvider.notifier).handleExit();
-    }
-    container
-        .read(appSettingProvider.notifier)
-        .update((state) => state.copyWith(disclaimerAccepted: true));
   }
 }
 

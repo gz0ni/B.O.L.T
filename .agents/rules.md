@@ -1,6 +1,6 @@
 # Rules
 
-These are repository coding and testing conventions. Codex command permission rules belong in `.codex/rules/*.rules`; see `.agents/agent-config.md` before adding those.
+These are repository coding and testing conventions.
 
 ## Dart and Flutter Style
 
